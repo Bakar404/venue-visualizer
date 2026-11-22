@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { TIME_OF_DAY, WINDOWS_VIEW } from "@/lib/spec";
 import { SPEC_LIMITS, specFormSchema as schema, type NumericSpecField } from "@/lib/spec-schema";
 import type { DesignSpec, VenueRules } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -196,6 +197,42 @@ function SwitchField({ form, name, label, blocked }: { form: Form; name: Path; l
   );
 }
 
+/** A segmented control built from native radios, so arrow keys and forms work as usual. */
+function TimeOfDayField({ form }: { form: Form }) {
+  return (
+    <Controller
+      control={form.control}
+      name="scene.time_of_day"
+      render={({ field }) => (
+        <div role="radiogroup" aria-label="Time of day" className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
+          {TIME_OF_DAY.map((o) => (
+            <label
+              key={o.value}
+              className={cn(
+                "relative flex min-h-8 cursor-pointer items-center justify-center rounded-md px-1.5 text-center text-xs leading-tight font-medium text-muted-foreground select-none",
+                "transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.97]",
+                "has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm has-focus-visible:ring-2 has-focus-visible:ring-ring/50",
+                "[@media(hover:hover)]:hover:text-foreground",
+              )}
+            >
+              <input
+                type="radio"
+                name="spec-scene-time_of_day"
+                value={o.value}
+                checked={field.value === o.value}
+                onChange={() => field.onChange(o.value)}
+                onBlur={field.onBlur}
+                className="absolute inset-0 m-0 cursor-pointer appearance-none rounded-md opacity-0"
+              />
+              {o.label}
+            </label>
+          ))}
+        </div>
+      )}
+    />
+  );
+}
+
 function Section({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   return (
     <Collapsible defaultOpen={defaultOpen} className="border-b last:border-b-0">
@@ -322,6 +359,17 @@ export function SpecForm({ spec, onChange, rules }: { spec: DesignSpec; onChange
         <div className="mt-2">
           <SwitchField form={form} name="lighting.string_lights" label="String lights" />
           <SwitchField form={form} name="lighting.pin_spots" label="Pin spots on tables" />
+        </div>
+      </Section>
+      <Section title="Time & windows">
+        <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground" aria-hidden>
+              Time of day
+            </span>
+            <TimeOfDayField form={form} />
+          </div>
+          <SelectField form={form} name="scene.windows" label="Windows" options={WINDOWS_VIEW.map((o) => [o.value, o.label] as const)} />
         </div>
       </Section>
       <Section title="Extras, effects and install">

@@ -1,0 +1,40 @@
+
+  2) [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: /Couldn't verify/ })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: /Couldn't verify/ }) with timeout 10000ms
+      - waiting for getByRole('button', { name: /Couldn't verify/ })
+
+
+       6 |   await openStudio(page, "space-terrace");
+       7 |   const badge = page.getByRole("button", { name: /Couldn't verify/ });
+    >  8 |   await expect(badge).toBeVisible();
+         |                       ^
+       9 |   await expect(badge).toHaveAttribute("data-level", "unverifiable");
+      10 |   await badge.click();
+      11 |   const detail = page.getByRole("dialog");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-web/apps/web/e2e/ut7.spec.ts:8:23
+
+    Error Context: test-results/ut7-UT7-an-unverifiable-ch-d8300-hy-and-points-to-the-slider-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut7-UT7-an-unverifiable-ch-d8300-hy-and-points-to-the-slider-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut7-UT7-an-unverifiable-ch-d8300-hy-and-points-to-the-slider-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider 
+    [chromium] › e2e/ut7.spec.ts:19:1 › UT7: a changed room says “May have changed the room” with the backend's reason in plain words 
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test e2e/ut7.spec.ts --reporter=line

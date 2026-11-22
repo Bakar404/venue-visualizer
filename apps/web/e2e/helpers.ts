@@ -1,0 +1,65 @@
+import path from "node:path";
+
+import { expect, type Page } from "@playwright/test";
+
+/** Screenshots for the proof folder at the repo root (`docs/proof/`). */
+export const proof = (name: string) => path.resolve(__dirname, "../../../docs/proof", name);
+
+type MockPeek = {
+  looks: () => Array<{ id: string; space_id: string; name: string; spec: { linens: { color: string } } }>;
+  renders: () => Array<{ id: string; look_id: string; photo_id: string; status: string }>;
+  chat: (spaceId: string) => Array<{ role: "user" | "assistant"; content: string }>;
+};
+
+declare global {
+  interface Window {
+    __vvMock: MockPeek;
+  }
+}
+
+export async function openStudio(page: Page, spaceId: string, query = "") {
+  await page.goto(`/spaces/${spaceId}${query}`);
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("#chat-input")).toBeAttached();
+}
+
+/** Counts finished assistant bubbles in the conversation log. */
+export function assistantReplies(page: Page) {
+  return page.evaluate(
+    () => [...document.querySelectorAll('[role="log"] li')].filter((li) => li.textContent?.trimStart().startsWith("Assistant:")).length,
+  );
+}
+
+/** The text of the newest user bubble, without the screen-reader prefix. */
+export function lastUserMessage(page: Page) {
+  return page.evaluate(() => {
+    const mine = [...document.querySelectorAll('[role="log"] li')].filter((li) => li.textContent?.trimStart().startsWith("You:"));
+    return (mine.at(-1)?.querySelector("p")?.textContent ?? "").replace(/^You:\s*/, "");
+  });
+}
+
+/** Waits until one more assistant reply is on screen. */
+export async function waitForReply(page: Page, before: number) {
+  await expect.poll(() => assistantReplies(page), { timeout: 10_000 }).toBe(before + 1);
+}
+
+/** True once an assistant reply follows the newest user bubble with this text. */
+function repliedTo(page: Page, text: string) {
+  return page.evaluate((sent) => {
+    const items = [...document.querySelectorAll('[role="log"] li')].map((li) => li.textContent?.trimStart() ?? "");
+    const mine = items.findLastIndex((t) => t.startsWith("You:") && t.replace(/^You:\s*/, "").startsWith(sent));
+    return mine >= 0 && items.slice(mine + 1).some((t) => t.startsWith("Assistant:"));
+  }, text);
+}
+
+export async function sendChat(page: Page, text: string) {
+  const input = page.locator("#chat-input");
+  await input.fill(text);
+  await input.press("Enter");
+  await expect.poll(() => repliedTo(page, text), { timeout: 10_000 }).toBe(true);
+}
+
+/** Waits for running CSS transitions/animations so screenshots show the settled state. */
+export async function settled(page: Page) {
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity));
+}

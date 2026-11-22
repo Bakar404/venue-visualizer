@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { defaultSpec } from "@/lib/spec";
+import { defaultSpec, suggestLookName } from "@/lib/spec";
 import { specFormSchema } from "@/lib/spec-schema";
 
 const withTables = (tables: Record<string, unknown>) => {
@@ -26,5 +26,12 @@ describe("specFormSchema", () => {
     expect(issuePaths(withTables({ size_in: 23 }))).toEqual(["tables.size_in"]);
     expect(issuePaths(withTables({ size_in: 121 }))).toEqual(["tables.size_in"]);
     expect(issuePaths({ ...defaultSpec(), guest_count: 2001 })).toEqual(["guest_count"]);
+  });
+});
+
+describe("suggestLookName", () => {
+  it("names the look after the newest palette colors", () => {
+    const spec = { ...defaultSpec(), palette: ["ivory", "gold", "blush", "navy", "silver"] };
+    expect(suggestLookName(spec)).toBe("Blush, navy & silver");
   });
 });

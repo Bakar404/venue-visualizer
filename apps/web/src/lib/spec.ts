@@ -172,8 +172,9 @@ export function knownColorNames(): string[] {
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+/** Names a Look after its newest palette colors: chat appends, so the last ones are what the user just asked for. */
 export function suggestLookName(spec: DesignSpec): string {
-  const colors = spec.palette.slice(0, 3).map((c) => c.trim()).filter(Boolean);
+  const colors = spec.palette.map((c) => c.trim()).filter(Boolean).slice(-3);
   if (colors.length === 0) return "Untitled look";
   if (colors.length === 1) return titleCase(colors[0]);
   return titleCase(`${colors.slice(0, -1).join(", ")} & ${colors.at(-1)}`);
@@ -219,8 +220,31 @@ const FIELD_LABELS: Record<string, string> = {
   "install.uses_adhesives": "Uses adhesives",
   "install.uses_nails": "Uses nails",
   "install.ceiling_draping": "Ceiling draping",
+  "scene.time_of_day": "Time of day",
+  "scene.windows": "Windows",
   notes: "Notes",
 };
+
+export type TimeOfDay = NonNullable<NonNullable<DesignSpec["scene"]>["time_of_day"]>;
+export type WindowsView = NonNullable<NonNullable<DesignSpec["scene"]>["windows"]>;
+
+export const TIME_OF_DAY: { value: TimeOfDay; label: string }[] = [
+  { value: "daylight", label: "Daylight" },
+  { value: "golden_hour", label: "Golden hour" },
+  { value: "evening", label: "Evening" },
+  { value: "night", label: "Night" },
+];
+
+export const WINDOWS_VIEW: { value: WindowsView; label: string }[] = [
+  { value: "as_photographed", label: "As photographed" },
+  { value: "dark", label: "Dark" },
+  { value: "sheer_draped", label: "Sheer draped" },
+];
+
+export function timeOfDayLabel(spec: DesignSpec): string | null {
+  const t = spec.scene?.time_of_day;
+  return TIME_OF_DAY.find((o) => o.value === t)?.label ?? null;
+}
 
 function display(value: unknown): string {
   if (value === null || value === undefined || value === "") return "None";

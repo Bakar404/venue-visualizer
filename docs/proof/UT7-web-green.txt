@@ -1,0 +1,6 @@
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut7.spec.ts:20:1 › UT7: a changed room says “May have changed the room” with the backend's reason in plain words
+[2/2] [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider
+  2 passed (3.5s)

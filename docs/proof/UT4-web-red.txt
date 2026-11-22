@@ -1,0 +1,40 @@
+
+        pnpm exec playwright show-trace test-results/ut4-UT4-“make-it-7pm-so-it-9fab1-out”-sets-night-in-one-turn-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Time & windows' })
+
+
+       8 |   await openStudio(page, "space-ballroom");
+       9 |   await planSummary(page).click();
+    > 10 |   await page.getByRole("button", { name: "Time & windows" }).click();
+         |                                                              ^
+      11 |
+      12 |   const time = page.getByRole("radiogroup", { name: "Time of day" });
+      13 |   await expect(time.getByRole("radio")).toHaveText(["Daylight", "Golden hour", "Evening", "Night"]);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-web/apps/web/e2e/ut4.spec.ts:10:62
+
+    Error Context: test-results/ut4-UT4-the-plan-has-a-Tim-e22af--Night-shows-in-the-summary-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut4-UT4-the-plan-has-a-Tim-e22af--Night-shows-in-the-summary-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut4-UT4-the-plan-has-a-Tim-e22af--Night-shows-in-the-summary-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary 
+    [chromium] › e2e/ut4.spec.ts:26:1 › UT4: “make it 7pm so it's dark out” sets night in one turn ─
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test e2e/ut4.spec.ts --reporter=line

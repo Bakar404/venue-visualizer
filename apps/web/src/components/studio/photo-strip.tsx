@@ -14,7 +14,7 @@ import { latestRenderFor } from "@/lib/spec";
 import type { Look, Photo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ACCEPT = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+export const ACCEPT = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const MAX_BYTES = 20 * 1024 * 1024;
 const MAX_PHOTOS = 30;
 
@@ -36,7 +36,7 @@ export function useUploadPhotos(spaceId: string, onUploaded?: (photos: Photo[]) 
   });
 }
 
-function filterFiles(list: FileList | File[], existing: number): File[] {
+export function filterFiles(list: FileList | File[], existing: number): File[] {
   const files = [...list];
   const wrongType = files.filter((f) => !accepted(f));
   const tooBig = files.filter((f) => accepted(f) && f.size > MAX_BYTES);

@@ -1,0 +1,40 @@
+  2) [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('group', { name: /Ready to see it/ })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('group', { name: /Ready to see it/ }) with timeout 10000ms
+      - waiting for getByRole('group', { name: /Ready to see it/ })
+
+
+       9 |
+      10 |   const card = page.getByRole("group", { name: /Ready to see it/ });
+    > 11 |   await expect(card).toBeVisible();
+         |                      ^
+      12 |   await expect(card).toContainText("Mock (dev)");
+      13 |   await expect(card).toContainText(/about 2\s?s/);
+      14 |   await expect(card).toContainText("Free, for testing");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-web/apps/web/e2e/ut2.spec.ts:11:22
+
+    Error Context: test-results/ut2-UT2-asking-to-see-it-o-b156b--render-of-the-current-plan-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut2-UT2-asking-to-see-it-o-b156b--render-of-the-current-plan-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut2-UT2-asking-to-see-it-o-b156b--render-of-the-current-plan-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan 
+    [chromium] › e2e/ut2.spec.ts:32:1 › UT2: a reply that changed the plan offers a quiet Render this change 
+  1 passed (17.3s)
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test e2e/ut2.spec.ts --reporter=line

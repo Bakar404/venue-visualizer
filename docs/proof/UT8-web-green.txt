@@ -1,0 +1,5 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render
+  1 passed (6.9s)

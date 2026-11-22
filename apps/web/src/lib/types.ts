@@ -61,6 +61,14 @@ export type Photo = {
   credit?: string | null;
 };
 
+/** A web photo kept as a reference only (nothing downloaded). See docs/api.md, "Reference photos → base photo". */
+export type SpaceReference = {
+  url: string;
+  source_page?: string | null;
+  caption?: string | null;
+  credit?: string | null;
+};
+
 export type Space = {
   id: string;
   venue_id: string;
@@ -68,6 +76,8 @@ export type Space = {
   venue_spec: VenueSpec;
   photos: Photo[];
   current_spec: DesignSpec | null;
+  /** Web photos imported in reference mode; older APIs omit this. */
+  references?: SpaceReference[];
 };
 
 export type Venue = {
@@ -90,7 +100,12 @@ export type StructureReport = {
   coverage: number | null;
   edge_density?: number | null;
   flat?: boolean | null;
+  /** Why the check failed or couldn't run, in the pipeline's words (e.g. "the render lost the room's structure"). */
+  reason?: string | null;
 };
+
+/** Plain-language verdict for the structure badge. `unverifiable`: we couldn't check; `changed`: the room likely differs. */
+export type StructureMessage = { level: "unverifiable" | "changed" | (string & {}); text: string };
 
 export type Render = {
   id: string;
@@ -106,6 +121,7 @@ export type Render = {
     notes?: string | null;
     structure?: StructureReport | null;
     structure_warning?: string | null;
+    structure_message?: StructureMessage | string | null;
   } | null;
   error: string | null;
   created_at: string;
@@ -188,13 +204,24 @@ export type ChatMessage = {
   created_at: string;
 };
 
+/** "render" means the user asked to see the plan, so the UI offers Render now. */
+export type ChatIntent = "edit" | "render" | "question" | "none";
+
+/** A clarifying question. Quick-reply chips send an option, never the question. */
+export type Ambiguity = { question: string; options: string[] };
+
 export type ChatResponse = {
   reply: string;
   spec: DesignSpec;
   warnings: RuleWarning[];
   /** The pipeline's venue-rule adjustment notes; may be empty even when `warnings` is not. */
   rule_notes: string[];
-  ambiguities: string[];
+  intent: ChatIntent;
+  /** Server-computed: the returned spec differs from the one sent. */
+  spec_changed: boolean;
+  /** Short human name for the current plan, e.g. "Moody night, blue uplighting". */
+  look_name: string | null;
+  ambiguities: Ambiguity[];
   brain: string;
 };
 
@@ -217,7 +244,10 @@ export interface VVApi {
   ): Promise<Space>;
   uploadPhotos(spaceId: string, files: File[]): Promise<Photo[]>;
   deletePhoto(id: string): Promise<void>;
-  generateBase(spaceId: string, body: { engine: string; angle_hint?: string }): Promise<Job>;
+  /** With `reference_url`, the engine draws an empty base view of the room in that reference photo. */
+  generateBase(spaceId: string, body: { engine: string; angle_hint?: string; reference_url?: string }): Promise<Job>;
+  /** Downloads one of the space's reference photos and keeps it as an approved base photo (with its credit). */
+  importReference(spaceId: string, body: { url: string; rights_confirmed: true }): Promise<Photo>;
   approvePhoto(id: string): Promise<Photo>;
   chat(
     spaceId: string,

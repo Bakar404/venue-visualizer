@@ -84,7 +84,7 @@ export function DescribeVenue({ space, onApproved }: { space: Space; onApproved:
     <div className="flex flex-col gap-5">
       <PhotoDropzone spaceId={space.id} existing={space.photos.length} large onUploaded={(p) => p[0] && onApproved(p[0])} />
 
-      <div className="rounded-xl border bg-card p-4">
+      <div id="describe-venue" className="scroll-mt-4 rounded-xl border bg-card p-4">
         <h2 className="font-display text-2xl leading-tight">No photos? Describe your venue</h2>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">
           We&apos;ll generate an empty room from your description. Approve it and design on it like a photo.
