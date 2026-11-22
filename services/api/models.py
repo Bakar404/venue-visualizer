@@ -39,6 +39,9 @@ class Space(SQLModel, table=True):
     dimensions_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
     current_spec_json: dict | None = Field(default=None, sa_column=Column(JSON))
     references_json: list[dict] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    capacity_seated: int | None = None
+    capacity_standing: int | None = None
+    source: str | None = None
 
 
 class Photo(SQLModel, table=True):

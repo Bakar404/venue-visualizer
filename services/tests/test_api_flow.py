@@ -1,4 +1,5 @@
 import shutil
+import subprocess
 import sys
 from io import BytesIO
 from types import ModuleType, SimpleNamespace
@@ -8,11 +9,14 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from sqlmodel import Session
 
+from api.contracts import ImportPreview
+from api.db import database, initialize, write_session
 from api.main import create_app
-from api.models import Photo
-from pipeline import registry, verify
+from api.models import Photo, Space, Venue
+from pipeline import registry, research, verify
 from pipeline.engines.base import EngineStatus
 from pipeline.engines.mock import MockEngine
+from pipeline.models import RuleWarning, default_spec
 
 from .conftest import make_room
 
@@ -20,6 +24,7 @@ DESCRIPTION = (
     "12 round tables of 8, ivory linens, gold chiavari chairs, "
     "low ivory and blush centerpieces with greenery, warm amber uplighting, live candles"
 )
+JSON_HEADERS = {"Content-Type": "application/json"}
 
 
 @pytest.fixture
@@ -30,7 +35,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("VV_DEFAULT_ENGINE", "mock")
     monkeypatch.setenv("VV_DEFAULT_BRAIN", "mock")
     monkeypatch.setattr(shutil, "which", lambda *_args, **_kwargs: None)
-    with TestClient(create_app()) as api:
+    with TestClient(create_app(), base_url="http://localhost:8000") as api:
         yield api
 
 
@@ -71,6 +76,41 @@ def _look(client, space, spec=None, name="Ivory reception", **extra):
 
 def _render(client, look, **body):
     return _json(client.post(f"/api/looks/{look['id']}/render", json={"engine": "mock", **body}), 202)
+
+
+def test_host_and_write_request_policy(client):
+    health = "/api/health"
+    assert _json(client.get(health, headers={"Host": "localhost:8000"})) == {"ok": True}
+    assert client.get(health, headers={"Host": "evil.example"}).status_code == 400
+    assert client.get(health, headers={"Host": "[::1]:8000"}).status_code == 200
+    assert client.get(health, headers={"X-Forwarded-Host": "localhost:3000"}).status_code == 200
+    assert client.get(health, headers={"X-Forwarded-Host": "evil.example"}).status_code == 400
+
+    url = "/api/venues"
+    assert client.post(url, content='{"name":"Elm"}').status_code == 415
+    assert client.post(url, data={"name": "Elm"}).status_code == 415
+    assert client.post(url, json={"name": "Elm"}, headers={"Origin": "https://evil.example"}).status_code == 403
+    assert client.post(
+        url, files={"name": (None, "Elm")}, headers={"Origin": "https://evil.example"}
+    ).status_code == 403
+    assert not _json(client.get(url))
+    for origin in ("http://localhost:3000", "http://127.0.0.1:3000"):
+        assert client.post(url, json={"name": "Elm"}, headers={"Origin": origin}).status_code == 201
+    venue = _venue(client)
+    assert client.delete(f"{url}/{venue['id']}").status_code == 415
+    assert client.delete(f"{url}/{venue['id']}", headers=JSON_HEADERS).status_code == 200
+
+
+def test_additional_hosts_and_origins_from_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("VV_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("VV_ALLOWED_HOSTS", " api.example.test, planner.example.test ")
+    monkeypatch.setenv("VV_ALLOWED_ORIGINS", " https://planner.example.test ")
+    monkeypatch.setattr(shutil, "which", lambda *_args, **_kwargs: None)
+    headers = {"Origin": "https://planner.example.test", "X-Forwarded-Host": "planner.example.test"}
+    with TestClient(create_app(), base_url="http://api.example.test:8000") as client:
+        response = client.post("/api/venues", json={"name": "Elm"}, headers=headers)
+        assert response.status_code == 201
+        assert response.headers["Access-Control-Allow-Origin"] == headers["Origin"]
 
 
 def test_phase_one_chat_render_compare_and_export(client, tmp_path):
@@ -125,11 +165,86 @@ def test_phase_one_chat_render_compare_and_export(client, tmp_path):
     assert len(_json(client.get("/api/jobs", params={"space_id": space["id"]}))) == 10
 
 
+@pytest.mark.parametrize("has_rule_notes", [False, True])
+def test_chat_rule_notes_and_history(client, monkeypatch, has_rule_notes):
+    venue = _venue(client)
+    space = _space(client, venue)
+    url = f"/api/spaces/{space['id']}/chat"
+    messages = ["Use flameless candles.", "Skip confetti."]
+    adjustment = "\n\nAdjusted for venue rules: " + "; ".join(messages)
+    expected_reply = "Here's your plan." + adjustment
+
+    async def chat_to_spec(*_args):
+        result = SimpleNamespace(
+            reply=expected_reply if has_rule_notes else "Here's your plan.",
+            spec=default_spec(),
+            spec_patch={},
+            ambiguities=[],
+            warnings=[
+                RuleWarning(rule="live_candles", field="centerpieces.candles", message=messages[0]),
+                RuleWarning(rule="confetti", field="effects.confetti", message=messages[1]),
+            ],
+        )
+        if has_rule_notes:
+            result.rule_notes = messages
+        return result
+
+    monkeypatch.setattr("pipeline.spec_ops.chat_to_spec", chat_to_spec)
+    chat = _json(client.post(url, json={"message": "Use candles and confetti.", "brain": "mock"}))
+    assert chat["rule_notes"] == (messages if has_rule_notes else [])
+    assert chat["reply"] == expected_reply
+    _, assistant = _json(client.get(url))
+    assert assistant["role"] == "assistant" and assistant["content"] == expected_reply
+
+
 def _pipeline(monkeypatch, name, **functions):
     module = ModuleType(f"pipeline.{name}")
     for key, value in functions.items():
         setattr(module, key, value)
     monkeypatch.setitem(sys.modules, module.__name__, module)
+
+
+def test_import_preview_ignores_extra_pipeline_fields(client):
+    preview = ImportPreview.model_validate(
+        {
+            "venue_name": "Elm",
+            "rules_suggested": [],
+            "provided_items": [],
+            "spaces": [{"name": "Ballroom", "other": 1, "venue_spec": {"floor": "oak", "other": 1}}],
+        }
+    )
+    [space] = preview.spaces
+    assert "other" not in space.model_dump() and space.venue_spec.to_dict() == {"floor": "oak"}
+    venue = _venue(client)
+    response = client.post(
+        f"/api/venues/{venue['id']}/spaces", json={"name": "Ballroom", "venue_spec": {"other": 1}}
+    )
+    assert response.status_code == 422
+
+
+def test_import_capacity_columns_added_to_existing_database(tmp_path):
+    engine = database(tmp_path)
+    try:
+        initialize(engine)
+        venue = Venue(name="Elm")
+        space = Space(venue_id=venue.id, name="Old Ballroom")
+        with write_session(engine) as session:
+            session.add(venue)
+            session.flush()
+            session.add(space)
+        with engine.begin() as conn:
+            conn.exec_driver_sql("DELETE FROM schema_version WHERE version = 2")
+            conn.exec_driver_sql("INSERT INTO schema_version (version) VALUES (1)")
+            for column in ("capacity_seated", "capacity_standing", "source"):
+                conn.exec_driver_sql(f"ALTER TABLE space DROP COLUMN {column}")
+        initialize(engine)
+        initialize(engine)
+        with Session(engine) as session:
+            restored = session.get_one(Space, space.id)
+            assert restored.name == "Old Ballroom"
+            assert (restored.capacity_seated, restored.capacity_standing, restored.source) == (None, None, None)
+    finally:
+        engine.dispose()
 
 
 def test_research_import_uses_only_selected_rules_and_downloads_rights_confirmed_photos(
@@ -143,33 +258,36 @@ def test_research_import_uses_only_selected_rules_and_downloads_rights_confirmed
     omitted = "https://example.com/unselected.png"
     calls = []
 
-    async def research(query, brain):
+    async def research_venue(query, brain):
         assert brain.id == "mock"
         return {
             "query": query,
-            "matches": [{"name": "Hotel Marigold", "confidence": 0.9, "sources": [source]}],
-        }
-
-    def preview(data, match_index):
-        assert data["query"] == "Marigold Hotel" and match_index == 0
-        return {
-            "venue_name": "Hotel Marigold",
-            "rules_suggested": [
-                {"key": "live_candles", "allowed": False, "text": "No flames", "source": source},
-                {"key": "confetti", "allowed": False, "text": "No confetti", "source": source},
-            ],
-            "spaces": [
+            "matches": [
                 {
-                    "name": "Ballroom",
-                    "venue_spec": {"floor": "oak"},
-                    "photos": [
-                        {"url": url, "source_page": source, "credit": "Marigold Photography"}
-                        for url in (imported, reference, omitted)
+                    "name": "Hotel Marigold",
+                    "confidence": 0.9,
+                    "sources": [source],
+                    "rules_found": [
+                        {"maps_to": "live_candles", "allowed": False, "text": "No flames", "source": source},
+                        {"maps_to": "confetti", "allowed": False, "text": "No confetti", "source": source},
                     ],
+                    "spaces": [
+                        {
+                            "name": "Ballroom",
+                            "floor": "oak",
+                            "capacity_seated": 100,
+                            "capacity_standing": 150,
+                            "source": source,
+                            "photos": [
+                                {"url": url, "source_page": source, "credit": "Marigold Photography"}
+                                for url in (imported, reference, omitted)
+                            ],
+                        },
+                        {"name": "Terrace"},
+                    ],
+                    "provided_items": ["Ivory tablecloths", "Folding chairs"],
                 },
-                {"name": "Terrace", "venue_spec": {}, "photos": []},
             ],
-            "provided_items": ["Ivory tablecloths"],
         }
 
     class FetchError(Exception):
@@ -182,7 +300,7 @@ def test_research_import_uses_only_selected_rules_and_downloads_rights_confirmed
         return path
 
     make_room(tmp_path / "remote.png", (320, 220))
-    _pipeline(monkeypatch, "research", research_venue=research, research_to_import_preview=preview)
+    monkeypatch.setattr(research, "research_venue", research_venue)
     _pipeline(monkeypatch, "fetch", download_image=fetch, FetchError=FetchError)
     research_job = _json(
         client.post(
@@ -205,9 +323,18 @@ def test_research_import_uses_only_selected_rules_and_downloads_rights_confirmed
     assert client.post("/api/venues/import", json=data).status_code == 422
     assert not calls and not _json(client.get("/api/venues"))
     data["photos"][0]["rights_confirmed"] = True
+    invalid_items = {**data, "accepted_provided_items": ["Cutlery"]}
+    assert client.post("/api/venues/import", json=invalid_items).status_code == 422
+    assert client.post("/api/venues/import", json={**data, "unknown": True}).status_code == 422
+    assert not calls and not _json(client.get("/api/venues"))
+    default = _json(client.post("/api/venues/import", json={**data, "photos": []}), 201)
+    assert default["rules"] == {"live_candles": False}
+    data["accepted_provided_items"] = ["Ivory tablecloths"]
     venue = _json(client.post("/api/venues/import", json=data), 201)
     assert venue["rules"] == {"live_candles": False, "provided_items": ["Ivory tablecloths"]}
     [space] = venue["spaces"]
+    saved = _json(client.get(f"/api/spaces/{space['id']}"))
+    assert (saved["capacity_seated"], saved["capacity_standing"], saved["source"]) == (100, 150, source)
     [photo] = space["photos"]
     assert photo["kind"] == "web" and photo["approved"] and photo["source_url"] == imported
     assert [p["url"] for p in space["references"]] == [reference] and calls == [imported]
@@ -268,6 +395,7 @@ def test_video_review_apply_and_missing_modules(client, monkeypatch):
         )
 
     _pipeline(monkeypatch, "video", ingest_video=ingest)
+    monkeypatch.setattr("api.venues.validate_video_duration", lambda _path: None)
     job = _json(client.post(path, files=upload, data={"brain": "mock"}), 202)
     assert job["status"] == "done"
     frames = job["result"]["frames"]
@@ -277,7 +405,7 @@ def test_video_review_apply_and_missing_modules(client, monkeypatch):
     with Session(runtime.engine) as session:
         assert all(not session.get_one(Photo, key).approved for key in ids)
     assert client.get(frames[2]["url"]).status_code == 200
-    assert client.post(f"/api/photos/{ids[0]}/approve").status_code == 409
+    assert client.post(f"/api/photos/{ids[0]}/approve", headers=JSON_HEADERS).status_code == 409
     assert not list((runtime.settings.data_dir / "tmp").glob("video-*"))
     body = {"job_id": job["id"], "spaces": [{"name": "Main Hall", "photo_ids": ids[:2], "venue_spec": {}}]}
     [space] = _json(client.post(f"{path}/apply", json=body))["spaces"]
@@ -287,6 +415,30 @@ def test_video_review_apply_and_missing_modules(client, monkeypatch):
     } == (set(ids[:2]))
     assert client.get(frames[2]["url"]).status_code == 404
     assert client.post(f"{path}/apply", json=body).status_code == 409
+
+
+@pytest.mark.skipif(not (shutil.which("ffmpeg") and shutil.which("ffprobe")), reason="ffmpeg tools required")
+def test_long_video_is_rejected_before_enqueue(client, monkeypatch, tmp_path):
+    video = tmp_path / "long.mp4"
+    subprocess.run(
+        [
+            "ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=size=32x32:rate=1:duration=301",
+            "-c:v", "mpeg4", str(video),
+        ],
+        check=True,
+        timeout=30,
+    )
+    venue = _venue(client)
+
+    def ingest(*_args, **_kwargs):
+        pytest.fail("The over-long video must not be ingested")
+
+    _pipeline(monkeypatch, "video", ingest_video=ingest)
+    with video.open("rb") as file:
+        response = client.post(f"/api/venues/{venue['id']}/video", files={"file": (video.name, file)})
+    assert "at most five minutes" in _json(response, 422)["detail"]
+    assert not _json(client.get("/api/jobs"))
+    assert not list((client.app.state.runtime.settings.data_dir / "tmp").glob("video-*"))
 
 
 def test_upload_validation_metadata_and_file_isolation(client, tmp_path):
@@ -322,6 +474,24 @@ def test_upload_validation_metadata_and_file_isolation(client, tmp_path):
     assert client.get(photo["url"]).status_code == 404
 
 
+def test_upload_mpo_saves_only_first_frame_as_jpeg(client):
+    space = _space(client, _venue(client))
+    upload = BytesIO()
+    first = Image.new("RGB", (18, 12), "red")
+    second = Image.new("RGB", (21, 14), "blue")
+    first.save(upload, "MPO", save_all=True, append_images=[second])
+    with Image.open(upload) as original:
+        assert original.format == "MPO" and original.n_frames == 2
+    response = client.post(
+        f"/api/spaces/{space['id']}/photos", files={"files[]": ("phone.jpg", upload.getvalue(), "image/jpeg")}
+    )
+    [photo] = _json(response, 201)
+    saved = client.get(photo["url"])
+    assert saved.headers["content-type"] == "image/jpeg"
+    with Image.open(BytesIO(saved.content)) as image:
+        assert image.format == "JPEG" and image.size == first.size and not image.getexif()
+
+
 def test_generated_base_approval_and_regeneration_uses_original(client, monkeypatch):
     venue = _venue(client)
     space = _space(client, venue)
@@ -348,7 +518,7 @@ def test_generated_base_approval_and_regeneration_uses_original(client, monkeypa
     )
     look = _look(client, space)
     assert client.post(f"/api/looks/{look['id']}/render", json={}).status_code == 409
-    assert _json(client.post(f"/api/photos/{photo['id']}/approve"))["approved"]
+    assert _json(client.post(f"/api/photos/{photo['id']}/approve", headers=JSON_HEADERS))["approved"]
 
     calls = []
     guide_specs = []
@@ -378,7 +548,7 @@ def test_generated_base_approval_and_regeneration_uses_original(client, monkeypa
     monkeypatch.setattr(verify, "structure_score", lambda *_: next(scores))
     [render] = _render(client, look)["renders"]
     assert render["structure_score"] == 0.95 and len(calls) == 2
-    rerun = _json(client.post(f"/api/renders/{render['id']}/regenerate"), 202)
+    rerun = _json(client.post(f"/api/renders/{render['id']}/regenerate", headers=JSON_HEADERS), 202)
     assert rerun["status"] == "done" and rerun["result"]["render_id"] != render["id"]
     assert len(calls) == 3 and {p.name for p in calls} == {f"{photo['id']}.png"}
     assert len(guide_specs) == 2 and guide_specs[0]["tables"]["count"] > 0
@@ -401,9 +571,9 @@ def test_edits_and_deletes_keep_saved_resources_consistent(client, tmp_path):
     [photo] = _upload(client, space, [make_room(tmp_path / "room.png", (320, 220))])
     look = _look(client, space)
     [render] = _render(client, look)["renders"]
-    assert client.delete(f"/api/photos/{photo['id']}").status_code == 204
+    assert client.delete(f"/api/photos/{photo['id']}", headers=JSON_HEADERS).status_code == 204
     assert client.get(photo["url"]).status_code == client.get(render["url"]).status_code == 404
     assert _json(client.get(f"/api/looks/{look['id']}"))["renders"] == []
-    assert _json(client.delete(f"/api/looks/{look['id']}"))["id"] == look["id"]
-    assert _json(client.delete(base))["id"] == venue["id"]
+    assert _json(client.delete(f"/api/looks/{look['id']}", headers=JSON_HEADERS))["id"] == look["id"]
+    assert _json(client.delete(base, headers=JSON_HEADERS))["id"] == venue["id"]
     assert client.get(base).status_code == client.get(space_url).status_code == 404

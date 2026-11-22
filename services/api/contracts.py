@@ -102,6 +102,9 @@ class SpaceOut(BaseModel):
     photos: list[PhotoOut]
     current_spec: SpecJSON | None
     references: list[PhotoReference]
+    capacity_seated: int | None
+    capacity_standing: int | None
+    source: str | None
 
 
 class VenueOut(BaseModel):
@@ -130,6 +133,7 @@ class SpecCheckResult(BaseModel):
 
 class ChatOut(SpecCheckResult):
     reply: str
+    rule_notes: list[str]
     ambiguities: list[str]
     brain: str
 
@@ -274,6 +278,7 @@ class VenueImport(Input):
     match_index: int = Field(ge=0)
     space_names: list[Name] = Field(max_length=100)
     accepted_rules: list[RuleKey] = Field(default_factory=list, max_length=7)
+    accepted_provided_items: list[str] = Field(default_factory=list)
     photos: list[PhotoSelection] = Field(default_factory=list, max_length=1200)
 
 
@@ -284,8 +289,19 @@ class SuggestedRule(BaseModel):
     source: HttpUrl
 
 
-class SuggestedSpace(SpaceCreate):
+class SuggestedVenueSpec(VenueSpec):
+    model_config = ConfigDict(extra="ignore")
+
+
+class SuggestedSpace(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    name: Name
+    venue_spec: SuggestedVenueSpec = Field(default_factory=SuggestedVenueSpec)
     photos: list[PhotoReference] = Field(default_factory=list)
+    capacity_seated: int | None = None
+    capacity_standing: int | None = None
+    source: HttpUrl | None = None
 
 
 class ImportPreview(BaseModel):

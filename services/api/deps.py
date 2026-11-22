@@ -57,6 +57,9 @@ def space_out(session: Session, space: Space) -> SpaceOut:
         photos=[photo_out(photo) for photo in photos],
         current_spec=space.current_spec_json,
         references=space.references_json,
+        capacity_seated=space.capacity_seated,
+        capacity_standing=space.capacity_standing,
+        source=space.source,
     )
 
 

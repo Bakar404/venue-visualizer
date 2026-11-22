@@ -10,6 +10,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException
 from starlette.formparsers import MultiPartException
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import looks, studio, system, venues
@@ -25,6 +26,39 @@ _UPLOAD_LIMITS = (
     (re.compile(r"/api/spaces/[^/]+/photos/?"), MAX_PHOTOS * MAX_IMAGE_BYTES),
     (re.compile(r"/api/venues/[^/]+/video/?"), MAX_VIDEO_BYTES),
 )
+
+
+class RequestPolicy:
+    def __init__(self, app: ASGIApp, hosts: list[str], origins: list[str]):
+        self.app = app
+        self.hosts = {host.lower() for host in hosts}
+        self.origins = set(origins)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http":
+            headers = Headers(scope=scope)
+            # Next's rewrite sends the upstream Host and preserves the browser Host separately.
+            forwarded = headers.getlist("x-forwarded-host")
+            if forwarded and (
+                len(forwarded) != 1 or re.sub(r":[0-9]+$", "", forwarded[0].lower()) not in self.hosts
+            ):
+                await JSONResponse({"detail": "Invalid forwarded host"}, 400)(scope, receive, send)
+                return
+            if scope["method"] not in ("GET", "HEAD", "OPTIONS"):
+                types = headers.getlist("content-type")
+                if len(types) != 1 or types[0].partition(";")[0].strip().lower() not in (
+                    "application/json",
+                    "multipart/form-data",
+                ):
+                    await JSONResponse({"detail": "Expected JSON or multipart form data"}, 415)(
+                        scope, receive, send
+                    )
+                    return
+                origins = headers.getlist("origin")
+                if origins and (len(origins) != 1 or origins[0] not in self.origins):
+                    await JSONResponse({"detail": "Origin is not allowed"}, 403)(scope, receive, send)
+                    return
+        await self.app(scope, receive, send)
 
 
 class UploadLimit:
@@ -82,7 +116,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             finally:
                 engine.dispose()
 
-    origins = list(dict.fromkeys([LOCAL_WEB_URL, config.web_url.rstrip("/")]))
+    hosts = ["localhost", "127.0.0.1", "[::1]", *config.allowed_hosts]
+    origins = [LOCAL_WEB_URL, "http://127.0.0.1:3000", *config.allowed_origins]
     app = FastAPI(
         title="Venue Visualizer",
         version="1",
@@ -93,12 +128,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ],
     )
     app.add_middleware(UploadLimit)
+    app.add_middleware(RequestPolicy, hosts=hosts, origins=origins)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Content-Type", "Range"],
     )
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts, www_redirect=False)
 
     @app.exception_handler(HTTPException)
     async def http_error(_request: Request, exc: HTTPException) -> JSONResponse:
