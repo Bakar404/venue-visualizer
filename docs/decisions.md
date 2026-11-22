@@ -38,3 +38,10 @@ SAM 2 / Depth Anything masks are deferred until benchmarks show they are needed.
 
 ## 2026-11-21: The personal spec stays out of the public repo
 The original spec has personal event details and lives in `private/` (gitignored).
+
+## 2026-11-21: Venue finder: research real venues on the web (supersedes a spec non-goal)
+The original spec excluded taking venue photos from the web. The user now wants the agent to find real venues
+(e.g. their own venue's North Wing). Compromise: the agent researches publicly posted info with sources; nothing is
+used until the user confirms it. Web photos default to *reference only* (used to ground a generated base view), and are
+imported as editable base photos only when the user confirms they have the right to. Credits are kept. Published venue
+policies are suggestions until the user accepts them. Research runs through the user's own CLI web tools, not a scraper.

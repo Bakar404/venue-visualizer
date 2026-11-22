@@ -59,6 +59,26 @@ This is not an open-ended agent loop: every step is bounded, and renders only ha
    then shows the render with a "may have altered the room" badge. Optional vision QA through the brain: "count tables, list colors".
 6. **Save** the render on the Look. Compare views and PDF export only read saved renders and never regenerate.
 
+### Find a real venue (venue-finder agent)
+
+The user types a venue name, e.g. "Spring Mill Manor, North Wing, Ivyland PA". A brain **with web search/fetch
+tools enabled** (claude: `--allowed-tools WebSearch,WebFetch`; copilot: its web fetch + `--allow-all-urls`;
+codex: `--search`; kimi: its search tool) researches the public web and returns `VenueResearch`
+(`packages/schema/venue-research.schema.json`): candidate matches with address, website, spaces (capacity,
+dimensions, finishes, fixtures), publicly posted photos (image URL + source page + credit), published policies
+(`rules_found`), and provided items. **Every field carries a source URL.**
+
+The user picks the right match and reviews it in an import screen:
+- Spaces → `Space` + `VenueSpec` (editable).
+- `rules_found` → shown as *suggested* rules; they become `VenueRules` only when the user ticks them. This keeps the
+  "the LLM never invents rules" guarantee.
+- Photos → two options per photo: **Use as reference** (default; the photo URL/thumbnail is only passed as a reference image
+  to generate an approved base view, like the no-photo path but grounded in the real room) or **Import as base photo**
+  (the server downloads it after the user confirms they have the right to use it for personal planning; the credit and source are stored).
+  Exports always print photo credits.
+- Download safety: http(s) only, public IPs only (SSRF guard; re-check after redirects), image content-types only,
+  ≤ 20 MB, ≤ 12 photos per space, EXIF stripped.
+
 ### No-photo path
 
 `VenueSpec` (style, dimensions, ceiling, windows, floor, fixtures, notes) → engine `generate()` → one
@@ -118,6 +138,8 @@ POST /api/venues                 GET /api/venues              GET/PATCH /api/ven
 POST /api/venues/{id}/spaces     GET/PATCH /api/spaces/{id}
 POST /api/spaces/{id}/photos (multipart)   DELETE /api/photos/{id}
 POST /api/spaces/{id}/generate-base  -> job   POST /api/photos/{id}/approve
+POST /api/venues/research        {query, brain?} -> Job (kind venue_research; result.research: VenueResearch)
+POST /api/venues/import          {research_job_id, match_index, space_names[], accepted_rules[], photos:[{url, mode: reference|import, rights_confirmed}]} -> Venue
 POST /api/spaces/{id}/chat       {message, spec, brain} -> {reply, spec, warnings, ambiguities}
 POST /api/spec/check             {spec, venue_id} -> {spec, warnings}
 POST /api/spaces/{id}/looks      {name, spec, parent_look_id?}    GET /api/looks/{id}
