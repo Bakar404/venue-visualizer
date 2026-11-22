@@ -1,0 +1,91 @@
+$ cd services && uv run pytest -q tests/test_sec_3.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFF.F                                                                    [100%]
+=================================== FAILURES ===================================
+_______________ test_code_is_one_time_and_rotates_after_pairing ________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x116da9380>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x116cfb490>
+
+    def test_code_is_one_time_and_rotates_after_pairing(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch)
+        with desktop() as api:
+            code = _code(api)
+            assert _pair(api, "192.168.10.3", code).status_code == 200
+>           assert _pair(api, "192.168.10.4", code).status_code == 403
+E           AssertionError: assert 200 == 403
+E            +  where 200 = <Response [200 OK]>.status_code
+E            +    where <Response [200 OK]> = _pair(<starlette.testclient.TestClient object at 0x116d60d70>, '192.168.10.4', '115076')
+
+tests/test_sec_3.py:38: AssertionError
+_______________ test_code_expires_ten_minutes_after_it_was_shown _______________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x116ed2140>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x116e8d480>
+
+    def test_code_expires_ten_minutes_after_it_was_shown(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch)
+        clock = Clock().install(monkeypatch)
+        with desktop() as api:
+            code = _code(api)
+            clock.now += 601
+>           assert _pair(api, "192.168.10.3", code).status_code == 403
+E           AssertionError: assert 200 == 403
+E            +  where 200 = <Response [200 OK]>.status_code
+E            +    where <Response [200 OK]> = _pair(<starlette.testclient.TestClient object at 0x116e8d6e0>, '192.168.10.3', '887061')
+
+tests/test_sec_3.py:50: AssertionError
+_________ test_global_failure_limit_invalidates_code_and_locks_pairing _________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x116ee10c0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x116db5eb0>
+
+    def test_global_failure_limit_invalidates_code_and_locks_pairing(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch)
+        clock = Clock().install(monkeypatch)
+        with desktop() as api:
+            code = _code(api)
+            wrong = "000000" if code != "000000" else "111111"
+            for n in range(10):
+                assert _pair(api, f"192.168.10.{20 + n // 2}", wrong).status_code == 403
+            blocked = _pair(api, "192.168.10.99", code)
+>           assert blocked.status_code == 429, blocked.text
+E           AssertionError: {"ok":true}
+E           assert 200 == 429
+E            +  where 200 = <Response [200 OK]>.status_code
+
+tests/test_sec_3.py:69: AssertionError
+______________________ test_pairing_code_is_never_logged _______________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x116edf270>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x116d99260>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x116e61be0>
+
+    def test_pairing_code_is_never_logged(setup_machine, monkeypatch, caplog):  # noqa: F811
+        lan_env(monkeypatch)
+        caplog.set_level(logging.INFO)
+        with desktop() as api:
+            code = _code(api)
+>       assert "Open Setup → Open on your phone on this computer to see the pairing code" in caplog.text
+E       assert 'Open Setup → Open on your phone on this computer to see the pairing code' in 'INFO     uvicorn.error:lan.py:101 Venue Visualizer LAN pairing code: 583174\nINFO     httpx:_client.py:1025 HTTP Request: GET http://localhost:8000/api/system/lan "HTTP/1.1 200 OK"\n'
+E        +  where 'INFO     uvicorn.error:lan.py:101 Venue Visualizer LAN pairing code: 583174\nINFO     httpx:_client.py:1025 HTTP Request: GET http://localhost:8000/api/system/lan "HTTP/1.1 200 OK"\n' = <_pytest.logging.LogCaptureFixture object at 0x116e61be0>.text
+
+tests/test_sec_3.py:97: AssertionError
+------------------------------ Captured log call -------------------------------
+INFO     uvicorn.error:lan.py:101 Venue Visualizer LAN pairing code: 583174
+INFO     httpx:_client.py:1025 HTTP Request: GET http://localhost:8000/api/system/lan "HTTP/1.1 200 OK"
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_sec_3.py::test_code_is_one_time_and_rotates_after_pairing
+FAILED tests/test_sec_3.py::test_code_expires_ten_minutes_after_it_was_shown
+FAILED tests/test_sec_3.py::test_global_failure_limit_invalidates_code_and_locks_pairing
+FAILED tests/test_sec_3.py::test_pairing_code_is_never_logged - assert 'Open ...
+4 failed, 1 passed, 1 warning in 0.19s

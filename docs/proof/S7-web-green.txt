@@ -1,0 +1,30 @@
+
+Running 23 tests using 4 workers
+
+[1/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: setup-credit-dialog fits a phone @mobile
+[2/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: home fits a phone @mobile
+[3/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: setup-advanced fits a phone @mobile
+[4/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: setup fits a phone @mobile
+[5/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: pair fits a phone @mobile
+[6/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues fits a phone @mobile
+[7/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-find fits a phone @mobile
+[8/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-upload fits a phone @mobile
+[WebServer] [browser] Image with src "/samples/photoreal/ballroom-a-empty.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+
+[9/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-video fits a phone @mobile
+[10/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-describe fits a phone @mobile
+[11/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venue fits a phone @mobile
+[12/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venue-edit-dialog fits a phone @mobile
+[13/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venue-add-room-dialog fits a phone @mobile
+[14/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-photos fits a phone @mobile
+[15/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-preview fits a phone @mobile
+[16/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-chat fits a phone @mobile
+[17/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-plan fits a phone @mobile
+[18/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-save-look-dialog fits a phone @mobile
+[19/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-variation-dialog fits a phone @mobile
+[20/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-describe fits a phone @mobile
+[21/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: looks fits a phone @mobile
+[22/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: compare fits a phone @mobile
+[23/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: command-palette fits a phone @mobile
+  23 passed (14.0s)

@@ -1,0 +1,12 @@
+$ pnpm --filter web exec vitest run src/hooks/use-retry-countdown.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  01:21:02
+   Duration  446ms (environment 73%, import 21%, tests 3%, transform 2%, worker 1%)
+
+
+Exit status: 0

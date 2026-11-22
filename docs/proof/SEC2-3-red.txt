@@ -1,0 +1,70 @@
+# SEC2-3 (R2-3) red, before the fix (owner check ran after body validation)
+# cd services && uv run pytest -q --tb=line -p no:warnings tests/test_sec2_3.py
+FFFFFFFF.FF...F.                                                         [100%]
+=================================== FAILURES ===================================
+E   AssertionError: ('paired phone', {'existing': (403, {'detail': 'Change settings on this computer, not from a paired device.'}), 'missi...st be an existing Claude configuration directory under your home folder (containing .claude.json or settings.json)'})})
+    assert False
+     +  where False = all(<generator object test_a_paired_phone_cannot_tell_existing_paths_from_missing_ones.<locals>.<genexpr> at 0x117312960>)
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:71: AssertionError: ('paired phone', {'existing': (403, {'detail': 'Change settings on this computer, not from a paired device.'}), 'missi...st be an existing Claude configuration directory under your home folder (containing .claude.json or settings.json)'})})
+E   AssertionError: assert (422, {'detai... or kimi-*)'}) == (403, {'detai...red device.'})
+      
+      At index 0 diff: 422 != 403
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:79: AssertionError: assert (422, {'detai... or kimi-*)'}) == (403, {'detai...red device.'})
+E   AssertionError: assert (422, {'detai...lid boolean'}) == (403, {'detai...red device.'})
+      
+      At index 0 diff: 422 != 403
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:88: AssertionError: assert (422, {'detai...lid boolean'}) == (403, {'detai...red device.'})
+E   AssertionError: assert (422, {'detai...t permitted'}) == (403, {'detai...red device.'})
+      
+      At index 0 diff: 422 != 403
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:88: AssertionError: assert (422, {'detai...t permitted'}) == (403, {'detai...red device.'})
+E   AssertionError: assert (422, {'detai...ecode error'}) == (403, {'detai...red device.'})
+      
+      At index 0 diff: 422 != 403
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:88: AssertionError: assert (422, {'detai...ecode error'}) == (403, {'detai...red device.'})
+E   AssertionError: assert (422, {'detai...ld required'}) == (403, {'detai...red device.'})
+      
+      At index 0 diff: 422 != 403
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:88: AssertionError: assert (422, {'detai...ld required'}) == (403, {'detai...red device.'})
+E   AssertionError: assert (422, {'detai...fields from'}) == (403, {'detai...red device.'})
+      
+      At index 0 diff: 422 != 403
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:88: AssertionError: assert (422, {'detai...fields from'}) == (403, {'detai...red device.'})
+E   AssertionError: assert (422, {'detai...fields from'}) == (403, {'detai...red device.'})
+      
+      At index 0 diff: 422 != 403
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:88: AssertionError: assert (422, {'detai...fields from'}) == (403, {'detai...red device.'})
+E   AssertionError: assert (422, {'detai...tings.json)'}) == (403, {'detai...red device.'})
+      
+      At index 0 diff: 422 != 403
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:88: AssertionError: assert (422, {'detai...tings.json)'}) == (403, {'detai...red device.'})
+E   AssertionError: assert (400, {'detai...ng the body'}) == (403, {'detai...red device.'})
+      
+      At index 0 diff: 400 != 403
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:100: AssertionError: assert (400, {'detai...ng the body'}) == (403, {'detai...red device.'})
+E   AssertionError: assert ('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-242/test_saved_paths_inside_the_da0/home/vv-data/claude' is None)
+     +  where '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-242/test_saved_paths_inside_the_da0/home/vv-data/claude' = ClaudeOptions(config_dir='/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-242/test_saved_paths_inside_the_da0/home/vv-data/claude').config_dir
+     +    where ClaudeOptions(config_dir='/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-242/test_saved_paths_inside_the_da0/home/vv-data/claude') = Providers(claude=ClaudeOptions(config_dir='/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabd...95rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-242/test_saved_paths_inside_the_da0/home/vv-data/bin/kimi')).claude
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_3.py:166: AssertionError: assert ('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-242/test_saved_paths_inside_the_da0/home/vv-data/claude' is None)
+=========================== short test summary info ============================
+FAILED tests/test_sec2_3.py::test_a_paired_phone_cannot_tell_existing_paths_from_missing_ones
+FAILED tests/test_sec2_3.py::test_a_paired_phone_cannot_probe_executables_either
+FAILED tests/test_sec2_3.py::test_non_owners_get_the_same_403_for_any_body[{"allow_web_research": "yes"}]
+FAILED tests/test_sec2_3.py::test_non_owners_get_the_same_403_for_any_body[{"zzz": 1}]
+FAILED tests/test_sec2_3.py::test_non_owners_get_the_same_403_for_any_body[{bad]
+FAILED tests/test_sec2_3.py::test_non_owners_get_the_same_403_for_any_body[]
+FAILED tests/test_sec2_3.py::test_non_owners_get_the_same_403_for_any_body[[]]
+FAILED tests/test_sec2_3.py::test_non_owners_get_the_same_403_for_any_body[null]
+FAILED tests/test_sec2_3.py::test_non_owners_get_the_same_403_for_any_body[{"providers": {"claude": {"config_dir": "/"}}}]
+FAILED tests/test_sec2_3.py::test_the_body_is_never_read_for_non_owners - Ass...
+FAILED tests/test_sec2_3.py::test_saved_paths_inside_the_data_folder_are_dropped_on_read
+11 failed, 5 passed in 0.64s

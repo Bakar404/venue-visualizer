@@ -1,0 +1,42 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=chromium -g 'without a referrer'
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/ut6.spec.ts:175:1 › UT6b: reference photos from the web are loaded without a referrer
+  1) [chromium] › e2e/ut6.spec.ts:175:1 › UT6b: reference photos from the web are loaded without a referrer 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('list', { name: 'Reference photos' }).getByRole('img').first()
+    Expected: "no-referrer"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('list', { name: 'Reference photos' }).getByRole('img').first() with timeout 10000ms
+      - waiting for getByRole('list', { name: 'Reference photos' }).getByRole('img').first()
+        24 × locator resolved to <img alt="The Long Room from the entrance" src="/samples/photoreal/ballroom-a-empty.jpg" class="aspect-[3/2] w-full bg-muted object-cover"/>
+           - unexpected value "null"
+
+
+      177 |   const images = page.getByRole("list", { name: "Reference photos" }).getByRole("img");
+      178 |   await expect(images).toHaveCount(2);
+    > 179 |   for (const img of await images.all()) await expect(img).toHaveAttribute("referrerpolicy", "no-referrer");
+          |                                                           ^
+      180 | });
+      181 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut6.spec.ts:179:59
+
+    Error Context: test-results/ut6-UT6b-reference-photos--c8968-e-loaded-without-a-referrer-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6b-reference-photos--c8968-e-loaded-without-a-referrer-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6b-reference-photos--c8968-e-loaded-without-a-referrer-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/ut6.spec.ts:175:1 › UT6b: reference photos from the web are loaded without a referrer 

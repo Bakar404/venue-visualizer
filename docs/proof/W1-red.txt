@@ -1,0 +1,82 @@
+### pnpm --filter web exec vitest run src/lib/spec-schema.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/spec-schema.test.ts (4 tests | 1 failed) 11ms
+   ❯ specFormSchema (3)
+     × accepts null wherever the API accepts None 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/spec-schema.test.ts > specFormSchema > accepts null wherever the API accepts None
+AssertionError: expected [ 'scene.time_of_day' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "scene.time_of_day",
++ ]
+
+ ❯ src/lib/spec-schema.test.ts:34:95
+     32|     const spec = defaultSpec();
+     33|     // "As photo" clears the time of day.
+     34|     expect(issuePaths({ ...spec, scene: { windows: "as_photographed", …
+       |                                                                                               ^
+     35|     expect(issuePaths({ ...spec, scene: null, napkins: null, guest_cou…
+     36|     expect(issuePaths({ ...spec, napkins: { color: null, fold: null } …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  20:42:42
+   Duration  163ms (import 57%, transform 26%, tests 14%, worker 3%)
+
+
+### pnpm --filter web exec playwright test e2e/ut4.spec.ts -g 'As photo'
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit
+  1) [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "linens": "sage green",
+    -   "time_of_day": null,
+    +   "linens": "ivory",
+    +   "time_of_day": "night",
+      }
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      54 |       return { time_of_day: spec?.scene?.time_of_day, linens: spec?.linens.color };
+      55 |     })
+    > 56 |     .toEqual({ time_of_day: null, linens: "sage green" });
+         |      ^
+      57 |   await expect(planSummary(page)).not.toContainText("Night");
+      58 | });
+      59 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut4.spec.ts:56:6
+
+    Error Context: test-results/ut4-UT4-going-back-to-“As--0c995--and-keeps-every-later-edit-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut4-UT4-going-back-to-“As--0c995--and-keeps-every-later-edit-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut4-UT4-going-back-to-“As--0c995--and-keeps-every-later-edit-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit 

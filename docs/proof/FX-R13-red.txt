@@ -1,0 +1,406 @@
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r13.spec.ts --project=mobile
+
+Running 1 test using 1 worker
+
+(node:21506) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] [mobile] › e2e/fx-r13.spec.ts:7:1 › FX-R13: Studio tabs point at labelled tab panels @mobile
+  1) [mobile] › e2e/fx-r13.spec.ts:7:1 › FX-R13: Studio tabs point at labelled tab panels @mobile ──
+
+    Error: Photos has aria-controls
+
+    expect(received).toBeTruthy()
+
+    Received: null
+
+      12 |     await expect(tab).toHaveAttribute("aria-selected", "true");
+      13 |     const panelId = await tab.getAttribute("aria-controls");
+    > 14 |     expect(panelId, `${name} has aria-controls`).toBeTruthy();
+         |                                                  ^
+      15 |     const panel = page.locator(`[id="${panelId}"]`);
+      16 |     await expect(panel).toHaveAttribute("role", "tabpanel");
+      17 |     await expect(panel).toBeVisible();
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r13.spec.ts:14:50
+
+    Error Context: test-results/fx-r13-FX-R13-Studio-tabs--f5e27--labelled-tab-panels-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r13-FX-R13-Studio-tabs--f5e27--labelled-tab-panels-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r13-FX-R13-Studio-tabs--f5e27--labelled-tab-panels-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [mobile] › e2e/fx-r13.spec.ts:7:1 › FX-R13: Studio tabs point at labelled tab panels @mobile ───
+
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/s7.spec.ts --project=mobile
+
+Running 25 tests using 4 workers
+
+(node:21530) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21529) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21531) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: setup-forget-all-dialog fits a phone @mobile
+[2/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: setup fits a phone @mobile
+[3/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: home fits a phone @mobile
+[4/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: setup-advanced fits a phone @mobile
+[5/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: setup-rate-limited fits a phone @mobile
+[6/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: setup-credit-dialog fits a phone @mobile
+[7/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: pair fits a phone @mobile
+[8/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: venues fits a phone @mobile
+[9/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: venues-new-find fits a phone @mobile
+[10/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: venues-new-upload fits a phone @mobile
+[11/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: venues-new-video fits a phone @mobile
+[12/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: venues-new-describe fits a phone @mobile
+[13/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: venue fits a phone @mobile
+  1) [mobile] › e2e/s7.spec.ts:132:3 › S7: venues-new-upload fits a phone @mobile ──────────────────
+
+    Error: venues-new-upload: touch targets under 44×24 px (44×44 for buttons and tabs):
+    button "House rules (optional, editable later)" 358.0×36.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "button \"House rules (optional, editable later)\" 358.0×36.0",
+    + ]
+
+      144 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      145 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 146 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px (44×44 for buttons and tabs):\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                                                           ^
+      147 |   });
+      148 | }
+      149 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/s7.spec.ts:146:139
+
+    Error Context: test-results/s7-S7-venues-new-upload-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venues-new-upload-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venues-new-upload-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [mobile] › e2e/s7.spec.ts:132:3 › S7: venues-new-video fits a phone @mobile ───────────────────
+
+    Error: venues-new-video: touch targets under 44×24 px (44×44 for buttons and tabs):
+    button "House rules (optional, editable later)" 358.0×36.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "button \"House rules (optional, editable later)\" 358.0×36.0",
+    + ]
+
+      144 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      145 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 146 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px (44×44 for buttons and tabs):\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                                                           ^
+      147 |   });
+      148 | }
+      149 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/s7.spec.ts:146:139
+
+    Error Context: test-results/s7-S7-venues-new-video-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venues-new-video-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venues-new-video-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[14/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-photos fits a phone @mobile
+(node:21577) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21578) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[15/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: venue-edit-dialog fits a phone @mobile
+[16/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: venue-add-room-dialog fits a phone @mobile
+[17/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-preview fits a phone @mobile
+[18/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-chat fits a phone @mobile
+  3) [mobile] › e2e/s7.spec.ts:132:3 › S7: venue-add-room-dialog fits a phone @mobile ──────────────
+
+    Error: venue-add-room-dialog: touch targets under 44×24 px (44×44 for buttons and tabs):
+    button "Describe the room (optional)" 358.0×28.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "button \"Describe the room (optional)\" 358.0×28.0",
+    + ]
+
+      144 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      145 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 146 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px (44×44 for buttons and tabs):\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                                                           ^
+      147 |   });
+      148 | }
+      149 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/s7.spec.ts:146:139
+
+    Error Context: test-results/s7-S7-venue-add-room-dialog-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venue-add-room-dialog-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venue-add-room-dialog-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  4) [mobile] › e2e/s7.spec.ts:132:3 › S7: venue-edit-dialog fits a phone @mobile ──────────────────
+
+    Error: venue-edit-dialog: touch targets under 44×24 px (44×44 for buttons and tabs):
+    button "Remove Ivory floor-length linens" 44.0×32.0
+    button "Remove Gold chiavari chairs" 44.0×32.0
+    button "Remove 60-inch round tables" 44.0×32.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 5
+
+    - Array []
+    + Array [
+    +   "button \"Remove Ivory floor-length linens\" 44.0×32.0",
+    +   "button \"Remove Gold chiavari chairs\" 44.0×32.0",
+    +   "button \"Remove 60-inch round tables\" 44.0×32.0",
+    + ]
+
+      144 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      145 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 146 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px (44×44 for buttons and tabs):\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                                                           ^
+      147 |   });
+      148 | }
+      149 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/s7.spec.ts:146:139
+
+    Error Context: test-results/s7-S7-venue-edit-dialog-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venue-edit-dialog-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venue-edit-dialog-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[19/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-variation-dialog fits a phone @mobile
+[20/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-describe fits a phone @mobile
+(node:21611) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21612) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[21/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-plan fits a phone @mobile
+[22/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-save-look-dialog fits a phone @mobile
+  5) [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-variation-dialog fits a phone @mobile ────────────
+
+    Error: studio-variation-dialog: touch targets under 44×24 px (44×44 for buttons and tabs):
+    button "Swap to sage and ivory" 149.6×26.0
+    button "Long banquet tables instead of rounds" 233.7×26.0
+    button "Low centerpieces with more candles" 221.9×26.0
+    button "Moodier, dimmer lighting" 157.0×26.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "button \"Swap to sage and ivory\" 149.6×26.0",
+    +   "button \"Long banquet tables instead of rounds\" 233.7×26.0",
+    +   "button \"Low centerpieces with more candles\" 221.9×26.0",
+    +   "button \"Moodier, dimmer lighting\" 157.0×26.0",
+    + ]
+
+      144 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      145 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 146 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px (44×44 for buttons and tabs):\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                                                           ^
+      147 |   });
+      148 | }
+      149 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/s7.spec.ts:146:139
+
+    Error Context: test-results/s7-S7-studio-variation-dialog-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-studio-variation-dialog-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-studio-variation-dialog-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:21638) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[23/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: looks fits a phone @mobile
+  6) [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-describe fits a phone @mobile ────────────────────
+
+    Error: studio-describe: touch targets under 44×24 px (44×44 for buttons and tabs):
+    button "Remove crystal chandeliers" 44.0×32.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "button \"Remove crystal chandeliers\" 44.0×32.0",
+    + ]
+
+      144 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      145 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 146 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px (44×44 for buttons and tabs):\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                                                           ^
+      147 |   });
+      148 | }
+      149 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/s7.spec.ts:146:139
+
+    Error Context: test-results/s7-S7-studio-describe-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-studio-describe-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-studio-describe-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:21643) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[24/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: compare fits a phone @mobile
+[25/25] [mobile] › e2e/s7.spec.ts:132:3 › S7: command-palette fits a phone @mobile
+  7) [mobile] › e2e/s7.spec.ts:132:3 › S7: looks fits a phone @mobile ──────────────────────────────
+
+    Error: looks: touch targets under 44×24 px (44×44 for buttons and tabs):
+    button "Select" 66.3×32.0
+    button "Delete Evergreen" 36.0×44.0
+    button "Select" 66.3×32.0
+    button "Delete Blush, gold & ivory" 36.0×44.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "button \"Select\" 66.3×32.0",
+    +   "button \"Delete Evergreen\" 36.0×44.0",
+    +   "button \"Select\" 66.3×32.0",
+    +   "button \"Delete Blush, gold & ivory\" 36.0×44.0",
+    + ]
+
+      144 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      145 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 146 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px (44×44 for buttons and tabs):\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                                                           ^
+      147 |   });
+      148 | }
+      149 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/s7.spec.ts:146:139
+
+    Error Context: test-results/s7-S7-looks-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-looks-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-looks-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  8) [mobile] › e2e/s7.spec.ts:132:3 › S7: compare fits a phone @mobile ────────────────────────────
+
+    Error: compare: touch targets under 44×24 px (44×44 for buttons and tabs):
+    button[role=tab] "Side by side" 93.1×37.0
+    button[role=tab] "Slider" 52.3×37.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "button[role=tab] \"Side by side\" 93.1×37.0",
+    +   "button[role=tab] \"Slider\" 52.3×37.0",
+    + ]
+
+      144 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      145 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 146 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px (44×44 for buttons and tabs):\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                                                           ^
+      147 |   });
+      148 | }
+      149 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/s7.spec.ts:146:139
+
+    Error Context: test-results/s7-S7-compare-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-compare-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-compare-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  8 failed
+    [mobile] › e2e/s7.spec.ts:132:3 › S7: venues-new-upload fits a phone @mobile ───────────────────
+    [mobile] › e2e/s7.spec.ts:132:3 › S7: venues-new-video fits a phone @mobile ────────────────────
+    [mobile] › e2e/s7.spec.ts:132:3 › S7: venue-edit-dialog fits a phone @mobile ───────────────────
+    [mobile] › e2e/s7.spec.ts:132:3 › S7: venue-add-room-dialog fits a phone @mobile ───────────────
+    [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-variation-dialog fits a phone @mobile ─────────────
+    [mobile] › e2e/s7.spec.ts:132:3 › S7: studio-describe fits a phone @mobile ─────────────────────
+    [mobile] › e2e/s7.spec.ts:132:3 › S7: looks fits a phone @mobile ───────────────────────────────
+    [mobile] › e2e/s7.spec.ts:132:3 › S7: compare fits a phone @mobile ─────────────────────────────
+  17 passed (13.8s)

@@ -1,0 +1,18 @@
+### pnpm --filter web exec vitest run src/lib/spec.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  20:47:17
+   Duration  129ms (transform 51%, import 26%, worker 14%, tests 9%)
+
+
+### pnpm --filter web exec playwright test e2e/ut8.spec.ts
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render
+[2/2] [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look
+  2 passed (12.2s)

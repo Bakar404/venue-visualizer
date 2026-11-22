@@ -1,0 +1,30 @@
+            session.flush()
+            session.add(ChatMessage(space_id=space.id, role="assistant", content="Your original plan."))
+        with engine.begin() as conn:
+            conn.exec_driver_sql("DELETE FROM schema_version WHERE version > 2")
+            conn.exec_driver_sql("INSERT OR IGNORE INTO schema_version (version) VALUES (2)")
+            columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(chatmessage)")}
+            if "chat_meta_json" in columns:
+                conn.exec_driver_sql("ALTER TABLE chatmessage DROP COLUMN chat_meta_json")
+
+        initialize(engine)
+        initialize(engine)
+        with engine.connect() as conn:
+>           assert conn.exec_driver_sql("SELECT MAX(version) FROM schema_version").scalar_one() == 3
+E           AssertionError: assert 2 == 3
+E            +  where 2 = scalar_one()
+E            +    where scalar_one = <sqlalchemy.engine.cursor.CursorResult object at 0x110c705f0>.scalar_one
+E            +      where <sqlalchemy.engine.cursor.CursorResult object at 0x110c705f0> = exec_driver_sql('SELECT MAX(version) FROM schema_version')
+E            +        where exec_driver_sql = <sqlalchemy.engine.base.Connection object at 0x110c70500>.exec_driver_sql
+
+tests/test_ut_5.py:52: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-api/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_ut_5.py::test_look_name_reflects_the_latest_patch_not_the_old_palette
+FAILED tests/test_ut_5.py::test_schema_v2_upgrade_preserves_chat_and_adds_response_storage
+2 failed, 1 warning in 0.65s

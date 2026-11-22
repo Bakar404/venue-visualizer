@@ -1,0 +1,90 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=chromium -g 'Discard'
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut6.spec.ts:154:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails
+[2/2] [chromium] › e2e/ut6.spec.ts:163:1 › UT6b: Discard is disabled while the delete is in flight
+[WebServer] [browser] ⨯ unhandledRejection: ApiError: The disk is read-only
+[WebServer]     at gate (src/lib/mock-api.ts:463:11)
+[WebServer]     at Object.deletePhoto (src/lib/mock-api.ts:918:11)
+[WebServer]   461 |   if (message !== undefined) {
+[WebServer]   462 |     failNext.delete(name);
+[WebServer] > 463 |     throw new ApiError(500, message);
+[WebServer]       |           ^
+[WebServer]   464 |   }
+[WebServer]   465 | }
+[WebServer]   466 |
+
+  1) [chromium] › e2e/ut6.spec.ts:154:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Couldn\'t discard the view')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('Couldn\'t discard the view') with timeout 10000ms
+      - waiting for getByText('Couldn\'t discard the view')
+
+
+      156 |   await page.evaluate(() => window.__vvMock.failNext("deletePhoto", "The disk is read-only"));
+      157 |   await preview.getByRole("button", { name: "Discard" }).click();
+    > 158 |   await expect(page.getByText("Couldn't discard the view")).toBeVisible();
+          |                                                             ^
+      159 |   await expect(page.getByText("The disk is read-only")).toBeVisible();
+      160 |   await expect(preview.getByRole("img", { name: "Generated empty base view" })).toBeVisible();
+      161 | });
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut6.spec.ts:158:61
+
+    Error Context: test-results/ut6-UT6b-Discard-shows-an--52147-ed-view-when-deleting-fails-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6b-Discard-shows-an--52147-ed-view-when-deleting-fails-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6b-Discard-shows-an--52147-ed-view-when-deleting-fails-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/ut6.spec.ts:163:1 › UT6b: Discard is disabled while the delete is in flight ──
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('region', { name: 'Preview' }).getByRole('button', { name: 'Discard' })
+    Expected: disabled
+    Received: enabled
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeDisabled" getByRole('region', { name: 'Preview' }).getByRole('button', { name: 'Discard' }) with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Preview' }).getByRole('button', { name: 'Discard' })
+        24 × locator resolved to <button tabindex="0" type="button" data-slot="button" class="group/button inline-flex shrink-0 items-center justify-center rounded-lg border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:bor…>…</button>
+           - unexpected value "enabled"
+
+
+      167 |   await discard.click();
+      168 |   await del.reached();
+    > 169 |   await expect(discard).toBeDisabled();
+          |                         ^
+      170 |   await expect(preview.getByRole("button", { name: "Use this view" })).toBeDisabled();
+      171 |   await del.release();
+      172 |   await expect(preview.getByRole("img", { name: "Generated empty base view" })).toBeHidden();
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut6.spec.ts:169:25
+
+    Error Context: test-results/ut6-UT6b-Discard-is-disabled-while-the-delete-is-in-flight-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6b-Discard-is-disabled-while-the-delete-is-in-flight-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6b-Discard-is-disabled-while-the-delete-is-in-flight-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut6.spec.ts:154:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails 
+    [chromium] › e2e/ut6.spec.ts:163:1 › UT6b: Discard is disabled while the delete is in flight ───

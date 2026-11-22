@@ -1,0 +1,6 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=chromium -g 'without a referrer'
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/ut6.spec.ts:177:1 › UT6b: reference photos from the web are loaded without a referrer
+  1 passed (3.5s)

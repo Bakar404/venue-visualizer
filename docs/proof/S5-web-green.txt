@@ -1,0 +1,10 @@
+
+Running 6 tests using 4 workers
+
+[1/6] [chromium] › e2e/s5.spec.ts:51:1 › S5: unfinished setup redirects every app route, except setup, pairing and the render scene
+[2/6] [chromium] › e2e/s5.spec.ts:15:1 › S5: a fresh install is sent to /setup and sees what to install, with copyable commands
+[3/6] [chromium] › e2e/s5.spec.ts:67:1 › S5: installed but signed out shows the sign-in step; Test tells unknown from ready
+[4/6] [chromium] › e2e/s5.spec.ts:86:1 › S5: image tests ask before using credits; free engines test straight away
+[5/6] [chromium] › e2e/s5.spec.ts:111:1 › S5: Advanced keeps per-provider options
+[6/6] [chromium] › e2e/s5.spec.ts:129:1 › S5: Open on your phone shows the QR code, address and pairing code; /pair accepts only that code
+  6 passed (9.2s)

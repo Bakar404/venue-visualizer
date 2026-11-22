@@ -1,0 +1,215 @@
+
+Running 6 tests using 4 workers
+
+[1/6] [chromium] › e2e/s5.spec.ts:67:1 › S5: installed but signed out shows the sign-in step; Test tells unknown from ready
+[2/6] [chromium] › e2e/s5.spec.ts:86:1 › S5: image tests ask before using credits; free engines test straight away
+[3/6] [chromium] › e2e/s5.spec.ts:15:1 › S5: a fresh install is sent to /setup and sees what to install, with copyable commands
+[4/6] [chromium] › e2e/s5.spec.ts:51:1 › S5: unfinished setup redirects every app route, except setup, pairing and the render scene
+  1) [chromium] › e2e/s5.spec.ts:15:1 › S5: a fresh install is sent to /setup and sees what to install, with copyable commands 
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/setup$/
+    Received string:  "http://localhost:3300/?vvScenario=fresh"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 10000ms
+        24 × locator resolved to <html lang="en" class="geist_a71539c9-module__T19VSG__variable instrument_serif_bed06b21-module__swPsvG__variable h-full antialiased light">…</html>
+           - unexpected value "http://localhost:3300/?vvScenario=fresh"
+
+
+      15 | test("S5: a fresh install is sent to /setup and sees what to install, with copyable commands", async ({ page }) => {
+      16 |   await page.goto("/?vvScenario=fresh");
+    > 17 |   await expect(page).toHaveURL(/\/setup$/);
+         |                      ^
+      18 |   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set up your AI tools");
+      19 |   // Plain-English explanations of the two kinds of tool.
+      20 |   await expect(page.getByText(/The brain is the AI you chat with/)).toBeVisible();
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:17:22
+
+    Error Context: test-results/s5-S5-a-fresh-install-is-s-f9d49-tall-with-copyable-commands-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-a-fresh-install-is-s-f9d49-tall-with-copyable-commands-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-a-fresh-install-is-s-f9d49-tall-with-copyable-commands-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/s5.spec.ts:67:1 › S5: installed but signed out shows the sign-in step; Test tells unknown from ready 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByRole('region', { name: 'Claude Code', exact: true }).getByTestId('status-pill')
+    Expected: "Installed, not signed in"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" getByRole('region', { name: 'Claude Code', exact: true }).getByTestId('status-pill') with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Claude Code', exact: true }).getByTestId('status-pill')
+
+
+      68 |   await page.goto("/setup?vvScenario=signed-out");
+      69 |   const claude = card(page, "Claude Code");
+    > 70 |   await expect(pill(claude)).toHaveText("Installed, not signed in");
+         |                              ^
+      71 |   await expect(claude.getByTestId("sign-in-command")).toHaveText(/claude/);
+      72 |
+      73 |   const copilot = card(page, "GitHub Copilot");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:70:30
+
+    Error Context: test-results/s5-S5-installed-but-signed-66682-st-tells-unknown-from-ready-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-installed-but-signed-66682-st-tells-unknown-from-ready-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-installed-but-signed-66682-st-tells-unknown-from-ready-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[5/6] [chromium] › e2e/s5.spec.ts:111:1 › S5: Advanced keeps per-provider options
+[6/6] [chromium] › e2e/s5.spec.ts:129:1 › S5: Open on your phone shows the QR code, address and pairing code; /pair accepts only that code
+  3) [chromium] › e2e/s5.spec.ts:86:1 › S5: image tests ask before using credits; free engines test straight away 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByRole('region', { name: 'GitHub Copilot', exact: true }).getByTestId('status-pill')
+    Expected pattern: /Ready|Unknown/
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" getByRole('region', { name: 'GitHub Copilot', exact: true }).getByTestId('status-pill') with timeout 10000ms
+      - waiting for getByRole('region', { name: 'GitHub Copilot', exact: true }).getByTestId('status-pill')
+
+
+      87 |   await page.goto("/setup?vvScenario=ready");
+      88 |   const copilot = card(page, "GitHub Copilot");
+    > 89 |   await expect(pill(copilot)).toHaveText(/Ready|Unknown/);
+         |                               ^
+      90 |
+      91 |   await copilot.getByRole("button", { name: "Test images" }).click();
+      92 |   const confirm = page.getByRole("alertdialog");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:89:31
+
+    Error Context: test-results/s5-S5-image-tests-ask-befo-c3d40--engines-test-straight-away-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-image-tests-ask-befo-c3d40--engines-test-straight-away-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-image-tests-ask-befo-c3d40--engines-test-straight-away-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  4) [chromium] › e2e/s5.spec.ts:51:1 › S5: unfinished setup redirects every app route, except setup, pairing and the render scene 
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/setup$/
+    Received string:  "http://localhost:3300/venues?vvScenario=fresh"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 10000ms
+        24 × locator resolved to <html lang="en" class="geist_a71539c9-module__T19VSG__variable instrument_serif_bed06b21-module__swPsvG__variable h-full antialiased light">…</html>
+           - unexpected value "http://localhost:3300/venues?vvScenario=fresh"
+
+
+      51 | test("S5: unfinished setup redirects every app route, except setup, pairing and the render scene", async ({ page }) => {
+      52 |   await page.goto("/venues?vvScenario=fresh");
+    > 53 |   await expect(page).toHaveURL(/\/setup$/);
+         |                      ^
+      54 |   await page.goto("/spaces/space-ballroom");
+      55 |   await expect(page).toHaveURL(/\/setup$/);
+      56 |   await page.goto("/pair");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:53:22
+
+    Error Context: test-results/s5-S5-unfinished-setup-red-bea25-airing-and-the-render-scene-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-unfinished-setup-red-bea25-airing-and-the-render-scene-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-unfinished-setup-red-bea25-airing-and-the-render-scene-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  5) [chromium] › e2e/s5.spec.ts:129:1 › S5: Open on your phone shows the QR code, address and pairing code; /pair accepts only that code 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('region', { name: 'Open on your phone' })
+    Expected pattern: /anyone on the same Wi.?Fi/i
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" getByRole('region', { name: 'Open on your phone' }) with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Open on your phone' })
+
+
+      130 |   await page.goto("/setup");
+      131 |   const phone = page.getByRole("region", { name: "Open on your phone" });
+    > 132 |   await expect(phone).toContainText(/anyone on the same Wi.?Fi/i);
+          |                       ^
+      133 |   await phone.getByRole("switch", { name: /Allow phones on this Wi.?Fi/i }).click();
+      134 |   await expect(phone.getByRole("img", { name: /QR code/ })).toBeVisible();
+      135 |   await expect(phone.getByTestId("lan-url")).toHaveText(/^http:\/\/\d+\.\d+\.\d+\.\d+:\d+/);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:132:23
+
+    Error Context: test-results/s5-S5-Open-on-your-phone-s-37a51-pair-accepts-only-that-code-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-Open-on-your-phone-s-37a51-pair-accepts-only-that-code-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-Open-on-your-phone-s-37a51-pair-accepts-only-that-code-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  6) [chromium] › e2e/s5.spec.ts:111:1 › S5: Advanced keeps per-provider options ───────────────────
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('region', { name: 'Claude Code', exact: true }).getByRole('button', { name: 'Advanced' })
+
+
+      112 |   await page.goto("/setup?vvScenario=ready");
+      113 |   const claude = card(page, "Claude Code");
+    > 114 |   await claude.getByRole("button", { name: "Advanced" }).click();
+          |                                                          ^
+      115 |   await claude.getByLabel("Claude config folder").fill("~/.claude-work");
+      116 |   await claude.getByRole("button", { name: "Save" }).click();
+      117 |   const copilot = card(page, "GitHub Copilot");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:114:58
+
+    Error Context: test-results/s5-S5-Advanced-keeps-per-provider-options-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-Advanced-keeps-per-provider-options-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-Advanced-keeps-per-provider-options-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  6 failed
+    [chromium] › e2e/s5.spec.ts:15:1 › S5: a fresh install is sent to /setup and sees what to install, with copyable commands 
+    [chromium] › e2e/s5.spec.ts:51:1 › S5: unfinished setup redirects every app route, except setup, pairing and the render scene 
+    [chromium] › e2e/s5.spec.ts:67:1 › S5: installed but signed out shows the sign-in step; Test tells unknown from ready 
+    [chromium] › e2e/s5.spec.ts:86:1 › S5: image tests ask before using credits; free engines test straight away 
+    [chromium] › e2e/s5.spec.ts:111:1 › S5: Advanced keeps per-provider options ────────────────────
+    [chromium] › e2e/s5.spec.ts:129:1 › S5: Open on your phone shows the QR code, address and pairing code; /pair accepts only that code 

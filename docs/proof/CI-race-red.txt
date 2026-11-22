@@ -1,0 +1,15 @@
+      18 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ci-mock-ready.spec.ts:16:22
+    Error Context: test-results/ci-mock-ready-CI-race-mock-4d589--is-gone-even-on-a-slow-CPU-chromium-repeat2/error-context.md
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ci-mock-ready-CI-race-mock-4d589--is-gone-even-on-a-slow-CPU-chromium-repeat2/trace.zip
+    Usage:
+        pnpm exec playwright show-trace test-results/ci-mock-ready-CI-race-mock-4d589--is-gone-even-on-a-slow-CPU-chromium-repeat2/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  3 failed
+    [chromium] › e2e/ci-mock-ready.spec.ts:8:1 › CI-race: mockReady returns only once ?vvScenario= is gone, even on a slow CPU 
+    [chromium] › e2e/ci-mock-ready.spec.ts:8:1 › CI-race: mockReady returns only once ?vvScenario= is gone, even on a slow CPU 
+    [chromium] › e2e/ci-mock-ready.spec.ts:8:1 › CI-race: mockReady returns only once ?vvScenario= is gone, even on a slow CPU 
+undefined
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test e2e/ci-mock-ready.spec.ts --project=chromium --retries=0 --repeat-each=3 --reporter=line

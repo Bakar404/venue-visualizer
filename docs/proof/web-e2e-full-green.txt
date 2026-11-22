@@ -1,0 +1,2 @@
+[18/18] [mobile] › e2e/ut1.spec.ts:57:1 › UT1: phone tabs use the same internal scroll @mobile
+  18 passed (49.2s)

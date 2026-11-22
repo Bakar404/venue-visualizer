@@ -1,0 +1,24 @@
+$ cd apps/web && pnpm exec vitest run src/lib/fx-fi5.test.ts -t normalizeBackends
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 3 skipped (5)
+   Start at  00:45:43
+   Duration  84ms (import 43%, transform 40%, worker 9%, tests 8%)
+
+
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r2.spec.ts
+
+Running 2 tests using 2 workers
+
+(node:33031) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:33030) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/2] [chromium] › e2e/fx-r2.spec.ts:42:1 › FX-R2: the Studio brain picker shows a likely brain disabled with Run Test first
+[2/2] [chromium] › e2e/fx-r2.spec.ts:10:1 › FX-R2: the defaults step offers only ready tools
+  2 passed (4.2s)

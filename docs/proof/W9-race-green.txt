@@ -1,0 +1,235 @@
+
+--- Full suite 1 of 3 ---
+$ pnpm --filter web e2e
+
+
+> web@0.1.0 e2e /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+> playwright test
+
+
+Running 38 tests using 4 workers
+
+  -   1 [chromium] › e2e/readme-shots.spec.ts:25:1 › landing
+  -   2 [chromium] › e2e/readme-shots.spec.ts:32:1 › find my venue
+  -   3 [chromium] › e2e/readme-shots.spec.ts:48:1 › studio chat and render
+  -   4 [chromium] › e2e/readme-shots.spec.ts:56:1 › looks gallery
+  -   5 [chromium] › e2e/readme-shots.spec.ts:63:1 › references-only space
+  ✓   7 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (6.6s)
+  ✓  10 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (3.9s)
+  ✓   6 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (23.9s)
+  ✓   8 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (25.4s)
+  ✓   9 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (25.8s)
+  ✓  14 [chromium] › e2e/ut2.spec.ts:46:1 › UT2: a reply that changed nothing has no render action (4.2s)
+  ✓  12 [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan (6.2s)
+  ✓  13 [chromium] › e2e/ut2.spec.ts:33:1 › UT2: a reply that changed the plan offers a quiet Render this change (5.1s)
+  ✓  11 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (22.5s)
+  ✓  16 [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips (3.8s)
+  ✓  17 [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary (4.2s)
+  ✓  15 [chromium] › e2e/ut3.spec.ts:5:1 › UT3: a quick-reply chip sends only the option, never the question (6.0s)
+  ✓  18 [chromium] › e2e/ut4.spec.ts:32:1 › UT4: “make it 7pm so it's dark out” sets night in one turn (4.4s)
+  ✓  19 [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit (4.1s)
+  ✓  20 [chromium] › e2e/ut5.spec.ts:5:1 › UT5: Save as Look prefills the brain's name for the latest change (4.6s)
+  ✓  23 [chromium] › e2e/ut6.spec.ts:47:1 › UT6b: a references-only space shows its references and the ways to get a base photo (2.9s)
+  ✓  25 [chromium] › e2e/ut6.spec.ts:89:1 › UT6c: Render all is disabled until the space has an approved base photo (1.3s)
+  ✓  21 [chromium] › e2e/ut6.spec.ts:17:1 › UT6a: base photos without the confirmation can't be silently dropped (7.6s)
+  ✓  22 [chromium] › e2e/ut6.spec.ts:39:1 › UT6a: switching every photo to reference only enables Import without the box (7.2s)
+  ✓  24 [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it (5.9s)
+  ✓  26 [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits (4.0s)
+  ✓  30 [chromium] › e2e/ut6.spec.ts:177:1 › UT6b: reference photos from the web are loaded without a referrer (1.8s)
+  ✓  31 [chromium] › e2e/ut6.spec.ts:184:1 › UT6b: generating from a reference uses an engine that takes reference photos (1.6s)
+  ✓  28 [chromium] › e2e/ut6.spec.ts:156:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails (6.4s)
+  ✓  27 [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base (7.6s)
+  ✓  29 [chromium] › e2e/ut6.spec.ts:165:1 › UT6b: Discard is disabled while the delete is in flight (6.5s)
+  ✓  32 [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider (2.9s)
+  ✓  33 [chromium] › e2e/ut7.spec.ts:20:1 › UT7: a changed room says “May have changed the room” with the backend's message (2.6s)
+  ✓  35 [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look (3.2s)
+  ✓  38 [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions (2.1s)
+  ✓  34 [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render (7.7s)
+  ✓  36 [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed (8.3s)
+  ✓  37 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (23.2s)
+
+  5 skipped
+  33 passed (1.3m)
+
+--- Full suite 2 of 3 ---
+$ pnpm --filter web e2e
+
+
+> web@0.1.0 e2e /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+> playwright test
+
+
+Running 38 tests using 4 workers
+
+  -   1 [chromium] › e2e/readme-shots.spec.ts:25:1 › landing
+  -   2 [chromium] › e2e/readme-shots.spec.ts:32:1 › find my venue
+  -   3 [chromium] › e2e/readme-shots.spec.ts:48:1 › studio chat and render
+  -   4 [chromium] › e2e/readme-shots.spec.ts:56:1 › looks gallery
+  -   5 [chromium] › e2e/readme-shots.spec.ts:63:1 › references-only space
+  ✓   6 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (6.3s)
+  ✓  10 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (3.6s)
+  ✓   9 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (23.4s)
+  ✓   8 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (24.0s)
+  ✓   7 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (24.1s)
+  ✓  14 [chromium] › e2e/ut2.spec.ts:46:1 › UT2: a reply that changed nothing has no render action (3.5s)
+  ✓  13 [chromium] › e2e/ut2.spec.ts:33:1 › UT2: a reply that changed the plan offers a quiet Render this change (4.3s)
+  ✓  12 [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan (6.5s)
+  ✓  16 [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips (3.9s)
+  ✓  17 [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary (3.1s)
+  ✓  11 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (23.3s)
+  ✓  15 [chromium] › e2e/ut3.spec.ts:5:1 › UT3: a quick-reply chip sends only the option, never the question (6.4s)
+  ✓  18 [chromium] › e2e/ut4.spec.ts:32:1 › UT4: “make it 7pm so it's dark out” sets night in one turn (3.8s)
+  ✓  20 [chromium] › e2e/ut5.spec.ts:5:1 › UT5: Save as Look prefills the brain's name for the latest change (5.0s)
+  ✓  19 [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit (5.6s)
+  ✓  23 [chromium] › e2e/ut6.spec.ts:47:1 › UT6b: a references-only space shows its references and the ways to get a base photo (2.8s)
+  ✓  21 [chromium] › e2e/ut6.spec.ts:17:1 › UT6a: base photos without the confirmation can't be silently dropped (7.2s)
+  ✓  25 [chromium] › e2e/ut6.spec.ts:89:1 › UT6c: Render all is disabled until the space has an approved base photo (1.4s)
+  ✓  22 [chromium] › e2e/ut6.spec.ts:39:1 › UT6a: switching every photo to reference only enables Import without the box (8.0s)
+  ✓  24 [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it (6.2s)
+  ✓  26 [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits (6.0s)
+  ✓  30 [chromium] › e2e/ut6.spec.ts:177:1 › UT6b: reference photos from the web are loaded without a referrer (1.8s)
+  ✓  28 [chromium] › e2e/ut6.spec.ts:156:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails (5.7s)
+  ✓  27 [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base (7.3s)
+  ✓  29 [chromium] › e2e/ut6.spec.ts:165:1 › UT6b: Discard is disabled while the delete is in flight (6.3s)
+  ✓  31 [chromium] › e2e/ut6.spec.ts:184:1 › UT6b: generating from a reference uses an engine that takes reference photos (2.3s)
+  ✓  33 [chromium] › e2e/ut7.spec.ts:20:1 › UT7: a changed room says “May have changed the room” with the backend's message (3.9s)
+  ✓  32 [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider (4.2s)
+  ✓  35 [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look (3.6s)
+  ✓  38 [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions (1.4s)
+  ✓  34 [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render (8.1s)
+  ✓  36 [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed (7.1s)
+  ✓  37 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (20.6s)
+
+  5 skipped
+  33 passed (1.3m)
+
+--- Full suite 3 of 3 ---
+$ pnpm --filter web e2e
+
+
+> web@0.1.0 e2e /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+> playwright test
+
+
+Running 38 tests using 4 workers
+
+  -   1 [chromium] › e2e/readme-shots.spec.ts:25:1 › landing
+  -   2 [chromium] › e2e/readme-shots.spec.ts:32:1 › find my venue
+  -   3 [chromium] › e2e/readme-shots.spec.ts:48:1 › studio chat and render
+  -   4 [chromium] › e2e/readme-shots.spec.ts:56:1 › looks gallery
+  -   5 [chromium] › e2e/readme-shots.spec.ts:63:1 › references-only space
+  ✓   9 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (6.1s)
+  ✓  10 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (4.0s)
+  ✓   6 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (19.2s)
+  ✓   8 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (23.9s)
+  ✓  12 [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan (6.1s)
+  ✓   7 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (26.7s)
+  ✓  13 [chromium] › e2e/ut2.spec.ts:33:1 › UT2: a reply that changed the plan offers a quiet Render this change (3.7s)
+  ✓  14 [chromium] › e2e/ut2.spec.ts:46:1 › UT2: a reply that changed nothing has no render action (3.2s)
+  ✓  11 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (20.7s)
+  ✓  16 [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips (4.2s)
+  ✓  17 [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary (3.4s)
+  ✓  15 [chromium] › e2e/ut3.spec.ts:5:1 › UT3: a quick-reply chip sends only the option, never the question (5.4s)
+  ✓  18 [chromium] › e2e/ut4.spec.ts:32:1 › UT4: “make it 7pm so it's dark out” sets night in one turn (3.1s)
+  ✓  19 [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit (4.6s)
+  ✓  20 [chromium] › e2e/ut5.spec.ts:5:1 › UT5: Save as Look prefills the brain's name for the latest change (4.9s)
+  ✓  23 [chromium] › e2e/ut6.spec.ts:47:1 › UT6b: a references-only space shows its references and the ways to get a base photo (2.7s)
+  ✓  21 [chromium] › e2e/ut6.spec.ts:17:1 › UT6a: base photos without the confirmation can't be silently dropped (8.0s)
+  ✓  25 [chromium] › e2e/ut6.spec.ts:89:1 › UT6c: Render all is disabled until the space has an approved base photo (1.6s)
+  ✓  22 [chromium] › e2e/ut6.spec.ts:39:1 › UT6a: switching every photo to reference only enables Import without the box (7.1s)
+  ✓  24 [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it (6.0s)
+  ✓  26 [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits (4.0s)
+  ✓  30 [chromium] › e2e/ut6.spec.ts:177:1 › UT6b: reference photos from the web are loaded without a referrer (1.5s)
+  ✓  28 [chromium] › e2e/ut6.spec.ts:156:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails (6.4s)
+  ✓  31 [chromium] › e2e/ut6.spec.ts:184:1 › UT6b: generating from a reference uses an engine that takes reference photos (1.7s)
+  ✓  29 [chromium] › e2e/ut6.spec.ts:165:1 › UT6b: Discard is disabled while the delete is in flight (6.1s)
+  ✓  27 [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base (8.7s)
+  ✓  33 [chromium] › e2e/ut7.spec.ts:20:1 › UT7: a changed room says “May have changed the room” with the backend's message (3.2s)
+  ✓  32 [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider (3.4s)
+  ✓  35 [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look (3.5s)
+  ✓  38 [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions (1.7s)
+  ✓  34 [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render (8.1s)
+  ✓  36 [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed (7.3s)
+  ✓  37 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (24.6s)
+
+  5 skipped
+  33 passed (1.3m)
+
+--- UT1 stress ---
+$ pnpm --filter web exec playwright test e2e/ut1.spec.ts --repeat-each=10
+
+
+Running 70 tests using 4 workers
+
+  ✓   3 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (5.9s)
+  ✓   5 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (3.4s)
+  ✓   1 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (23.7s)
+  ✓   2 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (24.6s)
+  ✓   4 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (25.2s)
+  ✓   9 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (4.7s)
+  ✓   6 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (23.8s)
+  ✓  11 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (3.0s)
+  ✓   8 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (20.5s)
+  ✓   7 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (24.5s)
+  ✓  10 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (22.3s)
+  ✓  15 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (3.3s)
+  ✓  12 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (22.1s)
+  ✓  17 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (3.0s)
+  ✓  13 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (24.7s)
+  ✓  14 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (22.2s)
+  ✓  16 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (21.4s)
+  ✓  21 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (3.4s)
+  ✓  18 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (22.8s)
+  ✓  23 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (4.1s)
+  ✓  20 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (22.6s)
+  ✓  19 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (22.8s)
+  ✓  22 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (21.7s)
+  ✓  27 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (3.2s)
+  ✓  24 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (22.6s)
+  ✓  29 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (6.4s)
+  ✓  26 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (25.6s)
+  ✓  25 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (25.9s)
+  ✓  28 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (19.4s)
+  ✓  33 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (4.9s)
+  ✓  30 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (26.6s)
+  ✓  31 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (24.7s)
+  ✓  35 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (3.9s)
+  ✓  32 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (28.1s)
+  ✓  34 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (18.9s)
+  ✓  39 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (3.5s)
+  ✓  36 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (19.6s)
+  ✓  41 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (3.1s)
+  ✓  37 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (22.2s)
+  ✓  40 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (18.8s)
+  ✓  38 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (25.1s)
+  ✓  45 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (3.1s)
+  ✓  42 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (24.3s)
+  ✓  43 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (23.0s)
+  ✓  44 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (21.4s)
+  ✓  47 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (4.2s)
+  ✓  46 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (19.9s)
+  ✓  51 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (4.3s)
+  ✓  50 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (18.8s)
+  ✓  48 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (23.0s)
+  ✓  53 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (3.7s)
+  ✓  49 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (24.9s)
+  ✓  52 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (23.0s)
+  ✓  57 [chromium] › e2e/ut1.spec.ts:109:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (4.1s)
+  ✓  54 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (21.9s)
+  ✓  59 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (3.2s)
+  ✓  56 [chromium] › e2e/ut1.spec.ts:92:1 › UT1: a reader at the bottom keeps following a new reply (23.2s)
+  ✓  55 [chromium] › e2e/ut1.spec.ts:68:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (25.6s)
+  ✓  58 [chromium] › e2e/ut1.spec.ts:119:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (21.1s)
+  ✓  60 [chromium] › e2e/ut1.spec.ts:154:1 › UT1: the New message pill moves focus to the newest message (21.2s)
+  ✓  62 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (21.5s)
+  ✓  61 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (24.6s)
+  ✓  63 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (24.1s)
+  ✓  64 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (24.9s)
+  ✓  65 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (21.4s)
+  ✓  66 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (20.2s)
+  ✓  67 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (23.6s)
+  ✓  69 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (22.3s)
+  ✓  70 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (22.6s)
+  ✓  68 [mobile] › e2e/ut1.spec.ts:83:1 › UT1: phone tabs use the same internal scroll @mobile (25.4s)
+
+  70 passed (5.4m)

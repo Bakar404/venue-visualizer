@@ -1,0 +1,83 @@
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r5.spec.ts
+
+Running 2 tests using 2 workers
+
+(node:21202) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21201) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/2] [chromium] › e2e/fx-r5.spec.ts:8:1 › FX-R5: too many attempts disables Pair until Retry-After passes
+[2/2] [chromium] › e2e/fx-r5.spec.ts:31:1 › FX-R5: editing the code while Pair is in flight doesn't lose the result
+  1) [chromium] › e2e/fx-r5.spec.ts:8:1 › FX-R5: too many attempts disables Pair until Retry-After passes 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByTestId('pair-retry')
+    Expected pattern: /Too many attempts\. Try again in (20|19) s\./
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" getByTestId('pair-retry') with timeout 10000ms
+      - waiting for getByTestId('pair-retry')
+
+
+      17 |   await pair.click();
+      18 |   const wait = page.getByTestId("pair-retry");
+    > 19 |   await expect(wait).toHaveText(/Too many attempts\. Try again in (20|19) s\./);
+         |                      ^
+      20 |   await expect(pair).toBeDisabled();
+      21 |   await settled(page);
+      22 |   await page.screenshot({ path: proof("FX-R5-retry-after.png") });
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r5.spec.ts:19:22
+
+    Error Context: test-results/fx-r5-FX-R5-too-many-attem-652fb-ir-until-Retry-After-passes-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r5-FX-R5-too-many-attem-652fb-ir-until-Retry-After-passes-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r5-FX-R5-too-many-attem-652fb-ir-until-Retry-After-passes-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/fx-r5.spec.ts:31:1 › FX-R5: editing the code while Pair is in flight doesn't lose the result 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('This phone is paired.')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('This phone is paired.') with timeout 10000ms
+      - waiting for getByText('This phone is paired.')
+
+
+      42 |   await input.pressSequentially("9");
+      43 |   await held.release();
+    > 44 |   await expect(page.getByText("This phone is paired.")).toBeVisible();
+         |                                                         ^
+      45 |   await expect(page.getByRole("link", { name: "Open Venue Visualizer" })).toBeVisible();
+      46 | });
+      47 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r5.spec.ts:44:57
+
+    Error Context: test-results/fx-r5-FX-R5-editing-the-co-150dd-ght-doesn-t-lose-the-result-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r5-FX-R5-editing-the-co-150dd-ght-doesn-t-lose-the-result-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r5-FX-R5-editing-the-co-150dd-ght-doesn-t-lose-the-result-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/fx-r5.spec.ts:8:1 › FX-R5: too many attempts disables Pair until Retry-After passes 
+    [chromium] › e2e/fx-r5.spec.ts:31:1 › FX-R5: editing the code while Pair is in flight doesn't lose the result 

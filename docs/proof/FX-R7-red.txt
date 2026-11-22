@@ -1,0 +1,95 @@
+$ cd apps/web && pnpm exec vitest run src/hooks/use-keyboard-inset.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/hooks/use-keyboard-inset.test.ts (5 tests | 4 failed) 34ms
+   ❯ useKeyboardInset (5)
+     × ignores a shrunk viewport when nothing is focused 4ms
+     × ignores pinch zoom, even with a text field focused 3ms
+     × ignores a focused button (not a text field) 2ms
+     × drops the inset when the field loses focus 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/hooks/use-keyboard-inset.test.ts > useKeyboardInset > ignores a shrunk viewport when nothing is focused
+AssertionError: expected 344 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 344
+
+ ❯ src/hooks/use-keyboard-inset.test.ts:50:28
+     48|     const { result } = renderHook(() => useKeyboardInset());
+     49|     viewport(500);
+     50|     expect(result.current).toBe(0);
+       |                            ^
+     51|   });
+     52|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/hooks/use-keyboard-inset.test.ts > useKeyboardInset > ignores pinch zoom, even with a text field focused
+AssertionError: expected 422 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 422
+
+ ❯ src/hooks/use-keyboard-inset.test.ts:57:28
+     55|     field("input");
+     56|     viewport(422, 2);
+     57|     expect(result.current).toBe(0);
+       |                            ^
+     58|   });
+     59|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/hooks/use-keyboard-inset.test.ts > useKeyboardInset > ignores a focused button (not a text field)
+AssertionError: expected 344 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 344
+
+ ❯ src/hooks/use-keyboard-inset.test.ts:64:28
+     62|     field("button");
+     63|     viewport(500);
+     64|     expect(result.current).toBe(0);
+       |                            ^
+     65|   });
+     66|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/hooks/use-keyboard-inset.test.ts > useKeyboardInset > drops the inset when the field loses focus
+AssertionError: expected 344 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 344
+
+ ❯ src/hooks/use-keyboard-inset.test.ts:73:28
+     71|     expect(result.current).toBe(344);
+     72|     act(() => input.blur());
+     73|     expect(result.current).toBe(0);
+       |                            ^
+     74|   });
+     75| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+   Start at  00:05:14
+   Duration  405ms (environment 70%, import 18%, tests 10%, transform 2%, worker 1%)
+

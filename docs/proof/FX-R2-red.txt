@@ -1,0 +1,140 @@
+$ cd apps/web && pnpm exec vitest run src/lib/fx-fi5.test.ts -t normalizeBackends
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/fx-fi5.test.ts (5 tests | 2 failed | 3 skipped) 5ms
+   ❯ normalizeBackends (R2: the default choice is only ever a READY engine) (2)
+     × skips a likely default and falls back to a ready engine 3ms
+     × never picks a failed or merely likely engine 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/fx-fi5.test.ts > normalizeBackends (R2: the default choice is only ever a READY engine) > skips a likely default and falls back to a ready engine
+AssertionError: expected 'copilot' to be 'mflux' // Object.is equality
+
+Expected: "mflux"
+Received: "copilot"
+
+ ❯ src/lib/fx-fi5.test.ts:46:33
+     44|   it("skips a likely default and falls back to a ready engine", () => {
+     45|     const out = normalizeBackends(data([engine("copilot", {}), engine(…
+     46|     expect(out.defaults.engine).toBe("mflux");
+       |                                 ^
+     47|   });
+     48|   it("never picks a failed or merely likely engine", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/lib/fx-fi5.test.ts > normalizeBackends (R2: the default choice is only ever a READY engine) > never picks a failed or merely likely engine
+AssertionError: expected 'copilot' to be null
+
+- Expected:
+null
+
++ Received:
+"copilot"
+
+ ❯ src/lib/fx-fi5.test.ts:50:33
+     48|   it("never picks a failed or merely likely engine", () => {
+     49|     const out = normalizeBackends(data([engine("copilot", {}), engine(…
+     50|     expect(out.defaults.engine).toBeNull();
+       |                                 ^
+     51|   });
+     52| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 3 skipped (5)
+   Start at  00:05:14
+   Duration  92ms (import 41%, transform 29%, tests 22%, worker 8%)
+
+
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r2.spec.ts
+
+Running 2 tests using 2 workers
+
+(node:21001) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/2] [chromium] › e2e/fx-r2.spec.ts:10:1 › FX-R2: the defaults step offers only ready tools
+[2/2] [chromium] › e2e/fx-r2.spec.ts:42:1 › FX-R2: the Studio brain picker shows a likely brain disabled with Run Test first
+  1) [chromium] › e2e/fx-r2.spec.ts:10:1 › FX-R2: the defaults step offers only ready tools ────────
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('radiogroup', { name: 'Default brain' }).getByRole('radio', { name: /Copilot/ })
+    Expected: disabled
+    Received: enabled
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeDisabled" getByRole('radiogroup', { name: 'Default brain' }).getByRole('radio', { name: /Copilot/ }) with timeout 10000ms
+      - waiting for getByRole('radiogroup', { name: 'Default brain' }).getByRole('radio', { name: /Copilot/ })
+        24 × locator resolved to <span role="radio" tabindex="0" data-checked="" id="base-ui-_r_j_" aria-checked="true" data-composite-item-active="" aria-labelledby="_r_d_-copilot" aria-describedby="_r_d_-copilot-note" class="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border bg-card p-4 text-left outline-none transition-[border-color,background-color,box-shadow] duration-150 ease-out hover:border-foreground/25 focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:border-brand/60 data-checked:bg-brand-soft act…>…</span>
+           - unexpected value "enabled"
+
+
+      26 |   // Copilot is installed but untested: shown, not choosable.
+      27 |   const copilotBrain = brains.getByRole("radio", { name: /Copilot/ });
+    > 28 |   await expect(copilotBrain).toBeDisabled();
+         |                              ^
+      29 |   await expect(copilotBrain).toContainText("Run Test first");
+      30 |   await expect(engines.getByRole("radio", { name: /Copilot/ })).toBeDisabled();
+      31 |   // Kimi failed its test: not offered at all.
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r2.spec.ts:28:30
+
+    Error Context: test-results/fx-r2-FX-R2-the-defaults-step-offers-only-ready-tools-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r2-FX-R2-the-defaults-step-offers-only-ready-tools-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r2-FX-R2-the-defaults-step-offers-only-ready-tools-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/fx-r2.spec.ts:42:1 › FX-R2: the Studio brain picker shows a likely brain disabled with Run Test first 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('option', { name: /Kimi Code/ })
+    Expected: "true"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('option', { name: /Kimi Code/ }) with timeout 10000ms
+      - waiting for getByRole('option', { name: /Kimi Code/ })
+        24 × locator resolved to <div role="option" tabindex="-1" aria-selected="false" data-slot="select-item" class="relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm pointer-coarse:min-h-11 outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[sp…>…</div>
+           - unexpected value "null"
+
+
+      52 |   await page.getByRole("combobox", { name: "Brain" }).click();
+      53 |   const kimi = page.getByRole("option", { name: /Kimi Code/ });
+    > 54 |   await expect(kimi).toHaveAttribute("aria-disabled", "true");
+         |                      ^
+      55 |   await expect(kimi).toContainText("Run Test first");
+      56 |   await expect(page.getByRole("option", { name: /Claude Code/ })).not.toHaveAttribute("aria-disabled", "true");
+      57 |   await settled(page);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r2.spec.ts:54:22
+
+    Error Context: test-results/fx-r2-FX-R2-the-Studio-bra-bfb5f-isabled-with-Run-Test-first-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r2-FX-R2-the-Studio-bra-bfb5f-isabled-with-Run-Test-first-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r2-FX-R2-the-Studio-bra-bfb5f-isabled-with-Run-Test-first-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/fx-r2.spec.ts:10:1 › FX-R2: the defaults step offers only ready tools ─────────
+    [chromium] › e2e/fx-r2.spec.ts:42:1 › FX-R2: the Studio brain picker shows a likely brain disabled with Run Test first 

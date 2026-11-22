@@ -1,0 +1,49 @@
+$ pnpm --filter web exec vitest run src/components/setup/phone-access.test.tsx
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/components/setup/phone-access.test.tsx (2 tests | 2 failed) 107ms
+   × does not fetch at expiry while a new code is pending 84ms
+   × keeps the new code when an in-flight LAN query returns the old code 22ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/setup/phone-access.test.tsx > does not fetch at expiry while a new code is pending
+AssertionError: expected "lanInfo" to be called once, but got 2 times
+ ❯ src/components/setup/phone-access.test.tsx:45:15
+     43|   expect(rotate).toHaveBeenCalledOnce();
+     44|   expect(screen.getByTestId("pairing-expiry").textContent).toBe("Expir…
+     45|   expect(get).toHaveBeenCalledOnce();
+       |               ^
+     46|   post.resolve(newCode);
+     47|   await tick(20);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/components/setup/phone-access.test.tsx > keeps the new code when an in-flight LAN query returns the old code
+AssertionError: expected '123 456' to be '654 321' // Object.is equality
+
+Expected: "654 321"
+Received: "123 456"
+
+ ❯ src/components/setup/phone-access.test.tsx:65:58
+     63|   stale.resolve(oldCode);
+     64|   await tick(20);
+     65|   expect(screen.getByTestId("pairing-code").textContent).toBe("654 321…
+       |                                                          ^
+     66| });
+     67|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  01:19:18
+   Duration  1.10s (environment 43%, import 32%, transform 14%, tests 10%)
+
+undefined
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/components/setup/phone-access.test.tsx
+
+Exit status: 1

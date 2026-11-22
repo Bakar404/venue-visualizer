@@ -1,0 +1,7 @@
+# SEC2-3 (R2-3) green, after the fix (owner dependency runs before the body is read; data folder excluded on re-validation)
+$ cd services && uv run pytest -q --tb=line -p no:warnings tests/test_sec2_3.py tests/test_openapi_contract.py
+..................                                                       [100%]
+18 passed in 0.54s
+
+$ cd services && uv run pytest -q -p no:warnings   (full suite)
+376 passed in 37.84s

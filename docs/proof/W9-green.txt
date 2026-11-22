@@ -1,0 +1,7 @@
+### pnpm --filter web exec playwright test e2e/ut1.spec.ts --project=chromium -g 'first reply|gets shorter'
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter
+[2/2] [chromium] › e2e/ut1.spec.ts:105:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up
+  2 passed (20.5s)

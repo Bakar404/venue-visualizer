@@ -1,0 +1,51 @@
+$ cd services && uv run pytest -q tests/test_sec_6.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+.FF                                                                      [100%]
+=================================== FAILURES ===================================
+____________ test_non_local_websocket_upgrades_are_rejected[False] _____________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x1164b4a90>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1163fb230>
+lan = False
+
+    @pytest.mark.parametrize("lan", [False, True])
+    def test_non_local_websocket_upgrades_are_rejected(setup_machine, monkeypatch, lan):  # noqa: F811
+        lan_env(monkeypatch, lan=lan, key=lan)
+        with desktop(_app()) as api:
+>           assert not _accepted(phone(api.app, "192.168.10.4", Host="localhost:8000"))
+E           AssertionError: assert not True
+E            +  where True = _accepted(<starlette.testclient.TestClient object at 0x1165bda90>)
+E            +    where <starlette.testclient.TestClient object at 0x1165bda90> = phone(<fastapi.applications.FastAPI object at 0x116461940>, '192.168.10.4', Host='localhost:8000')
+E            +      where <fastapi.applications.FastAPI object at 0x116461940> = <starlette.testclient.TestClient object at 0x116436c10>.app
+
+tests/test_sec_6.py:47: AssertionError
+_____________ test_non_local_websocket_upgrades_are_rejected[True] _____________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x1168f9c70>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1164fee70>
+lan = True
+
+    @pytest.mark.parametrize("lan", [False, True])
+    def test_non_local_websocket_upgrades_are_rejected(setup_machine, monkeypatch, lan):  # noqa: F811
+        lan_env(monkeypatch, lan=lan, key=lan)
+        with desktop(_app()) as api:
+>           assert not _accepted(phone(api.app, "192.168.10.4", Host="localhost:8000"))
+E           AssertionError: assert not True
+E            +  where True = _accepted(<starlette.testclient.TestClient object at 0x1164fac40>)
+E            +    where <starlette.testclient.TestClient object at 0x1164fac40> = phone(<fastapi.applications.FastAPI object at 0x1165a1550>, '192.168.10.4', Host='localhost:8000')
+E            +      where <fastapi.applications.FastAPI object at 0x1165a1550> = <starlette.testclient.TestClient object at 0x1164f9940>.app
+
+tests/test_sec_6.py:47: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_sec_6.py::test_non_local_websocket_upgrades_are_rejected[False]
+FAILED tests/test_sec_6.py::test_non_local_websocket_upgrades_are_rejected[True]
+2 failed, 1 passed, 1 warning in 0.13s

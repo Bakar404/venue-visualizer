@@ -1,0 +1,7 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=chromium -g 'Discard'
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut6.spec.ts:156:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails
+[2/2] [chromium] › e2e/ut6.spec.ts:165:1 › UT6b: Discard is disabled while the delete is in flight
+  2 passed (9.0s)

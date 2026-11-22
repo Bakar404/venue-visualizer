@@ -1,0 +1,79 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=chromium -g 'generating from a reference, Use as my base|stays reviewable'
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits
+[2/2] [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base
+  1) [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits 
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('region', { name: 'Preview' }).getByRole('list', { name: 'Reference photos' }).getByRole('listitem').first().getByRole('button', { name: 'Use as my base photo' })
+    Expected: disabled
+    Received: enabled
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeDisabled" getByRole('region', { name: 'Preview' }).getByRole('list', { name: 'Reference photos' }).getByRole('listitem').first().getByRole('button', { name: 'Use as my base photo' }) with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Preview' }).getByRole('list', { name: 'Reference photos' }).getByRole('listitem').first().getByRole('button', { name: 'Use as my base photo' })
+        24 × locator resolved to <button tabindex="0" type="button" data-slot="button" aria-expanded="false" class="group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:…>…</button>
+           - unexpected value "enabled"
+
+
+      126 |   await expect(preview.getByText(/Generating the room|Waiting for the engine/)).toBeVisible();
+      127 |   await jobs.reached();
+    > 128 |   await expect(refs.nth(0).getByRole("button", { name: "Use as my base photo" })).toBeDisabled();
+          |                                                                                   ^
+      129 |   await expect(refs.nth(1).getByRole("button", { name: "Use as my base photo" })).toBeDisabled();
+      130 |
+      131 |   await jobs.release();
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut6.spec.ts:128:83
+
+    Error Context: test-results/ut6-UT6b-while-a-view-is-g-cfaca--Use-as-my-base-photo-waits-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6b-while-a-view-is-g-cfaca--Use-as-my-base-photo-waits-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6b-while-a-view-is-g-cfaca--Use-as-my-base-photo-waits-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('complementary', { name: 'Photos' }).getByRole('img', { name: 'Generated empty base view' })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('complementary', { name: 'Photos' }).getByRole('img', { name: 'Generated empty base view' }) with timeout 10000ms
+      - waiting for getByRole('complementary', { name: 'Photos' }).getByRole('img', { name: 'Generated empty base view' })
+
+
+      144 |   // The finished candidate moved to the photo strip, still with its Approve/Discard.
+      145 |   const strip = page.getByRole("complementary", { name: "Photos" });
+    > 146 |   await expect(strip.getByRole("img", { name: "Generated empty base view" })).toBeVisible();
+          |                                                                               ^
+      147 |   await expect(strip.getByRole("button", { name: "Discard" })).toBeVisible();
+      148 |   await page.screenshot({ path: proof("UT6b-candidate-in-strip.png") });
+      149 |   await strip.getByRole("button", { name: "Use this view" }).click();
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut6.spec.ts:146:79
+
+    Error Context: test-results/ut6-UT6b-a-generated-view--258cc-ther-photo-becomes-the-base-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6b-a-generated-view--258cc-ther-photo-becomes-the-base-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6b-a-generated-view--258cc-ther-photo-becomes-the-base-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits 
+    [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base 

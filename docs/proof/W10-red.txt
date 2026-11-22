@@ -1,0 +1,43 @@
+### pnpm --filter web exec playwright test e2e/ut1.spec.ts --project=chromium -g 'moves focus'   (chat-panel.tsx as committed)
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/ut1.spec.ts:128:1 › UT1: the New message pill moves focus to the newest message
+  1) [chromium] › e2e/ut1.spec.ts:128:1 › UT1: the New message pill moves focus to the newest message 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  getByRole('log', { name: 'Conversation' }).locator('ol > li').last()
+    Expected: focused
+    Received: inactive
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeFocused" getByRole('log', { name: 'Conversation' }).locator('ol > li').last() with timeout 10000ms
+      - waiting for getByRole('log', { name: 'Conversation' }).locator('ol > li').last()
+        24 × locator resolved to <li class="flex flex-col gap-2 items-start">…</li>
+           - unexpected value "inactive"
+
+
+      134 |   const newest = conversation(page).locator("ol > li").last();
+      135 |   await expect(newest).toContainText("Assistant:");
+    > 136 |   await expect(newest).toBeFocused();
+          |                        ^
+      137 |   await expect.poll(() => fromBottom(page)).toBeLessThan(80);
+      138 | });
+      139 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut1.spec.ts:136:24
+
+    Error Context: test-results/ut1-UT1-the-New-message-pi-53005-focus-to-the-newest-message-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut1-UT1-the-New-message-pi-53005-focus-to-the-newest-message-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut1-UT1-the-New-message-pi-53005-focus-to-the-newest-message-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/ut1.spec.ts:128:1 › UT1: the New message pill moves focus to the newest message 

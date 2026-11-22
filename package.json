@@ -1,0 +1,19 @@
+{
+  "name": "venue-visualizer",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.20.0",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev --hostname 127.0.0.1",
+    "build:web": "pnpm --filter web build",
+    "schema": "pnpm --filter @vv/schema generate"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
+  "license": "MIT"
+}

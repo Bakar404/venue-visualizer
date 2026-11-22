@@ -1,0 +1,16 @@
+      201 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut1.spec.ts:198:83
+
+    Error Context: test-results/ut1-UT1-a-reader-the-layou-ae694-s-followed-again-review-R6--chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut1-UT1-a-reader-the-layou-ae694-s-followed-again-review-R6--chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut1-UT1-a-reader-the-layou-ae694-s-followed-again-review-R6--chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/ut1.spec.ts:166:1 › UT1: a reader the layout brings back to the end is followed again (review R6) 

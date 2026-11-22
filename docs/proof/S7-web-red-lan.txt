@@ -1,0 +1,82 @@
+# pnpm --filter web exec playwright test e2e/s7.spec.ts --project=mobile -g setup  (before the LAN security change)
+
+Running 5 tests using 4 workers
+
+  ✘  1 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-rate-limited fits a phone @mobile (1.4s)
+  ✘  4 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-advanced fits a phone @mobile (1.4s)
+  ✓  3 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup fits a phone @mobile (1.5s)
+  ✘  2 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-forget-all-dialog fits a phone @mobile (1.5s)
+  ✓  5 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-credit-dialog fits a phone @mobile (1.3s)
+
+
+  1) [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-advanced fits a phone @mobile ─────────────────────
+
+    Error: page.evaluate: TypeError: window.__vvMock.setLan is not a function
+        at eval (eval at evaluate (:370:30), <anonymous>:2:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:370:30), <anonymous>:2:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at Object.ready (/Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:28:18)
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:137:5
+
+    Error Context: test-results/s7-S7-setup-advanced-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-setup-advanced-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-setup-advanced-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-forget-all-dialog fits a phone @mobile ────────────
+
+    Error: page.evaluate: TypeError: window.__vvMock.pairPhone is not a function
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at Object.ready (/Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:43:18)
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:137:5
+
+    Error Context: test-results/s7-S7-setup-forget-all-dialog-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-setup-forget-all-dialog-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-setup-forget-all-dialog-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-rate-limited fits a phone @mobile ─────────────────
+
+    Error: page.evaluate: TypeError: window.__vvMock.rateLimitTests is not a function
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at Object.ready (/Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:54:18)
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:137:5
+
+    Error Context: test-results/s7-S7-setup-rate-limited-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-setup-rate-limited-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-setup-rate-limited-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-advanced fits a phone @mobile ──────────────────────
+    [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-forget-all-dialog fits a phone @mobile ─────────────
+    [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-rate-limited fits a phone @mobile ──────────────────
+  2 passed (5.0s)

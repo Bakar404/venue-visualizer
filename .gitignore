@@ -1,0 +1,33 @@
+# secrets & personal
+.env
+.env.*
+!.env.example
+private/
+# data
+data/
+*.sqlite
+*.db
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+/services/.pytest-home-*/
+.ruff_cache/
+*.egg-info/
+# node
+node_modules/
+.next/
+out/
+dist/
+.turbo/
+*.tsbuildinfo
+# os/tools
+.DS_Store
+.claude-flow/
+.swarm/
+ruvector.db
+agentdb.rvf
+agentdb.rvf.lock
+probe/
+.claude/launch.json

@@ -1,0 +1,6 @@
+### pnpm --filter web exec playwright test e2e/ut1.spec.ts --project=chromium -g 'moves focus'
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/ut1.spec.ts:128:1 › UT1: the New message pill moves focus to the newest message
+  1 passed (22.1s)

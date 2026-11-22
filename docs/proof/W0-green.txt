@@ -1,0 +1,13 @@
+### (a) cd services && uv run pytest -q tests/test_openapi_contract.py
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 1 warning in 0.09s
+
+### (b) pnpm --filter web exec vitest run src/lib/mock-contract.test.ts
+ ✓ src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > GET /api/system/backends 189ms
+ ✓ src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > GET /api/looks/{id}, including renders with structure QA 118ms
+ ✓ src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > GET /api/looks/{id} after a fresh render 2322ms
+ ✓ src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > POST /api/spaces/{id}/chat 1099ms
+ ✓ src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > GET /api/spaces/{id}, with references 457ms
+ ✓ src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > POST /api/venues/import 4125ms
+ Test Files  1 passed (1)
+      Tests  6 passed (6)

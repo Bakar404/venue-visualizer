@@ -1,0 +1,40 @@
+
+  2) [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips ─
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('group', { name: 'Suggested replies' }).getByText('Which flowers would you like?')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('group', { name: 'Suggested replies' }).getByText('Which flowers would you like?') with timeout 10000ms
+      - waiting for getByRole('group', { name: 'Suggested replies' }).getByText('Which flowers would you like?')
+
+
+      28 |   await expect(chips).toBeVisible();
+      29 |   await expect(chips.getByRole("button", { name: /\?/ })).toHaveCount(0);
+    > 30 |   await expect(chips.getByText("Which flowers would you like?")).toBeVisible();
+         |                                                                  ^
+      31 |   await expect(chips.getByRole("button")).toHaveText(["Garden roses", "Peonies", "Ranunculus"]);
+      32 | });
+      33 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-web/apps/web/e2e/ut3.spec.ts:30:66
+
+    Error Context: test-results/ut3-UT3-the-question-is-shown-as-text-above-the-option-chips-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut3-UT3-the-question-is-shown-as-text-above-the-option-chips-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut3-UT3-the-question-is-shown-as-text-above-the-option-chips-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut3.spec.ts:5:1 › UT3: a quick-reply chip sends only the option, never the question 
+    [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips ──
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test e2e/ut3.spec.ts --reporter=line

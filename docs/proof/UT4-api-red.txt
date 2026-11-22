@@ -1,0 +1,30 @@
+        errors = sorted(_validator().iter_errors(data), key=lambda e: list(e.absolute_path))
+        if errors:
+            msg = "; ".join(f"{_pointer(e.absolute_path)}: {e.message}" for e in errors[:10])
+            raise SpecValidationError(msg)
+        try:
+            return DesignSpec.model_validate(data)
+        except ValidationError as e:
+>           raise SpecValidationError(str(e)) from e
+E           pipeline.spec_ops.SpecValidationError: 1 validation error for DesignSpec
+E           scene
+E             Extra inputs are not permitted [type=extra_forbidden, input_value={}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+pipeline/spec_ops.py:60: SpecValidationError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-api/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_ut_4.py::test_night_chat_changes_the_outside_and_the_render_prompt[Make it 7pm]
+FAILED tests/test_ut_4.py::test_night_chat_changes_the_outside_and_the_render_prompt[Make it dark outside]
+FAILED tests/test_ut_4.py::test_night_chat_changes_the_outside_and_the_render_prompt[Make it night]
+FAILED tests/test_ut_4.py::test_night_chat_changes_the_outside_and_the_render_prompt[I mean it's not daylight outside]
+FAILED tests/test_ut_4.py::test_night_chat_changes_the_outside_and_the_render_prompt[Make it after sunset]
+FAILED tests/test_ut_4.py::test_sunset_maps_to_golden_hour[Make it golden hour]
+FAILED tests/test_ut_4.py::test_sunset_maps_to_golden_hour[Show the room at sunset]
+FAILED tests/test_ut_4.py::test_scene_is_optional_and_defaults_when_present
+8 failed, 1 warning in 0.26s

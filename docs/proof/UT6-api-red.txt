@@ -1,0 +1,30 @@
+                [image] = args["input_images"]
+                staged = Path(image["path"])
+            else:
+                staged = Path(argv[argv.index("-i") + 1])
+                assert "Generate one image" in argv[-1] and "reference" in argv[-1]
+            assert staged.is_relative_to(cwd) and staged.read_bytes() == room.read_bytes()
+            output = make_room(cwd / "vv-output.png")
+            return ProcResult(argv, 0, f"SAVED_TO: {output}", "", 0)
+
+        monkeypatch.setattr(module, "run_cli", run_cli)
+>       request = GenerateRequest(prompt="Recreate the empty room", out_path=tmp_path / "base.png",
+                                  ref_images=[room])
+E       TypeError: GenerateRequest.__init__() got an unexpected keyword argument 'ref_images'
+
+tests/test_ut_6.py:132: TypeError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-api/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_ut_6.py::test_reference_becomes_approved_base_photo_without_removing_reference
+FAILED tests/test_ut_6.py::test_import_requires_rights_and_a_reference_belonging_to_the_space
+FAILED tests/test_ut_6.py::test_reference_download_errors_include_the_reason
+FAILED tests/test_ut_6.py::test_reference_import_obeys_the_photo_cap_before_downloading
+FAILED tests/test_ut_6.py::test_generate_base_passes_only_the_chosen_reference_to_generate
+FAILED tests/test_ut_6.py::test_cli_generators_attach_reference_as_an_image[pipeline.engines.copilot-CopilotEngine]
+FAILED tests/test_ut_6.py::test_cli_generators_attach_reference_as_an_image[pipeline.engines.codex-CodexEngine]
+7 failed, 1 warning in 1.49s

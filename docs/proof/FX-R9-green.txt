@@ -1,0 +1,13 @@
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r9.spec.ts
+
+Running 2 tests using 2 workers
+
+(node:38132) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:38133) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/2] [chromium] › e2e/fx-r9.spec.ts:8:1 › FX-R9: Try it right after Finish setup opens the venue, even while setup status is still reloading
+[2/2] [chromium] › e2e/fx-r9.spec.ts:23:1 › FX-R9: the setup gate shows a neutral loading state until it knows where to go
+  2 passed (2.5s)

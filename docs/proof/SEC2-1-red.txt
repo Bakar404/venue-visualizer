@@ -1,0 +1,198 @@
+# SEC2-1 (R2-1) red, on 281b6be before the fix
+# cd services && uv run pytest -q --tb=line -p no:warnings tests/test_sec2_1.py
+FFFFFFFF...FFFFF.FF.FF.FFFFFFFFFFFF                                      [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert 200 == 403
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/settings')
+     +      where get = <starlette.testclient.TestClient object at 0x11625f610>.get
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:105: AssertionError: assert 200 == 403
+E   AssertionError: assert 200 == 403
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/settings')
+     +      where get = <starlette.testclient.TestClient object at 0x1164789d0>.get
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:105: AssertionError: assert 200 == 403
+E   AssertionError: assert 200 == 403
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/settings')
+     +      where get = <starlette.testclient.TestClient object at 0x1164b1910>.get
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:105: AssertionError: assert 200 == 403
+E   AssertionError: assert 200 == 403
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/settings')
+     +      where get = <starlette.testclient.TestClient object at 0x1164ac380>.get
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:116: AssertionError: assert 200 == 403
+E   AssertionError: assert 200 == 403
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/settings')
+     +      where get = <starlette.testclient.TestClient object at 0x1163f3ce0>.get
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:129: AssertionError: assert 200 == 403
+E   AssertionError: assert 200 == 403
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/settings')
+     +      where get = <starlette.testclient.TestClient object at 0x116308270>.get
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:129: AssertionError: assert 200 == 403
+E   AssertionError: assert 200 == 403
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/settings')
+     +      where get = <starlette.testclient.TestClient object at 0x1163e9040>.get
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:129: AssertionError: assert 200 == 403
+E   AssertionError: assert 200 == 403
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/settings')
+     +      where get = <starlette.testclient.TestClient object at 0x11637cd10>.get
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:129: AssertionError: assert 200 == 403
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_a_valid_attestation_for_a0/data/.vv-proxy-key'
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_a_valid_attestation_for_a0/data/.vv-proxy-key'
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_a_valid_attestation_for_a1/data/.vv-proxy-key'
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_a_valid_attestation_for_a1/data/.vv-proxy-key'
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_an_attestation_for_a_lan_0/data/.vv-proxy-key'
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_an_attestation_for_a_lan_0/data/.vv-proxy-key'
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_the_api_creates_a_private0/data/.vv-proxy-key'
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_the_api_creates_a_private0/data/.vv-proxy-key'
+E   AssertionError: assert 420 == 384
+     +  where 420 = mode((PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_a_loose_key_file_is_tight0/data') / '.vv-proxy-key'))
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:196: AssertionError: assert 420 == 384
+E   assert (0 == 16)
+     +  where 0 = len([])
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:214: assert (0 == 16)
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_the_shim_creates_the_key_0/data/.vv-proxy-key'
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:654: FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-229/test_the_shim_creates_the_key_0/data/.vv-proxy-key'
+E   AttributeError: module 'api.lan' has no attribute 'shared_proxy_key'
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:241: AttributeError: module 'api.lan' has no attribute 'shared_proxy_key'
+E   AssertionError: [eval]:1
+      process.stdout.write(require("/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan_proxy.cjs").keyFile(process.env))
+                                                                                                                 ^
+      
+      TypeError: require(...).keyFile is not a function
+          at [eval]:1:108
+          at runScriptInThisContext (node:internal/vm:209:10)
+          at node:internal/process/execution:446:12
+          at [eval]-wrapper:6:24
+          at runScriptInContext (node:internal/process/execution:444:60)
+          at evalFunction (node:internal/process/execution:279:30)
+          at evalTypeScript (node:internal/process/execution:291:3)
+          at node:internal/main/eval_string:74:3
+      
+      Node.js v22.19.0
+      
+    assert 1 == 0
+     +  where 1 = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '-e', 'process.stdout.write(requ...lTypeScript (node:internal/process/execution:291:3)\n    at node:internal/main/eval_string:74:3\n\nNode.js v22.19.0\n').returncode
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:91: AssertionError: [eval]:1
+E   AssertionError: assert 'next dev' == 'node ../../s...ame 127.0.0.1'
+      
+      - node ../../scripts/next-with-shim.mjs dev --hostname 127.0.0.1
+      + next dev
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:275: AssertionError: assert 'next dev' == 'node ../../s...ame 127.0.0.1'
+E   AssertionError: assert 'next start' == 'node ../../s...ame 127.0.0.1'
+      
+      - node ../../scripts/next-with-shim.mjs start --hostname 127.0.0.1
+      + next start
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:275: AssertionError: assert 'next start' == 'node ../../s...ame 127.0.0.1'
+E   AssertionError: assert 'pnpm dev --hostname 127.0.0.1' in 'NEXT_PUBLIC_VV_MOCK=1 pnpm dev --port ${PORT}'
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:288: AssertionError: assert 'pnpm dev --hostname 127.0.0.1' in 'NEXT_PUBLIC_VV_MOCK=1 pnpm dev --port ${PORT}'
+E   AssertionError: node:internal/modules/cjs/loader:1386
+        throw err;
+        ^
+      
+      Error: Cannot find module '/Users/ahmedabdelsalam/Desktop/venue-visualizer/scripts/next-with-shim.mjs'
+          at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+          at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+          at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+          at Function._load (node:internal/modules/cjs/loader:1192:37)
+          at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+          at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+          at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+          at node:internal/main/run_main_module:36:49 {
+        code: 'MODULE_NOT_FOUND',
+        requireStack: []
+      }
+      
+      Node.js v22.19.0
+      
+    assert 1 == 0
+     +  where 1 = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").returncode
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:320: AssertionError: node:internal/modules/cjs/loader:1386
+E   assert ('hostname' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" or 'make dev-lan' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n")
+     +  where "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" = <built-in method lower of str object at 0x115984f60>()
+     +    where <built-in method lower of str object at 0x115984f60> = "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n".lower
+     +      where "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n" = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").stderr
+     +  and   "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n" = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").stderr
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:338: assert ('hostname' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" or 'make dev-lan' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n")
+E   assert ('hostname' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" or 'make dev-lan' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n")
+     +  where "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" = <built-in method lower of str object at 0x115970540>()
+     +    where <built-in method lower of str object at 0x115970540> = "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n".lower
+     +      where "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n" = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").stderr
+     +  and   "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n" = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").stderr
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:338: assert ('hostname' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" or 'make dev-lan' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n")
+E   assert ('hostname' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" or 'make dev-lan' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n")
+     +  where "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" = <built-in method lower of str object at 0x1158d4140>()
+     +    where <built-in method lower of str object at 0x1158d4140> = "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n".lower
+     +      where "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n" = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").stderr
+     +  and   "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n" = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").stderr
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:338: assert ('hostname' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" or 'make dev-lan' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n")
+E   assert ('hostname' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" or 'make dev-lan' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n")
+     +  where "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" = <built-in method lower of str object at 0x1158d3330>()
+     +    where <built-in method lower of str object at 0x1158d3330> = "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n".lower
+     +      where "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n" = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").stderr
+     +  and   "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n" = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").stderr
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:338: assert ('hostname' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nerror: cannot find module '/users/ahmedabdelsalam/desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'module_not_found',\n  requirestack: []\n}\n\nnode.js v22.19.0\n" or 'make dev-lan' in "node:internal/modules/cjs/loader:1386\n  throw err;\n  ^\n\nError: Cannot find module '/Users/ahmedabdelsalam/Desktop...t node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n")
+E   AssertionError: node:internal/modules/cjs/loader:1386
+        throw err;
+        ^
+      
+      Error: Cannot find module '/Users/ahmedabdelsalam/Desktop/venue-visualizer/scripts/next-with-shim.mjs'
+          at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+          at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+          at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+          at Function._load (node:internal/modules/cjs/loader:1192:37)
+          at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+          at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+          at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+          at node:internal/main/run_main_module:36:49 {
+        code: 'MODULE_NOT_FOUND',
+        requireStack: []
+      }
+      
+      Node.js v22.19.0
+      
+    assert 1 == 0
+     +  where 1 = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/... node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.19.0\n").returncode
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:344: AssertionError: node:internal/modules/cjs/loader:1386
+E   AttributeError: <module 'api.lan' from '/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan.py'> has no attribute '_output'
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:360: AttributeError: <module 'api.lan' from '/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan.py'> has no attribute '_output'
+E   AttributeError: <module 'api.lan' from '/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan.py'> has no attribute '_output'
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:368: AttributeError: <module 'api.lan' from '/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan.py'> has no attribute '_output'
+E   AttributeError: <module 'api.lan' from '/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan.py'> has no attribute '_output'
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_1.py:373: AttributeError: <module 'api.lan' from '/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan.py'> has no attribute '_output'
+=========================== short test summary info ============================
+FAILED tests/test_sec2_1.py::test_forged_loopback_forwarded_host_without_attestation_is_not_local[localhost:3000]
+FAILED tests/test_sec2_1.py::test_forged_loopback_forwarded_host_without_attestation_is_not_local[127.0.0.1:3000]
+FAILED tests/test_sec2_1.py::test_forged_loopback_forwarded_host_without_attestation_is_not_local[[::1]:3000]
+FAILED tests/test_sec2_1.py::test_the_live_check_request_is_refused - Asserti...
+FAILED tests/test_sec2_1.py::test_any_sign_of_a_proxy_needs_an_attestation[headers0]
+FAILED tests/test_sec2_1.py::test_any_sign_of_a_proxy_needs_an_attestation[headers1]
+FAILED tests/test_sec2_1.py::test_any_sign_of_a_proxy_needs_an_attestation[headers2]
+FAILED tests/test_sec2_1.py::test_any_sign_of_a_proxy_needs_an_attestation[headers3]
+FAILED tests/test_sec2_1.py::test_a_valid_attestation_for_a_loopback_client_is_local_and_owner[127.0.0.1]
+FAILED tests/test_sec2_1.py::test_a_valid_attestation_for_a_loopback_client_is_local_and_owner[::1]
+FAILED tests/test_sec2_1.py::test_an_attestation_for_a_lan_ip_is_not_local_unless_paired
+FAILED tests/test_sec2_1.py::test_the_api_creates_a_private_key_file_and_keeps_it
+FAILED tests/test_sec2_1.py::test_a_loose_key_file_is_tightened - AssertionEr...
+FAILED tests/test_sec2_1.py::test_concurrent_creation_yields_one_key - assert...
+FAILED tests/test_sec2_1.py::test_the_shim_creates_the_key_when_the_web_starts_first
+FAILED tests/test_sec2_1.py::test_the_shim_and_the_api_agree_when_they_race
+FAILED tests/test_sec2_1.py::test_the_shim_finds_the_same_key_file_as_the_api
+FAILED tests/test_sec2_1.py::test_web_scripts_go_through_the_shim_on_loopback[dev]
+FAILED tests/test_sec2_1.py::test_web_scripts_go_through_the_shim_on_loopback[start]
+FAILED tests/test_sec2_1.py::test_root_and_make_and_playwright_starts_bind_loopback
+FAILED tests/test_sec2_1.py::test_the_wrapper_preloads_the_shim_into_next - A...
+FAILED tests/test_sec2_1.py::test_the_wrapper_refuses_to_bind_beyond_loopback_outside_lan_mode[args0]
+FAILED tests/test_sec2_1.py::test_the_wrapper_refuses_to_bind_beyond_loopback_outside_lan_mode[args1]
+FAILED tests/test_sec2_1.py::test_the_wrapper_refuses_to_bind_beyond_loopback_outside_lan_mode[args2]
+FAILED tests/test_sec2_1.py::test_the_wrapper_refuses_to_bind_beyond_loopback_outside_lan_mode[args3]
+FAILED tests/test_sec2_1.py::test_the_wrapper_accepts_a_repeated_identical_hostname
+FAILED tests/test_sec2_1.py::test_exposed_next_lists_any_next_server_listening_beyond_loopback
+FAILED tests/test_sec2_1.py::test_exposed_next_is_best_effort - AttributeErro...
+FAILED tests/test_sec2_1.py::test_the_watcher_warns_about_next_servers_on_any_port
+29 failed, 6 passed in 5.32s

@@ -1,0 +1,331 @@
+"""SSRF-safe image probes and downloads for venue photos found on the web.
+
+Guards: http/https only; no credentials in URLs; every hostname is resolved and *every* address must be public
+(private, loopback, link-local, multicast, reserved, unspecified, shared/CGNAT, IPv4-mapped/6to4/NAT64 forms
+of those are rejected, for IPv4 and IPv6); the connection is pinned to the validated IP (Host header and TLS SNI
+keep the real hostname), so a second DNS answer cannot redirect it (DNS rebinding); redirects are followed by
+hand (max 5) and each hop is re-validated; 15 s network timeout; only image/* content types we can decode;
+`Accept-Encoding: identity` is requested and any other Content-Encoding is rejected, so the byte cap applied to
+the raw stream also bounds the decoded size (no gzip/brotli bombs); decoded with Pillow (decompression-bomb
+guarded) and re-saved without any metadata (EXIF/GPS/XMP dropped, orientation applied first) via a temp file
+that is only published if the download was not cancelled or timed out. Any violation raises `FetchError`.
+"""
+from __future__ import annotations
+
+import asyncio
+import io
+import ipaddress
+import socket
+import uuid
+import warnings
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from pathlib import Path
+from urllib.parse import urljoin, urlsplit
+
+import httpx
+from PIL import Image, ImageOps
+
+from ._images import register_heif
+
+register_heif()
+
+TOTAL_TIMEOUT_S = 60.0
+TIMEOUT_S = 15.0
+MAX_REDIRECTS = 5
+MAX_PIXELS = 80_000_000
+ALLOWED_CONTENT_TYPES = {
+    "image/jpeg": "JPEG", "image/jpg": "JPEG", "image/pjpeg": "JPEG",
+    "image/png": "PNG", "image/webp": "WEBP",
+    "image/heic": "HEIF", "image/heif": "HEIF", "image/heic-sequence": "HEIF", "image/heif-sequence": "HEIF",
+    "image/avif": "AVIF",
+}
+_DECODED_FORMATS = {"JPEG", "MPO", "PNG", "WEBP", "HEIF", "AVIF"}
+_REDIRECTS = {301, 302, 303, 307, 308}
+_HEAD_FALLBACKS = {403, 405, 501}
+_USER_AGENT = "VenueVisualizer/0.1 (local personal planning tool; image import)"
+
+IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
+
+
+class FetchError(RuntimeError):
+    pass
+
+
+def _embedded_v4(ip: ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
+    if ip.ipv4_mapped:
+        return ip.ipv4_mapped
+    if ip.sixtofour:
+        return ip.sixtofour
+    if ip.teredo:
+        return ip.teredo[1]
+    if ip in ipaddress.ip_network("64:ff9b::/96"):  # NAT64
+        return ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+    return None
+
+
+def is_public_ip(ip: IPAddress | str) -> bool:
+    """True only for globally routable unicast addresses (IPv4 and IPv6, incl. embedded IPv4 forms)."""
+    ip = ipaddress.ip_address(ip)
+    if isinstance(ip, ipaddress.IPv6Address):
+        inner = _embedded_v4(ip)
+        if inner is not None and not is_public_ip(inner):
+            return False
+    return not (
+        ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved
+        or ip.is_unspecified or not ip.is_global
+    )
+
+
+async def resolve_host(host: str, port: int) -> list[str]:
+    """All addresses `host` resolves to (module-level so tests can monkeypatch it)."""
+    loop = asyncio.get_running_loop()
+    try:
+        infos = await loop.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except socket.gaierror as e:
+        raise FetchError(f"could not resolve {host!r}: {e}") from e
+    return list(dict.fromkeys(info[4][0] for info in infos))
+
+
+async def validate_url(url: str) -> tuple[httpx.URL, str]:
+    """Check scheme/host and resolve; return (parsed URL, the public IP to connect to)."""
+    try:
+        parts = urlsplit(url)
+        parsed = httpx.URL(url)
+    except (ValueError, httpx.InvalidURL) as e:
+        raise FetchError(f"invalid URL {url!r}: {e}") from e
+    if parts.scheme.lower() not in ("http", "https"):
+        raise FetchError(f"only http(s) URLs can be downloaded, not {parts.scheme or 'no scheme'!r}")
+    if parts.username or parts.password:
+        raise FetchError("URLs with embedded credentials are not allowed")
+    host = (parsed.host or "").strip().rstrip(".")
+    if not host:
+        raise FetchError(f"URL has no host: {url!r}")
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        literal: IPAddress | None = ipaddress.ip_address(host.strip("[]").split("%")[0])
+    except ValueError:
+        literal = None
+    if literal is not None:
+        addresses = [str(literal)]
+    else:
+        if host.lower() == "localhost" or host.lower().endswith(".localhost"):
+            raise FetchError(f"refusing to fetch from {host!r}: not a public host")
+        addresses = await resolve_host(host, port)
+    if not addresses:
+        raise FetchError(f"{host!r} did not resolve to any address")
+    for addr in addresses:
+        try:
+            ok = is_public_ip(addr.split("%")[0])
+        except ValueError:
+            ok = False
+        if not ok:
+            raise FetchError(f"refusing to fetch {host!r}: it resolves to non-public address {addr}")
+    return parsed, addresses[0].split("%")[0]
+
+
+def _host_header(url: httpx.URL) -> str:
+    """Host header value: IDNA (punycode) hostname, IPv6 literals in brackets, explicit port kept."""
+    host = url.raw_host.decode("ascii")
+    if ":" in host:
+        host = f"[{host}]"
+    return host if url.port is None else f"{host}:{url.port}"
+
+
+def _pinned_request(client: httpx.AsyncClient, url: httpx.URL, ip: str, method: str, *,
+                    range_probe: bool = False) -> httpx.Request:
+    headers = {"Host": _host_header(url), "User-Agent": _USER_AGENT, "Accept-Encoding": "identity",
+               "Accept": "image/avif,image/webp,image/png,image/jpeg,image/heic;q=0.9"}
+    if range_probe:
+        headers["Range"] = "bytes=0-0"
+    extensions = {"sni_hostname": url.raw_host.decode("ascii")} if url.scheme == "https" else {}
+    return client.build_request(method, url.copy_with(host=ip), headers=headers, extensions=extensions)
+
+
+def _media_type(content_type: str | None) -> str:
+    return (content_type or "").split(";")[0].strip().lower()
+
+
+async def _read_capped(resp: httpx.Response, max_bytes: int) -> bytes:
+    """Read the identity-encoded body with a cap on the bytes received from the wire."""
+    length = resp.headers.get("content-length")
+    if length and length.isdigit() and int(length) > max_bytes:
+        raise FetchError(f"image is too large ({int(length):,} bytes > {max_bytes:,})")
+    buf = bytearray()
+    async for chunk in _raw_chunks(resp):
+        buf += chunk
+        if len(buf) > max_bytes:
+            raise FetchError(f"image is too large (> {max_bytes:,} bytes)")
+    return bytes(buf)
+
+
+async def _raw_chunks(resp: httpx.Response):
+    if resp.is_stream_consumed:  # body already in memory (responses built from bytes, e.g. in tests)
+        yield resp.content
+        return
+    async for chunk in resp.aiter_raw():
+        yield chunk
+
+
+_PART_PREFIX = ".part-"
+
+
+async def _save_cancellable(data: bytes, dest_dir: Path) -> Path:
+    """Run `_clean_and_save` in a thread, publishing its file only if we were not cancelled/timed out.
+
+    The thread writes a hidden temp file; it is renamed on the event loop afterwards. If the caller is
+    cancelled meanwhile (e.g. the total-download timeout), the temp file is deleted once the thread ends."""
+    task = asyncio.ensure_future(asyncio.to_thread(_clean_and_save, data, dest_dir, _PART_PREFIX))
+    try:
+        part = await asyncio.shield(task)
+    except asyncio.CancelledError:
+        task.add_done_callback(_discard_part)
+        raise
+    final = part.with_name(part.name.removeprefix(_PART_PREFIX))
+    part.replace(final)
+    return final
+
+
+def _discard_part(task: asyncio.Future) -> None:
+    if task.cancelled() or task.exception() is not None:
+        return
+    task.result().unlink(missing_ok=True)
+
+
+def _clean_and_save(data: bytes, dest_dir: Path, prefix: str = "") -> Path:
+    """Decode, apply EXIF orientation, drop all metadata and save under a random name (with `prefix`)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", Image.DecompressionBombWarning)
+        try:
+            with Image.open(io.BytesIO(data)) as im:
+                fmt = (im.format or "").upper()
+                if fmt not in _DECODED_FORMATS:
+                    raise FetchError(f"unsupported image format {fmt or 'unknown'}")
+                if im.width * im.height > MAX_PIXELS:
+                    raise FetchError(f"image is too large ({im.width}x{im.height} pixels)")
+                im.load()
+                icc = im.info.get("icc_profile")
+                img = ImageOps.exif_transpose(im)
+        except FetchError:
+            raise
+        except (Image.DecompressionBombError, Image.DecompressionBombWarning) as e:
+            raise FetchError(f"image is too large to decode safely: {e}") from e
+        except Exception as e:  # any decoder failure means "not a usable image"
+            raise FetchError(f"downloaded file is not a valid image: {e}") from e
+    has_alpha = img.mode in ("RGBA", "LA", "PA") or (img.mode == "P" and "transparency" in img.info)
+    if fmt in ("PNG", "WEBP"):
+        target, ext = fmt, (".png" if fmt == "PNG" else ".webp")
+        mode = "RGBA" if has_alpha else ("L" if img.mode == "L" else "RGB")
+    else:
+        target, ext, mode = "JPEG", ".jpg", ("L" if img.mode == "L" else "RGB")
+    img = img.convert(mode)
+    clean = Image.frombytes(img.mode, img.size, img.tobytes())  # pixels only: no EXIF/GPS/XMP/text chunks
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    out = dest_dir / f"{prefix}{uuid.uuid4().hex}{ext}"
+    opts: dict = {"icc_profile": icc} if icc else {}
+    if target == "JPEG":
+        opts.update(quality=92, optimize=True)
+    elif target == "WEBP":
+        opts.update(quality=92)
+    try:
+        clean.save(out, target, **opts)
+    except BaseException:
+        out.unlink(missing_ok=True)
+        raise
+    return out
+
+
+async def download_image(url: str, dest_dir: Path, max_bytes: int = 20_000_000, *,
+                         transport: httpx.AsyncBaseTransport | None = None,
+                         timeout_s: float = TIMEOUT_S) -> Path:
+    """Download one image safely into `dest_dir` and return its path (random uuid file name).
+
+    `timeout_s` bounds each connect/read; the whole download (all redirects + body) is capped at
+    TOTAL_TIMEOUT_S so a slow-drip server cannot hold a worker indefinitely.
+    """
+    try:
+        return await asyncio.wait_for(
+            _download_image(url, dest_dir, max_bytes, transport=transport, timeout_s=timeout_s),
+            timeout=TOTAL_TIMEOUT_S,
+        )
+    except TimeoutError as e:
+        raise FetchError(f"download of {url} exceeded {TOTAL_TIMEOUT_S:g}s total") from e
+
+
+async def _download_image(url: str, dest_dir: Path, max_bytes: int, *,
+                          transport: httpx.AsyncBaseTransport | None, timeout_s: float) -> Path:
+    async with _image_response(url, timeout_s, transport=transport) as (resp, current):
+        try:
+            data = await _read_capped(resp, max_bytes)
+        except httpx.TimeoutException as e:
+            raise FetchError(f"timed out downloading {current} (>{timeout_s:g}s)") from e
+        except httpx.HTTPError as e:
+            raise FetchError(f"download of {current} failed: {e}") from e
+    return await _save_cancellable(data, Path(dest_dir))
+
+
+async def check_image_url(url: str, timeout_s: float = 8.0) -> tuple[bool, str]:
+    """Check the final image response headers without reading the body."""
+    try:
+        async with asyncio.timeout(timeout_s):
+            async with _image_response(url, timeout_s, probe=True):
+                return True, "ok"
+    except FetchError as e:
+        return False, str(e)
+    except TimeoutError:
+        return False, f"image check exceeded {timeout_s:g}s total"
+
+
+@asynccontextmanager
+async def _image_response(
+    url: str, timeout_s: float, *, probe: bool = False, transport: httpx.AsyncBaseTransport | None = None
+) -> AsyncIterator[tuple[httpx.Response, str]]:
+    current = url
+    method = "HEAD" if probe else "GET"
+    redirects = 0
+    async with httpx.AsyncClient(
+        transport=transport,
+        timeout=httpx.Timeout(timeout_s),
+        follow_redirects=False,
+        trust_env=False,
+        # A redirect to a different hostname on the same IP still needs its own TLS handshake.
+        limits=httpx.Limits(max_keepalive_connections=0),
+    ) as client:
+        while True:
+            parsed, ip = await validate_url(current)
+            try:
+                request = _pinned_request(client, parsed, ip, method, range_probe=probe and method == "GET")
+                resp = await client.send(request, stream=True)
+            except httpx.TimeoutException as e:
+                raise FetchError(f"timed out fetching {current} (>{timeout_s:g}s)") from e
+            except (httpx.HTTPError, httpx.InvalidURL) as e:
+                raise FetchError(f"could not fetch {current}: {e}") from e
+            try:
+                if resp.status_code in _REDIRECTS:
+                    location = resp.headers.get("location")
+                    if not location:
+                        raise FetchError(f"redirect from {current} without a Location header")
+                    redirects += 1
+                    if redirects > MAX_REDIRECTS:
+                        raise FetchError(f"too many redirects (> {MAX_REDIRECTS}) starting from {url}")
+                    try:
+                        current = urljoin(str(parsed), location)
+                    except ValueError as e:
+                        raise FetchError(f"invalid redirect from {current}: {e}") from e
+                    continue
+                if method == "HEAD" and resp.status_code in _HEAD_FALLBACKS:
+                    method = "GET"
+                    continue
+                accepted = resp.is_success if probe else resp.status_code == 200
+                if not accepted:
+                    raise FetchError(f"{current} returned HTTP {resp.status_code}")
+                ctype = _media_type(resp.headers.get("content-type"))
+                if ctype not in ALLOWED_CONTENT_TYPES:
+                    raise FetchError(f"{current} is not a supported image (content-type {ctype or 'missing'!r})")
+                encoding = resp.headers.get("content-encoding", "").strip().lower()
+                if encoding not in ("", "identity"):
+                    raise FetchError(f"refusing compressed response (Content-Encoding: {encoding})")
+                yield resp, current
+                return
+            finally:
+                await resp.aclose()

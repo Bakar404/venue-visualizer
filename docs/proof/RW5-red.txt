@@ -1,0 +1,61 @@
+RW5 strengthens tests for existing behavior; both passed on the unmodified baseline. The following runs temporarily reintroduce the regressions to verify the checks detect them.
+
+Mutation: reject pairing during the last minute before expiry.
+$ cd services && uv run pytest -q --tb=short tests/test_sec_3.py -k still_pairs
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_code_still_pairs_just_before_expiry_after_several_polls _________
+tests/test_sec_3.py:110: in test_code_still_pairs_just_before_expiry_after_several_polls
+    assert _pair(api, "192.168.10.3", code).status_code == 200
+E   AssertionError: assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+E    +    where <Response [403 Forbidden]> = _pair(<starlette.testclient.TestClient object at 0x10eee5a90>, '192.168.10.3', '659729')
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_sec_3.py::test_code_still_pairs_just_before_expiry_after_several_polls
+1 failed, 7 deselected, 1 warning in 0.10s
+
+Exit status: 1
+
+Mutation: poll LAN info every five seconds regardless of whether LAN is enabled.
+$ pnpm --filter web exec vitest run src/components/setup/phone-access.test.tsx -t "does not poll"
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/components/setup/phone-access.test.tsx (5 tests | 1 failed | 4 skipped) 15ms
+   × does not poll LAN info when phone access is off 15ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/setup/phone-access.test.tsx > does not poll LAN info when phone access is off
+AssertionError: expected "lanInfo" to be called once, but got 4 times
+ ❯ src/components/setup/phone-access.test.tsx:102:15
+    100|
+    101|   await tick(15_000);
+    102|   expect(get).toHaveBeenCalledOnce();
+       |               ^
+    103| });
+    104|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 skipped (5)
+   Start at  01:40:00
+   Duration  551ms (environment 47%, import 40%, transform 9%, tests 3%)
+
+undefined
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/components/setup/phone-access.test.tsx -t does not poll
+
+Exit status: 1

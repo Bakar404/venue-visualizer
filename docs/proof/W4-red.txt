@@ -1,0 +1,43 @@
+### pnpm --filter web exec playwright test e2e/ut8.spec.ts -g 'edits made while Render all'
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed
+  1) [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByLabel('Linen color')
+    Expected: "sage"
+    Received: "champagne"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveValue" getByLabel('Linen color') with timeout 10000ms
+      - waiting for getByLabel('Linen color')
+        24 × locator resolved to <input data-slot="input" autocomplete="off" name="linens.color" aria-invalid="false" id="spec-linens-color" class="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allo…/>
+           - unexpected value "champagne"
+
+
+      67 |   await expect(page).not.toHaveURL(/look=look-blush/);
+      68 |   await expect(banner).toBeVisible({ timeout: 15_000 });
+    > 69 |   await expect(linen).toHaveValue("sage");
+         |                       ^
+      70 |   expect(((await savedSpec(page, "space-ballroom")) as { linens: { color: string } }).linens.color).toBe("sage");
+      71 |   const created = await page.evaluate(() => window.__vvMock.looks().filter((l) => !l.id.startsWith("look-")));
+      72 |   expect(created.map((l) => l.spec.linens.color)).toEqual(["champagne"]);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut8.spec.ts:69:23
+
+    Error Context: test-results/ut8-UT8-edits-made-while-R-487d8-anvas-says-the-plan-changed-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut8-UT8-edits-made-while-R-487d8-anvas-says-the-plan-changed-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut8-UT8-edits-made-while-R-487d8-anvas-says-the-plan-changed-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed 

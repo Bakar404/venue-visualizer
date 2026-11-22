@@ -1,0 +1,2 @@
+GET /api/looks/fa49a31d… -> HTTP 200
+GET /api/looks/bd40f942… -> HTTP 200

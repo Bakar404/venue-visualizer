@@ -1,0 +1,12 @@
+$ pnpm --filter web e2e e2e/s5.spec.ts --grep RV7: --reporter=line
+
+> web@0.1.0 e2e /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+> playwright test e2e/s5.spec.ts --grep RV7: --reporter=line
+
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/s5.spec.ts:130:1 › RV7: a passing chat test does not mark images ready at 375 px
+  1 passed (4.3s)
+
+Exit status: 0

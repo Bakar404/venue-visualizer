@@ -1,0 +1,16 @@
+# SEC2-2 (R2-2) green, after the fix (LAN mode builds and runs `next start`; mcpServer off when VV_LAN=1)
+$ cd services && uv run pytest -q --tb=line -p no:warnings tests/test_sec2_2.py
+.................                                                        [100%]
+17 passed in 1.01s
+
+$ make -n lan
+VV_LAN_PROXY_KEY=$(node -p 'require("node:crypto").randomBytes(32).toString("hex")') && \
+	export VV_LAN_PROXY_KEY && \
+	VV_API_URL="${VV_API_URL:-http://127.0.0.1:8000}" && export VV_API_URL && \
+	bind=$(cd services && uv run python -m api.lan) && \
+	echo "Building the web (production) for LAN mode" && \
+	pnpm --filter web build && \
+	echo "Starting api (8000 on 127.0.0.1), worker, web (3000 on $bind)" || exit 1; \
+	(cd services && uv run uvicorn api.main:app --no-proxy-headers --host 127.0.0.1 --port 8000) & \
+	(cd services && uv run python -m api.worker) & \
+	(cd apps/web && node ../../scripts/next-with-shim.mjs start --hostname "$bind" --port 3000); wait

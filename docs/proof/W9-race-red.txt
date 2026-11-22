@@ -1,0 +1,287 @@
+$ pnpm --filter web e2e
+
+
+> web@0.1.0 e2e /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+> playwright test
+
+
+Running 37 tests using 4 workers
+
+  -   1 [chromium] › e2e/readme-shots.spec.ts:25:1 › landing
+  -   2 [chromium] › e2e/readme-shots.spec.ts:32:1 › find my venue
+  -   3 [chromium] › e2e/readme-shots.spec.ts:48:1 › studio chat and render
+  -   4 [chromium] › e2e/readme-shots.spec.ts:56:1 › looks gallery
+  -   5 [chromium] › e2e/readme-shots.spec.ts:63:1 › references-only space
+  ✓   8 [chromium] › e2e/ut1.spec.ts:105:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (6.5s)
+  ✓   7 [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (23.9s)
+  ✓   6 [chromium] › e2e/ut1.spec.ts:89:1 › UT1: a reader at the bottom keeps following a new reply (24.6s)
+  ✓  12 [chromium] › e2e/ut2.spec.ts:33:1 › UT2: a reply that changed the plan offers a quiet Render this change (4.3s)
+  ✓   9 [chromium] › e2e/ut1.spec.ts:64:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (29.4s)
+  ✓  10 [chromium] › e2e/ut1.spec.ts:128:1 › UT1: the New message pill moves focus to the newest message (23.5s)
+  ✓  11 [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan (8.0s)
+  ✓  13 [chromium] › e2e/ut2.spec.ts:46:1 › UT2: a reply that changed nothing has no render action (4.8s)
+  ✓  15 [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips (4.4s)
+  ✓  14 [chromium] › e2e/ut3.spec.ts:5:1 › UT3: a quick-reply chip sends only the option, never the question (5.2s)
+  ✓  16 [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary (3.7s)
+  ✓  17 [chromium] › e2e/ut4.spec.ts:32:1 › UT4: “make it 7pm so it's dark out” sets night in one turn (3.8s)
+  ✓  18 [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit (5.5s)
+  ✓  19 [chromium] › e2e/ut5.spec.ts:5:1 › UT5: Save as Look prefills the brain's name for the latest change (5.8s)
+  ✓  20 [chromium] › e2e/ut6.spec.ts:17:1 › UT6a: base photos without the confirmation can't be silently dropped (8.4s)
+  ✓  22 [chromium] › e2e/ut6.spec.ts:47:1 › UT6b: a references-only space shows its references and the ways to get a base photo (5.4s)
+  ✓  21 [chromium] › e2e/ut6.spec.ts:39:1 › UT6a: switching every photo to reference only enables Import without the box (8.1s)
+  ✓  24 [chromium] › e2e/ut6.spec.ts:89:1 › UT6c: Render all is disabled until the space has an approved base photo (1.7s)
+  ✓  23 [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it (8.3s)
+  ✓  25 [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits (4.8s)
+  ✓  29 [chromium] › e2e/ut6.spec.ts:177:1 › UT6b: reference photos from the web are loaded without a referrer (1.6s)
+  ✓  27 [chromium] › e2e/ut6.spec.ts:156:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails (6.8s)
+  ✓  30 [chromium] › e2e/ut6.spec.ts:184:1 › UT6b: generating from a reference uses an engine that takes reference photos (2.1s)
+  ✓  26 [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base (8.5s)
+  ✓  28 [chromium] › e2e/ut6.spec.ts:165:1 › UT6b: Discard is disabled while the delete is in flight (6.6s)
+  ✓  31 [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider (3.5s)
+  ✓  32 [chromium] › e2e/ut7.spec.ts:20:1 › UT7: a changed room says “May have changed the room” with the backend's message (3.3s)
+  ✓  34 [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look (3.6s)
+  ✓  33 [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render (7.0s)
+  ✓  37 [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions (1.2s)
+  ✓  35 [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed (8.4s)
+  ✓  36 [mobile] › e2e/ut1.spec.ts:80:1 › UT1: phone tabs use the same internal scroll @mobile (21.3s)
+
+  5 skipped
+  32 passed (1.4m)
+
+--- Baseline attempt 2 ---
+$ pnpm --filter web e2e --repeat-each=3
+
+
+> web@0.1.0 e2e /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+> playwright test --repeat-each=3
+
+
+Running 111 tests using 4 workers
+
+  -    1 [chromium] › e2e/readme-shots.spec.ts:25:1 › landing
+  -    2 [chromium] › e2e/readme-shots.spec.ts:32:1 › find my venue
+  -    3 [chromium] › e2e/readme-shots.spec.ts:48:1 › studio chat and render
+  -    4 [chromium] › e2e/readme-shots.spec.ts:56:1 › looks gallery
+  -    5 [chromium] › e2e/readme-shots.spec.ts:63:1 › references-only space
+  ✓    8 [chromium] › e2e/ut1.spec.ts:105:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (6.4s)
+  ✓    7 [chromium] › e2e/ut1.spec.ts:64:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (25.8s)
+  ✓    6 [chromium] › e2e/ut1.spec.ts:89:1 › UT1: a reader at the bottom keeps following a new reply (27.4s)
+  ✓   10 [chromium] › e2e/ut1.spec.ts:128:1 › UT1: the New message pill moves focus to the newest message (23.6s)
+  ✓   11 [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan (6.1s)
+  ✓   12 [chromium] › e2e/ut2.spec.ts:33:1 › UT2: a reply that changed the plan offers a quiet Render this change (4.9s)
+  ✓   13 [chromium] › e2e/ut2.spec.ts:46:1 › UT2: a reply that changed nothing has no render action (3.0s)
+  ✓   15 [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips (4.0s)
+  ✓   16 [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary (3.7s)
+  ✓   14 [chromium] › e2e/ut3.spec.ts:5:1 › UT3: a quick-reply chip sends only the option, never the question (5.9s)
+  ✘    9 [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (35.6s)
+  ✓   17 [chromium] › e2e/ut4.spec.ts:32:1 › UT4: “make it 7pm so it's dark out” sets night in one turn (4.0s)
+  ✓   18 [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit (4.5s)
+  ✓   19 [chromium] › e2e/ut5.spec.ts:5:1 › UT5: Save as Look prefills the brain's name for the latest change (4.9s)
+  ✓   22 [chromium] › e2e/ut6.spec.ts:47:1 › UT6b: a references-only space shows its references and the ways to get a base photo (3.0s)
+  ✓   24 [chromium] › e2e/ut6.spec.ts:89:1 › UT6c: Render all is disabled until the space has an approved base photo (1.2s)
+  ✓   20 [chromium] › e2e/ut6.spec.ts:17:1 › UT6a: base photos without the confirmation can't be silently dropped (7.7s)
+  ✓   21 [chromium] › e2e/ut6.spec.ts:39:1 › UT6a: switching every photo to reference only enables Import without the box (7.5s)
+  ✓   23 [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it (6.2s)
+  ✓   25 [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits (3.5s)
+  ✓   29 [chromium] › e2e/ut6.spec.ts:177:1 › UT6b: reference photos from the web are loaded without a referrer (3.8s)
+  ✓   30 [chromium] › e2e/ut6.spec.ts:184:1 › UT6b: generating from a reference uses an engine that takes reference photos (1.8s)
+  ✓   27 [chromium] › e2e/ut6.spec.ts:156:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails (6.8s)
+  ✓   26 [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base (8.0s)
+  ✓   28 [chromium] › e2e/ut6.spec.ts:165:1 › UT6b: Discard is disabled while the delete is in flight (8.1s)
+  ✓   31 [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider (4.4s)
+  ✓   32 [chromium] › e2e/ut7.spec.ts:20:1 › UT7: a changed room says “May have changed the room” with the backend's message (4.4s)
+  -   36 [chromium] › e2e/readme-shots.spec.ts:25:1 › landing
+  -   37 [chromium] › e2e/readme-shots.spec.ts:32:1 › find my venue
+  -   38 [chromium] › e2e/readme-shots.spec.ts:48:1 › studio chat and render
+  -   39 [chromium] › e2e/readme-shots.spec.ts:56:1 › looks gallery
+  -   40 [chromium] › e2e/readme-shots.spec.ts:63:1 › references-only space
+  ✓   34 [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look (3.0s)
+  ✓   33 [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render (11.2s)
+  ✓   35 [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed (8.4s)
+  ✓   43 [chromium] › e2e/ut1.spec.ts:105:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (5.2s)
+  ✓   41 [chromium] › e2e/ut1.spec.ts:64:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (21.3s)
+  ✓   42 [chromium] › e2e/ut1.spec.ts:89:1 › UT1: a reader at the bottom keeps following a new reply (23.5s)
+  ✓   46 [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan (7.4s)
+  ✓   47 [chromium] › e2e/ut2.spec.ts:33:1 › UT2: a reply that changed the plan offers a quiet Render this change (4.6s)
+  ✓   48 [chromium] › e2e/ut2.spec.ts:46:1 › UT2: a reply that changed nothing has no render action (3.7s)
+  ✓   49 [chromium] › e2e/ut3.spec.ts:5:1 › UT3: a quick-reply chip sends only the option, never the question (5.2s)
+  ✓   45 [chromium] › e2e/ut1.spec.ts:128:1 › UT1: the New message pill moves focus to the newest message (24.2s)
+  ✓   50 [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips (3.6s)
+  ✓   51 [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary (2.8s)
+  ✓   52 [chromium] › e2e/ut4.spec.ts:32:1 › UT4: “make it 7pm so it's dark out” sets night in one turn (4.2s)
+  ✘   44 [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (30.4s)
+  ✓   53 [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit (4.5s)
+  ✓   54 [chromium] › e2e/ut5.spec.ts:5:1 › UT5: Save as Look prefills the brain's name for the latest change (4.0s)
+  ✓   57 [chromium] › e2e/ut6.spec.ts:47:1 › UT6b: a references-only space shows its references and the ways to get a base photo (3.0s)
+  ✓   59 [chromium] › e2e/ut6.spec.ts:89:1 › UT6c: Render all is disabled until the space has an approved base photo (1.2s)
+  ✓   55 [chromium] › e2e/ut6.spec.ts:17:1 › UT6a: base photos without the confirmation can't be silently dropped (7.5s)
+  ✓   58 [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it (6.2s)
+  ✓   56 [chromium] › e2e/ut6.spec.ts:39:1 › UT6a: switching every photo to reference only enables Import without the box (7.1s)
+  ✓   60 [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits (5.6s)
+  ✓   64 [chromium] › e2e/ut6.spec.ts:177:1 › UT6b: reference photos from the web are loaded without a referrer (1.6s)
+  ✓   65 [chromium] › e2e/ut6.spec.ts:184:1 › UT6b: generating from a reference uses an engine that takes reference photos (1.6s)
+  ✓   62 [chromium] › e2e/ut6.spec.ts:156:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails (6.6s)
+  ✓   63 [chromium] › e2e/ut6.spec.ts:165:1 › UT6b: Discard is disabled while the delete is in flight (7.2s)
+  ✓   61 [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base (8.0s)
+  ✓   66 [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider (3.1s)
+  ✓   67 [chromium] › e2e/ut7.spec.ts:20:1 › UT7: a changed room says “May have changed the room” with the backend's message (2.7s)
+  -   71 [chromium] › e2e/readme-shots.spec.ts:25:1 › landing
+  -   72 [chromium] › e2e/readme-shots.spec.ts:32:1 › find my venue
+  -   73 [chromium] › e2e/readme-shots.spec.ts:48:1 › studio chat and render
+  -   74 [chromium] › e2e/readme-shots.spec.ts:56:1 › looks gallery
+  -   75 [chromium] › e2e/readme-shots.spec.ts:63:1 › references-only space
+  ✓   69 [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look (3.7s)
+  ✓   68 [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render (7.6s)
+  ✓   70 [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed (7.4s)
+  ✓   78 [chromium] › e2e/ut1.spec.ts:105:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up (3.7s)
+  ✓   76 [chromium] › e2e/ut1.spec.ts:64:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout (23.7s)
+  ✓   79 [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter (18.2s)
+  ✓   77 [chromium] › e2e/ut1.spec.ts:89:1 › UT1: a reader at the bottom keeps following a new reply (25.0s)
+  ✓   82 [chromium] › e2e/ut2.spec.ts:33:1 › UT2: a reply that changed the plan offers a quiet Render this change (3.9s)
+  ✓   83 [chromium] › e2e/ut2.spec.ts:46:1 › UT2: a reply that changed nothing has no render action (3.7s)
+  ✓   81 [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan (8.0s)
+  ✓   80 [chromium] › e2e/ut1.spec.ts:128:1 › UT1: the New message pill moves focus to the newest message (24.4s)
+  ✓   84 [chromium] › e2e/ut3.spec.ts:5:1 › UT3: a quick-reply chip sends only the option, never the question (5.4s)
+  ✓   86 [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary (3.0s)
+  ✓   85 [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips (4.3s)
+  ✓   87 [chromium] › e2e/ut4.spec.ts:32:1 › UT4: “make it 7pm so it's dark out” sets night in one turn (4.0s)
+  ✓   88 [chromium] › e2e/ut4.spec.ts:39:1 › UT4: going back to “As photo” clears the time and keeps every later edit (4.2s)
+  ✓   89 [chromium] › e2e/ut5.spec.ts:5:1 › UT5: Save as Look prefills the brain's name for the latest change (4.9s)
+  ✓   92 [chromium] › e2e/ut6.spec.ts:47:1 › UT6b: a references-only space shows its references and the ways to get a base photo (2.9s)
+  ✓   94 [chromium] › e2e/ut6.spec.ts:89:1 › UT6c: Render all is disabled until the space has an approved base photo (1.1s)
+  ✓   90 [chromium] › e2e/ut6.spec.ts:17:1 › UT6a: base photos without the confirmation can't be silently dropped (8.1s)
+  ✓   91 [chromium] › e2e/ut6.spec.ts:39:1 › UT6a: switching every photo to reference only enables Import without the box (7.6s)
+  ✓   93 [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it (5.5s)
+  ✓   95 [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits (4.3s)
+  ✓   99 [chromium] › e2e/ut6.spec.ts:177:1 › UT6b: reference photos from the web are loaded without a referrer (1.7s)
+  ✓  100 [chromium] › e2e/ut6.spec.ts:184:1 › UT6b: generating from a reference uses an engine that takes reference photos (1.7s)
+  ✓   96 [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base (7.7s)
+  ✓   97 [chromium] › e2e/ut6.spec.ts:156:1 › UT6b: Discard shows an error and keeps the generated view when deleting fails (6.5s)
+  ✓   98 [chromium] › e2e/ut6.spec.ts:165:1 › UT6b: Discard is disabled while the delete is in flight (7.3s)
+  ✓  101 [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider (3.3s)
+  ✓  102 [chromium] › e2e/ut7.spec.ts:20:1 › UT7: a changed room says “May have changed the room” with the backend's message (3.6s)
+  ✓  104 [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look (3.7s)
+  ✓  105 [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed (4.7s)
+  ✓  103 [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render (7.5s)
+  ✓  107 [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions (1.5s)
+  ✓  109 [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions (1.5s)
+  ✓  111 [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions (1.3s)
+  ✓  106 [mobile] › e2e/ut1.spec.ts:80:1 › UT1: phone tabs use the same internal scroll @mobile (19.9s)
+  ✓  108 [mobile] › e2e/ut1.spec.ts:80:1 › UT1: phone tabs use the same internal scroll @mobile (23.5s)
+  ✓  110 [mobile] › e2e/ut1.spec.ts:80:1 › UT1: phone tabs use the same internal scroll @mobile (23.5s)
+
+
+  1) [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1
+    Received:    290
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      116 |   await openStudio(page, "space-ballroom");
+      117 |   await fillChat(page);
+    > 118 |   await expect.poll(() => fromBottom(page)).toBeLessThanOrEqual(1);
+          |                                             ^
+      119 |   const { width, height } = page.viewportSize()!;
+      120 |   const tall = await conversation(page).evaluate((el) => el.clientHeight);
+      121 |   await page.setViewportSize({ width, height: height - 220 });
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut1.spec.ts:118:45
+
+    Error Context: test-results/ut1-UT1-a-reader-pinned-to-3798a-when-the-panel-gets-shorter-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut1-UT1-a-reader-pinned-to-3798a-when-the-panel-gets-shorter-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut1-UT1-a-reader-pinned-to-3798a-when-the-panel-gets-shorter-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1
+    Received:    304
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      116 |   await openStudio(page, "space-ballroom");
+      117 |   await fillChat(page);
+    > 118 |   await expect.poll(() => fromBottom(page)).toBeLessThanOrEqual(1);
+          |                                             ^
+      119 |   const { width, height } = page.viewportSize()!;
+      120 |   const tall = await conversation(page).evaluate((el) => el.clientHeight);
+      121 |   await page.setViewportSize({ width, height: height - 220 });
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut1.spec.ts:118:45
+
+    Error Context: test-results/ut1-UT1-a-reader-pinned-to-3798a-when-the-panel-gets-shorter-chromium-repeat1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut1-UT1-a-reader-pinned-to-3798a-when-the-panel-gets-shorter-chromium-repeat1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut1-UT1-a-reader-pinned-to-3798a-when-the-panel-gets-shorter-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter
+    [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter
+  15 skipped
+  94 passed (3.4m)
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  web@0.1.0 e2e: `playwright test --repeat-each=3`
+Exit status 1
+
+--- Deterministic regression against the unchanged product ---
+$ pnpm --filter web exec playwright test e2e/ut1.spec.ts -g "queued automatic scroll"
+
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation (13.3s)
+
+
+  1) [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation
+
+    Error: still pinned after the automatic scroll event
+
+    still pinned after the automatic scroll event
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1
+    Received:    200
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      149 |   expect(advance, "the first reflow was followed without user input").toBeGreaterThan(0);
+      150 |   expect(gap, "the old event is delivered against a larger scroll range").toBeGreaterThan(80);
+    > 151 |   await expect.poll(() => fromBottom(page), { message: "still pinned after the automatic scroll event" }).toBeLessThanOrEqual(1);
+          |                                                                                                           ^
+      152 | });
+      153 |
+      154 | test("UT1: the New message pill moves focus to the newest message", async ({ page }) => {
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut1.spec.ts:151:107
+
+    Error Context: test-results/ut1-UT1-a-queued-automatic-57416-npin-a-growing-conversation-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut1-UT1-a-queued-automatic-57416-npin-a-growing-conversation-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut1-UT1-a-queued-automatic-57416-npin-a-growing-conversation-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › e2e/ut1.spec.ts:129:1 › UT1: a queued automatic scroll cannot unpin a growing conversation
+undefined
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test e2e/ut1.spec.ts -g queued automatic scroll

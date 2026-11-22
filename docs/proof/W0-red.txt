@@ -1,0 +1,122 @@
+### (a) cd services && uv run pytest -q tests/test_openapi_contract.py  (before openapi.json existed)
+>       assert OPENAPI_PATH.is_file(), f"{OPENAPI_PATH} is missing; run `uv run python -m api.export_openapi`"
+E       AssertionError: /Users/ahmedabdelsalam/Desktop/venue-visualizer/packages/schema/openapi.json is missing; run `uv run python -m api.export_openapi`
+E       assert False
+tests/test_openapi_contract.py:6: AssertionError
+FAILED tests/test_openapi_contract.py::test_committed_openapi_is_current - As...
+1 failed, 1 warning in 0.03s
+
+### (b) pnpm --filter web exec vitest run src/lib/mock-contract.test.ts  (mock vs OpenAPI)
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/mock-contract.test.ts (6 tests | 5 failed) 7556ms
+   ❯ mock API matches the OpenAPI contract (6)
+     × GET /api/system/backends 257ms
+     × GET /api/looks/{id}, including renders with structure QA 114ms
+     × GET /api/looks/{id} after a fresh render 2362ms
+     × GET /api/spaces/{id}, with references 267ms
+     × POST /api/venues/import 3429ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > GET /api/system/backends
+Error: Mock response doesn't match BackendsOut:
+  /brains/0/caps must have required property 'can_generate' {"missingProperty":"can_generate"}
+  /brains/0/caps must have required property 'can_edit' {"missingProperty":"can_edit"}
+  /brains/0/caps must have required property 'typical_seconds' {"missingProperty":"typical_seconds"}
+  /brains/0/caps must have required property 'cost_note' {"missingProperty":"cost_note"}
+  /brains/0/caps must have required property 'photoreal' {"missingProperty":"photoreal"}
+  /brains/0/caps must be null {"type":"null"}
+  /brains/0/caps must match a schema in anyOf {}
+  /brains/1/caps must have required property 'can_generate' {"missingProperty":"can_generate"}
+  /brains/1/caps must have required property 'can_edit' {"missingProperty":"can_edit"}
+  /brains/1/caps must have required property 'typical_seconds' {"missingProperty":"typical_seconds"}
+  /brains/1/caps must have required property 'cost_note' {"missingProperty":"cost_note"}
+  /brains/1/caps must have required property 'photoreal' {"missingProperty":"photoreal"}
+  /brains/1/caps must be null {"type":"null"}
+  /brains/1/caps must match a schema in anyOf {}
+  /brains/2/caps must have required property 'can_generate' {"missingProperty":"can_generate"}
+  /brains/2/caps must have required property 'can_edit' {"missingProperty":"can_edit"}
+  /brains/2/caps must have required property 'typical_seconds' {"missingProperty":"typical_seconds"}
+  /brains/2/caps must have required property 'cost_note' {"missingProperty":"cost_note"}
+  /brains/2/caps must have required property 'photoreal' {"missingProperty":"photoreal"}
+  /brains/2/caps must be null {"type":"null"}
+  /brains/2/caps must match a schema in anyOf {}
+  /brains/3/caps must have required property 'can_generate' {"missingProperty":"can_generate"}
+  /brains/3/caps must have required property 'can_edit' {"missingProperty":"can_edit"}
+  /brains/3/caps must have required property 'typical_seconds' {"missingProperty":"typical_seconds"}
+  /brains/3/caps must have required property 'cost_note' {"missingProperty":"cost_note"}
+  /brains/3/caps must have required property 'photoreal' {"missingProperty":"photoreal"}
+  /brains/3/caps must be null {"type":"null"}
+  /brains/3/caps must match a schema in anyOf {}
+  /brains/4/caps must have required property 'can_generate' {"missingProperty":"can_generate"}
+  /brains/4/caps must have required property 'can_edit' {"missingProperty":"can_edit"}
+  /brains/4/caps must have required property 'typical_seconds' {"missingProperty":"typical_seconds"}
+  /brains/4/caps must have required property 'cost_note' {"missingProperty":"cost_note"}
+  /brains/4/caps must have required property 'photoreal' {"missingProperty":"photoreal"}
+  /brains/4/caps must be null {"type":"null"}
+  /brains/4/caps must match a schema in anyOf {}
+  /internal/layout_guide must have required property 'id' {"missingProperty":"id"}
+  /internal/layout_guide must have required property 'label' {"missingProperty":"label"}
+  /internal/layout_guide must have required property 'kind' {"missingProperty":"kind"}
+  /internal/layout_guide must have required property 'logged_in' {"missingProperty":"logged_in"}
+  /internal/layout_guide must have required property 'version' {"missingProperty":"version"}
+ ❯ expectSchema src/lib/mock-contract.test.ts:18:9
+       |         ^
+ ❯ src/lib/mock-contract.test.ts:31:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > GET /api/looks/{id}, including renders with structure QA
+Error: Mock response doesn't match LookOut:
+  / must have required property 'warnings' {"missingProperty":"warnings"}
+  /renders/0/qa must have required property 'structure_message' {"missingProperty":"structure_message"}
+  /renders/0/qa must be null {"type":"null"}
+  /renders/0/qa must match a schema in anyOf {}
+  /renders/1/qa must have required property 'structure_message' {"missingProperty":"structure_message"}
+  /renders/1/qa must be null {"type":"null"}
+  /renders/1/qa must match a schema in anyOf {}
+ ❯ expectSchema src/lib/mock-contract.test.ts:18:9
+       |         ^
+ ❯ src/lib/mock-contract.test.ts:36:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > GET /api/looks/{id} after a fresh render
+Error: Mock response doesn't match JobOut:
+  / must have required property 'cancel_requested' {"missingProperty":"cancel_requested"}
+  / must have required property 'error_status' {"missingProperty":"error_status"}
+ ❯ expectSchema src/lib/mock-contract.test.ts:18:9
+       |         ^
+ ❯ src/lib/mock-contract.test.ts:43:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > GET /api/spaces/{id}, with references
+Error: Mock response doesn't match SpaceOut:
+  / must have required property 'capacity_seated' {"missingProperty":"capacity_seated"}
+  / must have required property 'capacity_standing' {"missingProperty":"capacity_standing"}
+  / must have required property 'source' {"missingProperty":"source"}
+ ❯ expectSchema src/lib/mock-contract.test.ts:18:9
+       |         ^
+ ❯ src/lib/mock-contract.test.ts:55:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the OpenAPI contract > POST /api/venues/import
+Error: Mock response doesn't match JobOut:
+  / must have required property 'cancel_requested' {"missingProperty":"cancel_requested"}
+  / must have required property 'error_status' {"missingProperty":"error_status"}
+ ❯ expectSchema src/lib/mock-contract.test.ts:18:9
+       |         ^
+ ❯ src/lib/mock-contract.test.ts:61:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 1 passed (6)
+   Start at  20:37:48
+   Duration  7.73s (tests 99%, import 1%)
+

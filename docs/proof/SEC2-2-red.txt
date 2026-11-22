@@ -1,0 +1,51 @@
+# SEC2-2 (R2-2) red, before the fix (LAN mode still ran `next dev` on the Wi-Fi)
+# cd services && uv run pytest -q --tb=line -p no:warnings tests/test_sec2_2.py
+FF.FFFF..FFF.FFF.                                                        [100%]
+=================================== FAILURES ===================================
+E   assert ('pnpm --filter web build' in '@VV_LAN_PROXY_KEY=$$(node -p \'require("node:crypto").randomBytes(32).toString("hex")\') &&  export VV_LAN_PROXY_KEY ...$$NODE_OPTIONS }--require=\\"$(CURDIR)/services/api/lan_proxy.cjs\\""  pnpm --filter web dev --hostname "$$bind"; wait')
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:38: assert ('pnpm --filter web build' in '@VV_LAN_PROXY_KEY=$$(node -p \'require("node:crypto").randomBytes(32).toString("hex")\') &&  export VV_LAN_PROXY_KEY ...$$NODE_OPTIONS }--require=\\"$(CURDIR)/services/api/lan_proxy.cjs\\""  pnpm --filter web dev --hostname "$$bind"; wait')
+E   AssertionError: assert ['--filter web dev'] == []
+      
+      Left contains one more item: '--filter web dev'
+      Use -v to get more diff
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:44: AssertionError: assert ['--filter web dev'] == []
+E   AssertionError: assert None
+     +  where None = <function search at 0x100d5a4b0>('^lan:\\s*dev-lan\\s*$', '.PHONY: setup dev dev-lan doctor api worker web test schema sample\nsetup:\n\tcd services && uv sync\n\tpnpm install\...d services && uv run python -m pipeline.schema_gen\nsample:\n\tcd services && uv run python ../samples/run_sample.py\n', re.MULTILINE)
+     +    where <function search at 0x100d5a4b0> = re.search
+     +    and   re.MULTILINE = re.M
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:56: AssertionError: assert None
+E   assert ('pnpm --filter web build' in 'VV_LAN_PROXY_KEY=$(node -p \'require("node:crypto").randomBytes(32).toString("hex")\') && \\\n\texport VV_LAN_PROXY_K...salam/Desktop/venue-visualizer/services/api/lan_proxy.cjs\\"" \\\n\t\tpnpm --filter web dev --hostname "$bind"; wait\n')
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:65: assert ('pnpm --filter web build' in 'VV_LAN_PROXY_KEY=$(node -p \'require("node:crypto").randomBytes(32).toString("hex")\') && \\\n\texport VV_LAN_PROXY_K...salam/Desktop/venue-visualizer/services/api/lan_proxy.cjs\\"" \\\n\t\tpnpm --filter web dev --hostname "$bind"; wait\n')
+E   subprocess.CalledProcessError: Command '['make', '-n', 'lan']' returned non-zero exit status 2.
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py:578: subprocess.CalledProcessError: Command '['make', '-n', 'lan']' returned non-zero exit status 2.
+E   subprocess.CalledProcessError: Command '['make', '-n', 'lan']' returned non-zero exit status 2.
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py:578: subprocess.CalledProcessError: Command '['make', '-n', 'lan']' returned non-zero exit status 2.
+E   assert 0 == 2
+     +  where 0 = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/...b","options":"--require=\\"/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan_proxy.cjs\\""}', stderr='').returncode
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:95: assert 0 == 2
+E   assert 0 == 2
+     +  where 0 = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/...b","options":"--require=\\"/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan_proxy.cjs\\""}', stderr='').returncode
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:95: assert 0 == 2
+E   assert 0 == 2
+     +  where 0 = CompletedProcess(args=['/Users/ahmedabdelsalam/.nvm/versions/node/v22.19.0/bin/node', '/Users/ahmedabdelsalam/Desktop/...b","options":"--require=\\"/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/lan_proxy.cjs\\""}', stderr='').returncode
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:95: assert 0 == 2
+E   assert True is False
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:140: assert True is False
+E   assert True is False
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:140: assert True is False
+E   assert True is False
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/tests/test_sec2_2.py:140: assert True is False
+=========================== short test summary info ============================
+FAILED tests/test_sec2_2.py::test_dev_lan_builds_then_runs_next_start_on_the_lan_address
+FAILED tests/test_sec2_2.py::test_dev_lan_never_runs_the_next_dev_server - As...
+FAILED tests/test_sec2_2.py::test_make_lan_is_an_alias_for_dev_lan - Assertio...
+FAILED tests/test_sec2_2.py::test_make_dry_run_of_lan_mode_builds_and_starts[dev-lan]
+FAILED tests/test_sec2_2.py::test_make_dry_run_of_lan_mode_builds_and_starts[lan]
+FAILED tests/test_sec2_2.py::test_make_lan_runs_exactly_what_make_dev_lan_runs
+FAILED tests/test_sec2_2.py::test_the_wrapper_refuses_the_dev_server_on_the_network_even_in_lan_mode[0.0.0.0]
+FAILED tests/test_sec2_2.py::test_the_wrapper_refuses_the_dev_server_on_the_network_even_in_lan_mode[192.168.10.2]
+FAILED tests/test_sec2_2.py::test_the_wrapper_refuses_the_dev_server_on_the_network_even_in_lan_mode[::]
+FAILED tests/test_sec2_2.py::test_next_config_disables_the_mcp_server_in_lan_mode[phase-production-build]
+FAILED tests/test_sec2_2.py::test_next_config_disables_the_mcp_server_in_lan_mode[phase-production-server]
+FAILED tests/test_sec2_2.py::test_next_config_disables_the_mcp_server_in_lan_mode[phase-development-server]
+12 failed, 5 passed in 0.98s

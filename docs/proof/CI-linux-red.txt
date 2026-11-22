@@ -1,0 +1,40 @@
+Before the fix, on macOS (Python 3.14). TMPDIR=/tmp exercises the shared-temp
+failure; the FI3 regression case patches platform.system() to Linux and
+platform.machine() to x86_64. Pytest output excerpts from services/:
+
+$ TMPDIR=/tmp uv run pytest -q -p no:cacheprovider
+=========================== short test summary info ============================
+FAILED tests/test_sec2_3.py::test_the_owner_still_gets_precise_validation_errors
+FAILED tests/test_sec2_3.py::test_saved_paths_inside_the_data_folder_are_dropped_on_read
+FAILED tests/test_sec2_3.py::test_a_patch_still_refuses_paths_inside_the_data_folder
+FAILED tests/test_sec_1.py::test_kimi_bin_must_be_an_absolute_kimi_executable
+FAILED tests/test_sec_1.py::test_claude_config_dir_needs_a_claude_marker - As...
+FAILED tests/test_setup_s2.py::test_settings_persist_and_drive_provider_and_default_selection
+6 failed, 401 passed, 1 warning in 40.36s
+
+$ TMPDIR=/tmp uv run pytest -q -p no:cacheprovider --tb=short \
+  tests/test_sec2_3.py::test_the_owner_still_gets_precise_validation_errors \
+  tests/test_sec2_3.py::test_saved_paths_inside_the_data_folder_are_dropped_on_read \
+  tests/test_sec2_3.py::test_a_patch_still_refuses_paths_inside_the_data_folder \
+  tests/test_sec_1.py::test_kimi_bin_must_be_an_absolute_kimi_executable \
+  tests/test_sec_1.py::test_claude_config_dir_needs_a_claude_marker \
+  tests/test_setup_s2.py::test_settings_persist_and_drive_provider_and_default_selection \
+  'tests/test_fx_fi3.py::test_one_plain_line_per_tool_with_indented_commands[Linux-x86_64]'
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+[...]
+______ test_one_plain_line_per_tool_with_indented_commands[Linux-x86_64] _______
+tests/test_fx_fi3.py:28: in test_one_plain_line_per_tool_with_indented_commands
+    assert not pipe_lines, f"no pipe-separated status columns: {pipe_lines}"
+E   AssertionError: no pipe-separated status columns: ['    Install: curl -LsSf https://astral.sh/uv/install.sh | sh']
+E   assert not ['    Install: curl -LsSf https://astral.sh/uv/install.sh | sh']
+[...]
+=========================== short test summary info ============================
+FAILED tests/test_sec2_3.py::test_the_owner_still_gets_precise_validation_errors
+FAILED tests/test_sec2_3.py::test_saved_paths_inside_the_data_folder_are_dropped_on_read
+FAILED tests/test_sec2_3.py::test_a_patch_still_refuses_paths_inside_the_data_folder
+FAILED tests/test_sec_1.py::test_kimi_bin_must_be_an_absolute_kimi_executable
+FAILED tests/test_sec_1.py::test_claude_config_dir_needs_a_claude_marker - As...
+FAILED tests/test_setup_s2.py::test_settings_persist_and_drive_provider_and_default_selection
+FAILED tests/test_fx_fi3.py::test_one_plain_line_per_tool_with_indented_commands[Linux-x86_64]
+7 failed, 1 warning in 0.23s

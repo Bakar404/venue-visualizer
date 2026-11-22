@@ -1,0 +1,6 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=mobile
+
+Running 1 test using 1 worker
+
+[1/1] [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions
+  1 passed (4.6s)
