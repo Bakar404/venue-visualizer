@@ -7,15 +7,23 @@ export function needsPairing(error: unknown): boolean {
   return error instanceof ApiError && error.status === 403 && error.message.startsWith(PAIR_FIRST);
 }
 
-/** A same-site path to return to after pairing, or null. Rejects `//host` and `/\host`, which browsers treat as other sites. */
-export function safeNext(next: string | null | undefined): string | null {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return null;
-  if (next === "/pair" || next.startsWith("/pair?") || next.startsWith("/pair/")) return null;
-  return next;
+/** A canonical same-origin path to return to after pairing, or home. */
+export function safeNext(next: string | null | undefined, origin: string): string {
+  if (!next?.startsWith("/") || next.startsWith("//") || /[\\\x00-\x1f\x7f]/.test(next)) return "/";
+  let url: URL;
+  try {
+    url = new URL(next, origin);
+  } catch {
+    return "/";
+  }
+  const { pathname, search, hash } = url;
+  if (url.origin !== origin || pathname.startsWith("//") || pathname === "/pair" || pathname.startsWith("/pair/")) return "/";
+  return pathname + search + hash;
 }
 
 /** `/pair?next=<where this page is>`. */
-export function pairUrl(location: Pick<Location, "pathname" | "search">): string {
-  const next = safeNext(location.pathname + location.search);
-  return next ? `/pair?next=${encodeURIComponent(next)}` : "/pair";
+export function pairUrl(location: Pick<Location, "origin" | "pathname" | "search">): string {
+  const path = location.pathname + location.search;
+  const next = safeNext(path, location.origin);
+  return next === "/" && path !== "/" ? "/pair" : `/pair?next=${encodeURIComponent(next)}`;
 }

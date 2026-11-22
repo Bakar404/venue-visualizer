@@ -1,0 +1,12 @@
+$ pnpm --filter web exec vitest run src/components/setup/phone-access.test.tsx
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  01:21:01
+   Duration  1.04s (environment 44%, import 33%, transform 14%, tests 9%)
+
+
+Exit status: 0

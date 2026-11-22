@@ -144,9 +144,9 @@ Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or
   skipped) to allowed API hosts and permits HTTP origins on those addresses on ports 3000 and 8000.
   Use the returned web URL or QR code on a trusted Wi-Fi network: LAN mode uses plain HTTP by default.
   The six-digit pairing code is returned only by `GET /api/system/lan` on this computer (the console only says where to
-  find it). Each `GET` keeps the current code (issuing one if none is active) and restarts its 10 minutes
-  (`pairing_expires_in`, seconds); `POST /api/system/lan/code` replaces it. A code works once; pair another device by
-  reopening the panel or choosing New code. The QR code and URL point at `/pair`. The web app turns any API 403 "Pair
+  find it). Each `GET` keeps the current code (issuing one if none is active) and returns its remaining time without
+  extending its ten-minute lifetime (`pairing_expires_in`, seconds); `POST /api/system/lan/code` replaces it. A code
+  works once; the panel fetches a fresh code after it is used. The QR code and URL point at `/pair`. The web app turns any API 403 "Pair
   this device…" into a redirect to `/pair?next=<current path>` and returns there after pairing. Ten wrong codes from any addresses retire the code and
   lock pairing for 5 minutes (`pairing_locked_for`, seconds, with `pairing_code: null`; pairing returns 429 with
   `Retry-After`).

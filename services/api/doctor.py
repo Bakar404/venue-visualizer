@@ -66,14 +66,14 @@ def _status(provider: Provider, variants: list[dict]) -> tuple[str, str]:
     return "?", "installed, sign-in unknown, run Test in Setup"
 
 
-def _commands(provider: Provider, entry: dict, os_name: str) -> list[str]:
+def _commands(provider: Provider, entry: dict, os_name: str, *, image_test_passed: bool) -> list[str]:
     lines = []
     if not entry["installed"]:
         lines.append(f"Install: {_install(provider, os_name)}")
     if provider.login and entry["symbol"] != "✓":
         note = f"  ({provider.login.note})" if provider.login.note else ""
         lines.append(f"Sign in: {provider.login.command}{note}")
-    if provider.image_setup and not entry["engine_ready"]:
+    if provider.image_setup and not image_test_passed:
         lines.append(f"Enable images: {provider.image_setup}")
     return lines
 
@@ -84,7 +84,7 @@ def _next_step(roles: dict, entries: list[dict], os_name: str) -> str | None:
         return None
     tests: dict[str, list[str]] = {}
     for kind in missing:
-        candidate = next((backend for backend in roles[kind]["likely"] if backend != "mock"), None)
+        candidate = next(iter(roles[kind]["likely"]), None)
         if candidate:
             tests.setdefault(candidate, []).append(f"Test {_ROLE_WORDS[kind]}")
     if tests:
@@ -124,7 +124,7 @@ def _report(os_name: str) -> dict:
     roles = {kind: readiness.role(item for item in items if item["kind"] == kind) for kind in readiness.ROLES}
     entries = []
     for provider_id, provider in PROVIDERS.items():
-        if provider_id in {"mock", "scene3d"}:
+        if not readiness.visible_backend(provider_id):
             continue
         variants = [item for item in items if item["id"] == provider_id]
         symbol, status = _status(provider, variants)
@@ -134,7 +134,9 @@ def _report(os_name: str) -> dict:
             "logged_in": next((item["logged_in"] for item in variants if item["logged_in"] is not None), None),
             "symbol": symbol, "status": status, "engine_ready": provider_id in roles["engine"]["ready"],
         }
-        entry["commands"] = _commands(provider, entry, os_name)
+        image_test_passed = any(item["kind"] == "engine" and readiness.last_test_ok(item["last_test"]) is True
+                                for item in variants)
+        entry["commands"] = _commands(provider, entry, os_name, image_test_passed=image_test_passed)
         entries.append(entry)
 
     ready = not any(roles[kind]["missing"] for kind in readiness.ROLES)
@@ -152,7 +154,7 @@ def _verdict(report: dict) -> list[str]:
     )
     lines = [f"Not ready yet: no ready {missing}."]
     likely = dict.fromkeys(backend for kind in readiness.ROLES if roles[kind]["missing"]
-                           for backend in roles[kind]["likely"] if backend != "mock")
+                           for backend in roles[kind]["likely"])
     for backend in likely:
         lines.append(f"{PROVIDERS[backend].label} will probably work. Run Test to be sure.")
     lines.append(f"Do this next: {report['next']}")

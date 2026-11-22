@@ -322,10 +322,7 @@ class Pairing:
         self._previous, self.code, self._code_failures = self.code or self._previous, None, 0
 
     def show(self, *, rotate: bool = False) -> tuple[str | None, int | None, int | None]:
-        """Issue or refresh the code for the owner's panel: (code, expires_in, locked_for).
-
-        Showing keeps the current code and restarts its ten minutes; `rotate` (POST /code) always issues a new one.
-        """
+        """Show the current code and its remaining time, or issue a new one if inactive or rotating."""
         with self._lock:
             now = time.monotonic()
             if now < self._locked_until:
@@ -335,8 +332,8 @@ class Pairing:
                 while (code := f"{secrets.randbelow(1_000_000):06d}") == self._previous:
                     pass
                 self.code = code
-            self._expires = now + CODE_SECONDS
-            return self.code, CODE_SECONDS, None
+                self._expires = now + CODE_SECONDS
+            return self.code, ceil(self._expires - now), None
 
     def check(self, ip: str, code: str) -> None:
         with self._lock:
@@ -394,7 +391,7 @@ def _lan_out(runtime: RuntimeDep, request: Request, response: Response, *, rotat
 
 @router.get("")
 def lan_info(runtime: RuntimeDep, request: Request, response: Response) -> LanOut:
-    """Show the current pairing code (issuing one if none is active) and restart its expiry."""
+    """Show the current pairing code without extending it, issuing one if none is active."""
     return _lan_out(runtime, request, response, rotate=False)
 
 

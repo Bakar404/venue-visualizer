@@ -24,7 +24,8 @@ knows which AI subscription does what, and can use the app comfortably on a phon
    never finished setup).
 4. `/setup` is a short guided page with 3 steps:
    - **Step 1: Your AI tools.** One card per provider: Claude Code, Codex, GitHub Copilot, Kimi Code, Local FLUX (mflux).
-     - Status pill: Not installed / Installed, not signed in / Ready / Unknown (can't tell; run a test).
+     - Status pill: Not installed / Installed, not signed in / Ready / Unknown (can't tell; run a test). If chat and
+       images differ, the pill shows each role's status separately.
      - "Used for" chips.
      - Install and sign-in commands with copy buttons. Only the command is copied; follow-up guidance such as
        "then type /login" is plain text next to it. Without `navigator.clipboard` (plain-HTTP LAN pages) the button
@@ -89,10 +90,10 @@ knows which AI subscription does what, and can use the app comfortably on a phon
   - it's off by default. A warning explains that anyone on the same Wi-Fi could open the app, and offers a one-time
     **pairing code**: the phone must enter a 6-digit code shown on the computer before any LAN request is accepted,
     and the paired device gets a cookie;
-  - the code is shown only on this computer (never in the log). Opening the panel shows the current code (issuing
-    one if none is active) and restarts its 10 minutes; **New code** (`POST /api/system/lan/code`) replaces it. The
-    panel counts down to expiry ("Expires in 9:41") and fetches a fresh code when it runs out. A code is replaced
-    after each successful pairing. Ten wrong codes from any address retire it and lock pairing for 5 minutes, on
+  - the code is shown only on this computer (never in the log). The panel shows the current code (issuing
+    one if none is active) without extending its ten-minute lifetime; **New code** (`POST /api/system/lan/code`)
+    replaces it. The panel polls for changes, counts down to expiry ("Expires in 9:41"), and fetches a fresh code
+    when it runs out or after a successful pairing. Ten wrong codes from any address retire it and lock pairing for 5 minutes, on
     top of the per-device limit; meanwhile the panel says "Pairing is paused for N s after too many wrong codes" and
     counts down;
   - Setup lists paired devices (browser and OS, paired and last seen) and can forget one or all. Forgetting all
@@ -111,7 +112,7 @@ knows which AI subscription does what, and can use the app comfortably on a phon
 | POST | `/api/system/backends/refresh` | | same as `GET /api/system/backends`, re-detected now |
 | POST | `/api/system/backends/{kind}/{id}/test` | `{confirm_credits?: boolean}` | `{ok, seconds, detail, sample_url?}`. Image tests need `confirm_credits: true` (except mock and mflux on this computer; a paired phone always confirms). One test per backend at a time (409); brain tests at most every 10 s and image tests every 60 s per backend (429 + `Retry-After`). The last 5 sample images are kept |
 | GET | `/api/system/setup` | | `{complete: boolean, missing: ("brain"\|"engine"\|"defaults")[], steps: {...}, brain: {ready: string[], likely: string[], missing: boolean}, engine: {…same}, client: "owner"\|"phone"}` |
-| GET | `/api/system/lan` | | `{enabled, url, qr_svg, pairing_code, pairing_required: true, pairing_expires_in, pairing_locked_for}` (this computer only; shows the current code, issuing one if none, and restarts its expiry) |
+| GET | `/api/system/lan` | | `{enabled, url, qr_svg, pairing_code, pairing_required: true, pairing_expires_in, pairing_locked_for}` (this computer only; shows the current code without extending its expiry, issuing one if none is active) |
 | POST | `/api/system/lan/code` | | same as `GET /api/system/lan`, with a fresh code (this computer only) |
 | POST | `/api/system/lan/pair` | `{code}` | sets the device cookie (LAN only); the code is then retired |
 | GET | `/api/system/lan/devices` | | `{id, label, paired_at, last_seen, expires_at}[]` (this computer only) |
@@ -165,7 +166,7 @@ Security follow-ups (proof in `docs/proof/SEC*-red.txt` → `SEC*-green.txt`, te
 |---|---|
 | SEC1 | pytest: every non-LAN start command binds the web to 127.0.0.1 and `dev-lan` passes exactly one `--hostname`; `Host: localhost:3000` relayed for a Wi-Fi peer is rejected; the API warns if the web is reachable from the network outside LAN mode; `kimi.bin` and `claude.config_dir` are strictly validated; settings writes come only from this computer (the proxied-request rule is superseded by SEC2-1) |
 | SEC2 | pytest: settings can't turn LAN mode on (422 with the `make dev-lan` hint); a saved toggle from older versions is ignored; `python -m api.lan` binds to 0.0.0.0 only with `VV_LAN=1` and the proxy key |
-| SEC3 | pytest: the pairing code is one-time, expires after 10 minutes, is kept and its expiry restarted by `GET /api/system/lan` (`POST /api/system/lan/code` replaces it), and 10 failures across all IPs retire it and lock pairing for 5 minutes; the code isn't logged |
+| SEC3 | pytest: the pairing code is one-time, expires 10 minutes after issuance even when `GET /api/system/lan` polls it (`POST /api/system/lan/code` replaces it), and 10 failures across all IPs retire it and lock pairing for 5 minutes; the code isn't logged |
 | SEC4 | pytest: paired devices are listed, forgotten one by one or all at once (old cookies stop working); cookies are ignored outside LAN mode and expire after 30 days; `last_seen` updates |
 | SEC5 | pytest: one running test per backend; brain/image cooldowns return 429 with `Retry-After`; phones must confirm credits for image tests; only the last 5 sample images are kept |
 | SEC6 | pytest: WebSocket upgrades go through the same policy; non-local ones are refused |

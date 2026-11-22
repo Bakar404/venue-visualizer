@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { lanCode, mockReady, proof, settled } from "./helpers";
+import { lanCode, proof, settled } from "./helpers";
 
 // FX-R3: New code asks the API for a fresh code (POST /api/system/lan/code); showing the panel doesn't rotate it.
 // The panel counts down to expiry, fetches a new code when it runs out, and explains a pairing lockout.
@@ -29,20 +29,20 @@ test("FX-R3: New code replaces the code; the panel counts down and refreshes at 
   await page.getByRole("region", { name: "Open on your phone" }).screenshot({ path: proof("FX-R3-countdown.png") });
 });
 
-test("FX-R3: during a lockout the panel says pairing is paused, counts down, then shows a code", async ({ page }) => {
+test("RV2: the open panel notices a lockout without reloading, then shows a code when it ends", async ({ page }) => {
   await page.clock.install();
   await page.goto("/setup?vvScenario=demo");
   await lanCode(page);
   await page.evaluate(() => window.__vvMock.lockPairing(30));
-  await page.reload();
-  await mockReady(page);
   const paused = page.getByTestId("pairing-locked");
-  await expect(paused).toHaveText(/Pairing is paused for (30|29) s after too many wrong codes/);
+  await expect(paused).toHaveText(/Pairing is paused for \d+ s after too many wrong codes/, { timeout: 10_000 });
   await expect(page.getByTestId("pairing-code")).toHaveCount(0);
   await settled(page);
   await page.getByRole("region", { name: "Open on your phone" }).screenshot({ path: proof("FX-R3-locked.png") });
+  const secondsLeft = async () => Number(/for (\d+) s/.exec((await paused.textContent()) ?? "")?.[1]);
+  const initial = await secondsLeft();
   await page.clock.fastForward(10_000);
-  await expect(paused).toHaveText(/Pairing is paused for (20|19) s/);
+  await expect.poll(secondsLeft).toBeLessThan(initial);
   await page.clock.fastForward(21_000);
   await expect(page.getByTestId("pairing-code")).toHaveText(/^\d{3} \d{3}$/);
   await expect(paused).toHaveCount(0);

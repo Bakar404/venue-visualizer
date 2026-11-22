@@ -1,0 +1,28 @@
+$ cd services && uv run pytest -q tests/test_sec_3.py::test_code_expires_ten_minutes_after_issue_even_when_polled
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+.                                                                        [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 1 warning in 0.10s
+
+Exit status: 0
+
+$ pnpm --filter web e2e e2e/fx-r3.spec.ts --grep RV2: --reporter=line
+
+> web@0.1.0 e2e /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+> playwright test e2e/fx-r3.spec.ts --grep RV2: --reporter=line
+
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/fx-r3.spec.ts:32:1 › RV2: the open panel notices a lockout without reloading, then shows a code when it ends
+  1 passed (9.2s)
+
+Exit status: 0

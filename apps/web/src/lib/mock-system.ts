@@ -158,7 +158,7 @@ type SystemState = {
   detected: Record<MockProvider, ToolState>;
   settings: Settings;
   tests: Record<string, BackendTest>;
-  /** The pairing code; showing the panel keeps it and restarts its ten minutes, New code replaces it. */
+  /** The pairing code; showing the panel keeps it until expiry, New code replaces it. */
   pairing: { code: string; expiresAt: number } | null;
   /** The last retired code, so a new one never repeats it. */
   previousCode: string | null;
@@ -510,14 +510,16 @@ function showLan(rotate: boolean): LanInfo {
   }
   if (rotate || !state.pairing || now >= state.pairing.expiresAt) {
     retire();
-    state.pairing = { code: newCode(state.previousCode), expiresAt: 0 };
+    state.pairing = { code: newCode(state.previousCode), expiresAt: now + CODE_SECONDS * 1000 };
+    save();
   }
-  state.pairing!.expiresAt = now + CODE_SECONDS * 1000;
-  save();
-  return { ...base, pairing_code: state.pairing!.code, pairing_expires_in: CODE_SECONDS, pairing_locked_for: null };
+  return {
+    ...base, pairing_code: state.pairing.code, pairing_expires_in: Math.ceil((state.pairing.expiresAt - now) / 1000),
+    pairing_locked_for: null,
+  };
 }
 
-/** `GET /api/system/lan` (owner only). Keeps the current code and restarts its ten minutes; issues one if none. */
+/** `GET /api/system/lan` (owner only). Keeps the current code until expiry; issues one if none. */
 export function lanInfo(): LanInfo {
   return showLan(false);
 }

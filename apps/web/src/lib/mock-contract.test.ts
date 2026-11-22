@@ -245,13 +245,14 @@ describe("mock API matches the first-run setup contract", () => {
   });
 
   describe("pairing codes expire", () => {
-    it("10 minutes after the panel last showed them", () => {
+    it("10 minutes after they are issued, even if the panel checks again", () => {
       vi.useFakeTimers({ toFake: ["Date"] });
       systemHooks.setLan(true);
       const t0 = new Date("2026-11-21T12:00:00Z").getTime();
       vi.setSystemTime(t0);
       const early = system.lanInfo().pairing_code!;
       vi.setSystemTime(t0 + 10 * 60_000 - 1000);
+      expect(system.lanInfo()).toMatchObject({ pairing_code: early, pairing_expires_in: 1 });
       system.pairDevice(early, "Phone A");
       const late = system.lanInfo();
       expect(late.pairing_expires_in).toBe(600);

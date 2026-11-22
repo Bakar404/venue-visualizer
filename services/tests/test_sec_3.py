@@ -41,7 +41,7 @@ def test_code_is_one_time_and_rotates_after_pairing(setup_machine, monkeypatch):
         assert _pair(api, "192.168.10.4", fresh).status_code == 200
 
 
-def test_code_expires_ten_minutes_after_it_was_shown(setup_machine, monkeypatch):  # noqa: F811
+def test_code_expires_ten_minutes_after_issue_even_when_polled(setup_machine, monkeypatch):  # noqa: F811
     lan_env(monkeypatch)
     clock = Clock().install(monkeypatch)
     with desktop() as api:
@@ -52,9 +52,11 @@ def test_code_expires_ten_minutes_after_it_was_shown(setup_machine, monkeypatch)
 
         code = _code(api)
         clock.now += 500
-        assert _code(api) == code  # Reopening the panel refreshes the same code.
-        clock.now += 400
-        assert _pair(api, "192.168.10.3", code).status_code == 200
+        polled = api.get("/api/system/lan").json()
+        assert polled["pairing_code"] == code
+        assert polled["pairing_expires_in"] == 100
+        clock.now += 101
+        assert _pair(api, "192.168.10.3", code).status_code == 403
 
 
 def test_global_failure_limit_invalidates_code_and_locks_pairing(setup_machine, monkeypatch):  # noqa: F811

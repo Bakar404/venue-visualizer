@@ -3,6 +3,7 @@ import inspect
 from importlib import import_module
 from pathlib import Path
 
+from . import readiness
 from .config import Settings
 from .deps import Runtime
 from .settings import load, preferences
@@ -39,7 +40,7 @@ async def invoke(fn, *args, **kwargs):
 
 
 def _visible(engine_id: str, settings: Settings) -> bool:
-    return engine_id != "scene3d" and (engine_id != "mock" or settings.dev)
+    return readiness.visible_backend(engine_id, include_mock=settings.dev)
 
 
 def backend_report(runtime: Runtime) -> dict:

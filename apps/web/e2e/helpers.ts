@@ -51,7 +51,7 @@ type MockPeek = {
 export type MockScenario = "fresh" | "signed-out" | "ready" | "demo";
 type MockProvider = "claude" | "codex" | "copilot" | "kimi" | "mflux";
 
-type MockGate = "chat" | "renderLook" | "deletePhoto" | "getJob" | "setupStatus" | "pairDevice";
+type MockGate = "chat" | "renderLook" | "deletePhoto" | "getJob" | "setupStatus" | "pairDevice" | "testBackend";
 
 /** Turns phone access on (like `make dev-lan`) and returns the pairing code Setup shows on the computer. */
 export async function lanCode(page: Page) {

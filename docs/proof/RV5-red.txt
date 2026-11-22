@@ -1,0 +1,39 @@
+$ pnpm --filter web exec vitest run src/hooks/use-retry-countdown.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/hooks/use-retry-countdown.test.ts (1 test | 1 failed) 15ms
+   × reaches zero if the clock crosses the deadline during a tick 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/hooks/use-retry-countdown.test.ts > reaches zero if the clock crosses the deadline during a tick
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/hooks/use-retry-countdown.test.ts:25:26
+     23|   act(() => vi.advanceTimersByTime(250));
+     24|
+     25|   expect(result.current).toBe(0);
+       |                          ^
+     26| });
+     27|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  01:19:20
+   Duration  465ms (environment 71%, import 20%, transform 5%, tests 4%, worker 1%)
+
+undefined
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/hooks/use-retry-countdown.test.ts
+
+Exit status: 1

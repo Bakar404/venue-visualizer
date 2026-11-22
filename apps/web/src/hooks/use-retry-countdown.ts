@@ -9,8 +9,9 @@ export function useSecondsLeft(until: number | null): number | null {
   useEffect(() => {
     if (until === null) return;
     const tick = () => {
-      setNow(Date.now());
-      if (Date.now() >= until) clearInterval(t);
+      const t0 = Date.now();
+      setNow(t0);
+      if (t0 >= until) clearInterval(t);
     };
     const first = setTimeout(tick, 0);
     const t = setInterval(tick, 250);

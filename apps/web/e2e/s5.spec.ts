@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { mockReady, proof, settled } from "./helpers";
+import { holdMock, mockReady, proof, settled } from "./helpers";
 
 // S5 (docs/onboarding-and-mobile.md): a fresh install is sent to /setup, sees "Not installed" with copyable
 // commands, and Check again reflects a newly installed tool. Also covers the rest of Step 1 (Test, Advanced)
@@ -84,26 +84,40 @@ test("S5: installed but signed out shows the sign-in step; Test tells unknown fr
   });
   await copilot.getByRole("button", { name: "Test chat" }).click();
   await expect(copilot.getByTestId("test-result")).toContainText(/Passed in [\d.]+ s/);
-  await expect(pill(copilot)).toHaveText("Ready");
+  await expect(pill(copilot)).toHaveText("Chat: Ready · Images: Likely");
 });
 
 test("S5: image tests ask before using credits; free engines test straight away", async ({ page }) => {
+  const imagePosts: string[] = [];
+  await page.route("**/api/system/backends/engine/*/test", async (route) => {
+    if (route.request().method() === "POST") imagePosts.push(route.request().url());
+    await route.continue();
+  });
   await page.goto("/setup?vvScenario=ready");
+  await mockReady(page);
+  await page.evaluate(() => window.__vvMock.clearTests());
+  await page.reload();
+  await mockReady(page);
+  // This suite uses the in-browser API mock, so watch its test calls as well as real POSTs.
+  const testCall = await holdMock(page, "testBackend");
   const copilot = card(page, "GitHub Copilot");
-  await expect(pill(copilot)).toHaveText(/Ready|Unknown/);
+  await expect(pill(copilot)).toHaveText("Unknown");
 
   await copilot.getByRole("button", { name: "Test images" }).click();
   const confirm = page.getByRole("alertdialog");
   await expect(confirm).toContainText(/credits/i);
   await confirm.getByRole("button", { name: "Cancel" }).click();
   await expect(confirm).toBeHidden();
-  // The scenario's earlier passing test stays; Cancel ran no new one (a new one shows its sample image).
-  await expect(copilot.getByRole("img", { name: /test image/i })).toHaveCount(0);
+  await expect(copilot.getByTestId("test-result")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__vvMock.waiting("testBackend"))).toBe(0);
+  expect(imagePosts).toEqual([]);
 
   await copilot.getByRole("button", { name: "Test images" }).click();
   await settled(page);
   await page.screenshot({ path: proof("S5-credit-warning.png") });
   await confirm.getByRole("button", { name: "Use credits and test" }).click();
+  await testCall.reached();
+  await testCall.release();
   await expect(copilot.getByTestId("test-result")).toContainText(/Passed in [\d.]+ s/);
   await expect(copilot.getByRole("img", { name: /test image/i })).toBeVisible();
 
@@ -111,6 +125,18 @@ test("S5: image tests ask before using credits; free engines test straight away"
   await flux.getByRole("button", { name: "Test images" }).click();
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await expect(flux.getByTestId("test-result")).toContainText(/Passed in [\d.]+ s/);
+});
+
+test("RV7: a passing chat test does not mark images ready at 375 px", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/setup?vvScenario=signed-out");
+  const copilot = card(page, "GitHub Copilot");
+  await mockReady(page);
+  await page.evaluate(() => window.__vvMock.install("copilot"));
+  await copilot.getByRole("button", { name: "Test chat" }).click();
+  await expect(copilot.getByTestId("test-result")).toContainText("Chat test: Passed");
+  await expect(pill(copilot)).toHaveText("Chat: Ready · Images: Likely");
+  expect(await copilot.evaluate((el) => el.scrollWidth)).toBeLessThanOrEqual(375);
 });
 
 test("S5: Advanced keeps per-provider options", async ({ page }) => {

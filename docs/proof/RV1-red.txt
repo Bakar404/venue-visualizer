@@ -1,0 +1,208 @@
+$ pnpm --filter web exec vitest run src/lib/pairing.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/pairing.test.ts (18 tests | 16 failed) 12ms
+   ❯ pairing redirects (FX-R1) (18)
+     × keeps next on this site 3ms
+     × uses home for an unsafe or absent next value ("/\t/evil.com") 1ms
+     × uses home for an unsafe or absent next value ("/\n/evil.com") 1ms
+     × uses home for an unsafe or absent next value ("/\r/evil.com") 1ms
+     × uses home for an unsafe or absent next value ("https://evil.com") 1ms
+     × uses home for an unsafe or absent next value ("//evil.com") 1ms
+     × uses home for an unsafe or absent next value ("/\\evil.com") 0ms
+     × uses home for an unsafe or absent next value ("/venues\\abc") 1ms
+     × uses home for an unsafe or absent next value ("/venues\u0000") 1ms
+     × uses home for an unsafe or absent next value ("/venues\x7f") 0ms
+     × uses home for an unsafe or absent next value ("javascript:alert(1)") 0ms
+     × uses home for an unsafe or absent next value ("/venues/..//external.example") 0ms
+     × uses home for an unsafe or absent next value ("/venues/../pair#again") 0ms
+     × uses home for an unsafe or absent next value ("/pair?next=/x") 0ms
+     × uses home for an unsafe or absent next value ("") 0ms
+     × uses home for an unsafe or absent next value (null) 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > keeps next on this site
+AssertionError: expected '/venues/../spaces?x=1#y' to be '/spaces?x=1#y' // Object.is equality
+
+Expected: "/spaces?x=1#y"
+Received: "/venues/../spaces?x=1#y"
+
+ ❯ src/lib/pairing.test.ts:15:49
+     13|   it("keeps next on this site", () => {
+     14|     expect(safeNext("/venues/abc?x=1#y")).toBe("/venues/abc?x=1#y");
+     15|     expect(safeNext("/venues/../spaces?x=1#y")).toBe("/spaces?x=1#y");
+       |                                                 ^
+     16|   });
+     17|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/\t/evil.com")
+AssertionError: expected '/\t/evil.com' to be '/' // Object.is equality
+
+Expected: "/"
+Received: "/	/evil.com"
+
+ ❯ src/lib/pairing.test.ts:35:27
+     33|     null,
+     34|   ])("uses home for an unsafe or absent next value (%j)", (bad) => {
+     35|     expect(safeNext(bad)).toBe("/");
+       |                           ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/\n/evil.com")
+AssertionError: expected '/\n/evil.com' to be '/' // Object.is equality
+
+- Expected
++ Received
+
+  /
++ /evil.com
+
+ ❯ src/lib/pairing.test.ts:35:27
+     33|     null,
+     34|   ])("uses home for an unsafe or absent next value (%j)", (bad) => {
+     35|     expect(safeNext(bad)).toBe("/");
+       |                           ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/\r/evil.com")
+AssertionError: expected '/\r/evil.com' to be '/' // Object.is equality
+
+Expected: "/"
+Received: "/\r/evil.com"
+
+ ❯ src/lib/pairing.test.ts:35:27
+     33|     null,
+     34|   ])("uses home for an unsafe or absent next value (%j)", (bad) => {
+     35|     expect(safeNext(bad)).toBe("/");
+       |                           ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("https://evil.com")
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("//evil.com")
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/\\evil.com")
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("javascript:alert(1)")
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/pair?next=/x")
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("")
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value (null)
+AssertionError: expected null to be '/' // Object.is equality
+
+- Expected:
+"/"
+
++ Received:
+null
+
+ ❯ src/lib/pairing.test.ts:35:27
+     33|     null,
+     34|   ])("uses home for an unsafe or absent next value (%j)", (bad) => {
+     35|     expect(safeNext(bad)).toBe("/");
+       |                           ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/venues\\abc")
+AssertionError: expected '/venues\abc' to be '/' // Object.is equality
+
+Expected: "/"
+Received: "/venues\abc"
+
+ ❯ src/lib/pairing.test.ts:35:27
+     33|     null,
+     34|   ])("uses home for an unsafe or absent next value (%j)", (bad) => {
+     35|     expect(safeNext(bad)).toBe("/");
+       |                           ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/venues\u0000")
+AssertionError: expected '/venues\u0000' to be '/' // Object.is equality
+
+Expected: "/"
+Received: "/venues\x00"
+
+ ❯ src/lib/pairing.test.ts:35:27
+     33|     null,
+     34|   ])("uses home for an unsafe or absent next value (%j)", (bad) => {
+     35|     expect(safeNext(bad)).toBe("/");
+       |                           ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/venues\x7f")
+AssertionError: expected '/venues\u007f' to be '/' // Object.is equality
+
+Expected: "/"
+Received: "/venues\x7f"
+
+ ❯ src/lib/pairing.test.ts:35:27
+     33|     null,
+     34|   ])("uses home for an unsafe or absent next value (%j)", (bad) => {
+     35|     expect(safeNext(bad)).toBe("/");
+       |                           ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/venues/..//external.example")
+AssertionError: expected '/venues/..//external.example' to be '/' // Object.is equality
+
+Expected: "/"
+Received: "/venues/..//external.example"
+
+ ❯ src/lib/pairing.test.ts:35:27
+     33|     null,
+     34|   ])("uses home for an unsafe or absent next value (%j)", (bad) => {
+     35|     expect(safeNext(bad)).toBe("/");
+       |                           ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  src/lib/pairing.test.ts > pairing redirects (FX-R1) > uses home for an unsafe or absent next value ("/venues/../pair#again")
+AssertionError: expected '/venues/../pair#again' to be '/' // Object.is equality
+
+Expected: "/"
+Received: "/venues/../pair#again"
+
+ ❯ src/lib/pairing.test.ts:35:27
+     33|     null,
+     34|   ])("uses home for an unsafe or absent next value (%j)", (bad) => {
+     35|     expect(safeNext(bad)).toBe("/");
+       |                           ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  16 failed | 2 passed (18)
+   Start at  01:19:18
+   Duration  225ms (transform 48%, import 24%, tests 21%, worker 6%)
+
+undefined
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/lib/pairing.test.ts
+
+Exit status: 1

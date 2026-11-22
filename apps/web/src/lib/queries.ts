@@ -77,16 +77,15 @@ export function useSetupStatus() {
 }
 
 /**
- * `GET /api/system/lan`. Reading it never changes the code (the API issues one only when none is active); the panel
- * refetches when the code expires or a lockout ends, and New code calls `useRotateLanCode`.
+ * `GET /api/system/lan`. Poll only while LAN mode is on so the panel notices lockouts and consumed codes.
  */
 export function useLanInfo() {
   return useQuery({
     queryKey: qk.lan,
     queryFn: api.lanInfo,
-    staleTime: Infinity,
     gcTime: 0,
-    refetchOnWindowFocus: false,
+    refetchInterval: (q) => (q.state.data?.enabled ? 5000 : false),
+    refetchOnWindowFocus: (q) => q.state.data?.enabled ? "always" : false,
     refetchOnReconnect: false,
     retry: 1,
   });
@@ -97,7 +96,10 @@ export function useRotateLanCode() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api.rotateLanCode(),
-    onSuccess: (lan) => qc.setQueryData(qk.lan, lan),
+    onSuccess: async (lan) => {
+      await qc.cancelQueries({ queryKey: qk.lan, exact: true });
+      qc.setQueryData(qk.lan, lan);
+    },
   });
 }
 

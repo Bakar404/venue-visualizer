@@ -38,22 +38,22 @@ export function PhoneAccess() {
   const newestPairing = devices.data?.reduce((max, d) => Math.max(max, Date.parse(d.paired_at)), 0) ?? 0;
   const { refetch } = lan;
   const rotate = useRotateLanCode();
+  const rotating = rotate.isPending;
   const codeFetchedAt = lan.dataUpdatedAt;
   useEffect(() => {
-    if (info && newestPairing > codeFetchedAt) void refetch();
-  }, [info, newestPairing, codeFetchedAt, refetch]);
+    if (!rotating && info && newestPairing > codeFetchedAt) void refetch({ cancelRefetch: false });
+  }, [rotating, info, newestPairing, codeFetchedAt, refetch]);
 
   // Count down to the code's expiry, or to the end of a lockout, and fetch again when either runs out.
   const expiresLeft = useSecondsLeft(info?.pairing_code && info.pairing_expires_in != null ? codeFetchedAt + info.pairing_expires_in * 1000 : null);
   const lockedLeft = useSecondsLeft(info?.pairing_locked_for ? codeFetchedAt + info.pairing_locked_for * 1000 : null);
   const refetchedFor = useRef(0);
   useEffect(() => {
-    if ((expiresLeft === 0 || lockedLeft === 0) && refetchedFor.current !== codeFetchedAt) {
+    if (!rotating && (expiresLeft === 0 || lockedLeft === 0) && refetchedFor.current !== codeFetchedAt) {
       refetchedFor.current = codeFetchedAt;
-      void refetch();
+      void refetch({ cancelRefetch: false });
     }
-  }, [expiresLeft, lockedLeft, codeFetchedAt, refetch]);
-  const busy = lan.isFetching || rotate.isPending;
+  }, [rotating, expiresLeft, lockedLeft, codeFetchedAt, refetch]);
 
   return (
     <section aria-labelledby={headingId} className="grid gap-5 rounded-2xl border bg-card p-5 sm:p-6">
@@ -114,8 +114,8 @@ export function PhoneAccess() {
                   <span className="text-muted-foreground">2. When the phone asks, enter this pairing code</span>
                   <span
                     data-testid="pairing-code"
-                    aria-busy={busy || undefined}
-                    className={cn("mt-1 block font-mono text-2xl tracking-[0.2em] tabular-nums", busy && "opacity-50")}
+                    aria-busy={rotating || undefined}
+                    className={cn("mt-1 block font-mono text-2xl tracking-[0.2em] tabular-nums", rotating && "opacity-50")}
                   >
                     {info.pairing_code.slice(0, 3)} {info.pairing_code.slice(3)}
                   </span>
@@ -125,8 +125,8 @@ export function PhoneAccess() {
                   <span className="mt-1 block text-pretty text-muted-foreground">
                     It works once. Each phone needs its own code; a new code replaces this one.
                   </span>
-                  <Button type="button" variant="outline" size="sm" className="mt-2" disabled={busy} onClick={() => rotate.mutate()}>
-                    <RefreshCwIcon aria-hidden className={cn(busy && "animate-spin")} />
+                  <Button type="button" variant="outline" size="sm" className="mt-2" disabled={rotating} onClick={() => rotate.mutate()}>
+                    <RefreshCwIcon aria-hidden className={cn(rotating && "animate-spin")} />
                     New code
                   </Button>
                   {rotate.isError && (

@@ -392,7 +392,7 @@ function db(): DB {
   return state;
 }
 
-type GateName = "chat" | "renderLook" | "deletePhoto" | "getJob" | "setupStatus" | "pairDevice";
+type GateName = "chat" | "renderLook" | "deletePhoto" | "getJob" | "setupStatus" | "pairDevice" | "testBackend";
 const gates = new Map<GateName, { promise: Promise<void>; release: () => void; waiting: number }>();
 const failNext = new Map<GateName, string>();
 
@@ -801,6 +801,7 @@ const endpoints: VVApi = {
     return system.refreshBackends();
   },
   async testBackend(kind, id, { confirm_credits }) {
+    await gate("testBackend");
     // Claim the slot first, like the API: a second click while this one runs answers 409.
     const run = system.beginTest(kind, id, confirm_credits === true);
     await sleep(700 + Math.random() * 400);

@@ -64,12 +64,12 @@ export type SetupMissing = Schemas["SetupOut"]["missing"][number];
 export type SetupStatus = Schemas["SetupOut"];
 export type RoleSetup = Schemas["RoleSetup"];
 /**
- * `GET /api/system/lan` (owner only). Showing it keeps the current pairing code and restarts its ten minutes;
+ * `GET /api/system/lan` (owner only). Showing it keeps the current pairing code until expiry;
  * `POST /api/system/lan/code` replaces it. `pairing_expires_in` / `pairing_locked_for` are seconds; while pairing is
  * locked after too many wrong codes there is no code.
  */
 export type LanInfo = Schemas["LanOut"];
-/** How long a pairing code works after the panel shows it. */
+/** How long a pairing code works after it is issued. */
 export const PAIRING_CODE_MINUTES = 10;
 /** A phone paired with this computer (`GET /api/system/lan/devices`). */
 export type LanDevice = Schemas["LanDeviceOut"];

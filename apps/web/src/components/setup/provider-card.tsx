@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRetryCountdown } from "@/hooks/use-retry-countdown";
 import { api, ApiError, errorMessage } from "@/lib/api";
-import { setupPill, type SetupPill } from "@/lib/backends";
+import { backendState, setupPill, type BackendState, type SetupPill } from "@/lib/backends";
 import { qk, useRefreshBackends, useSettings, useSetupStatus, useUpdateSettings } from "@/lib/queries";
 import type { BackendLogin, BackendStatus, UsedFor } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -35,16 +35,13 @@ const PILL_STYLES: Record<SetupPill, string> = {
   "Not installed": "bg-muted text-muted-foreground ring-border",
 };
 
-function Pill({ value }: { value: SetupPill }) {
-  return (
-    <span
-      data-testid="status-pill"
-      className={cn("inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-sm font-medium ring-1 ring-inset", PILL_STYLES[value])}
-    >
-      {value}
-    </span>
-  );
-}
+const ROLE_STATUS: Record<BackendState, string> = {
+  ready: "Ready",
+  likely: "Likely",
+  failed: "Failed",
+  signed_out: "Signed out",
+  missing: "Not installed",
+};
 
 const noop = () => () => {};
 /** The commands the API sends depend on the computer's OS; the browser's guess is good enough to pick one. */
@@ -167,15 +164,21 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
 
   const base = brain ?? engine;
   const lastTest = latestTest(brain, engine);
-  const pill = base
-    ? setupPill({ available: Boolean(brain?.available || engine?.available), logged_in: base.logged_in, last_test: lastTest })
-    : "Not installed";
+  const brainState = brain && backendState(brain);
+  const engineState = engine && backendState(engine);
+  const mixedStatus = brainState && engineState && brainState !== engineState
+    ? `Chat: ${ROLE_STATUS[brainState]} · Images: ${ROLE_STATUS[engineState]}`
+    : null;
+  const pill = base ? setupPill(base) : "Not installed";
+  const states = [brainState, engineState];
+  const signedOut = states.includes("signed_out");
+  const needsTest = states.includes("likely") || states.includes("failed");
   const usedFor: UsedFor[] = base?.used_for ?? [...(brain ? (["chat"] as const) : []), ...(engine ? (["images"] as const) : [])];
   const costNote = base?.cost_note ?? engine?.caps?.cost_note ?? "See the provider's pricing.";
   const install = base?.install ? (os === "linux" ? base.install.linux : base.install.macos) : null;
   const login = base?.login ?? null;
   const imageSetup = engine?.image_setup ?? null;
-  const installed = pill !== "Not installed";
+  const installed = Boolean(brain?.available || engine?.available);
   const engineLabel = engine?.label ?? provider.name;
 
   const test = useMutation({
@@ -211,7 +214,12 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">{roleLine(brain, engine)}</p>
         </div>
-        <Pill value={pill} />
+        <span
+          data-testid="status-pill"
+          className={cn("max-w-full rounded-full px-2.5 py-1 text-sm font-medium ring-1 ring-inset", PILL_STYLES[mixedStatus ? "Unknown" : pill])}
+        >
+          {mixedStatus ?? pill}
+        </span>
       </div>
 
       <p className="text-pretty text-foreground/85">{provider.blurb}</p>
@@ -229,7 +237,7 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
         </p>
       </div>
 
-      {pill === "Not installed" && (
+      {!installed && (
         <div className="grid gap-3">
           <p className="text-sm text-pretty">
             Not on this computer yet. Open the Terminal app, paste the install command
@@ -240,13 +248,13 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
           {imageSetup && <Command which="image-setup" label={install ? "3. Turn on images" : "Turn on images"} command={imageSetup} />}
         </div>
       )}
-      {pill === "Installed, not signed in" && login && (
+      {signedOut && login && (
         <div className="grid gap-3">
           <p className="text-sm text-pretty">It&apos;s installed but not signed in. Run this in Terminal, then press Check again.</p>
           <SignIn label="Sign in" login={login} />
         </div>
       )}
-      {pill === "Unknown" && (
+      {!signedOut && needsTest && (
         <div className="grid gap-3">
           <p className="text-sm text-pretty">
             It&apos;s installed, but we can&apos;t tell whether it&apos;s signed in. Run a test to find out.
@@ -254,7 +262,7 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
           {login && <SignIn label="If the test fails, sign in with" login={login} />}
         </div>
       )}
-      {pill === "Ready" && base?.version && <p className="text-sm text-muted-foreground">Version {base.version} is installed and signed in.</p>}
+      {!mixedStatus && pill === "Ready" && base?.version && <p className="text-sm text-muted-foreground">Version {base.version} is installed.</p>}
       {installed && imageSetup && !engine?.last_test?.ok && (
         <Command which="image-setup" label="To make images, turn them on once with" command={imageSetup} />
       )}

@@ -29,8 +29,8 @@ export function PairForm() {
       setPaired(true);
       // Everything fetched before pairing was a 403; fetch it again now.
       void qc.invalidateQueries();
-      const next = safeNext(new URLSearchParams(window.location.search).get("next"));
-      if (next) router.replace(next);
+      const next = new URLSearchParams(window.location.search).get("next");
+      if (next !== null) router.replace(safeNext(next, window.location.origin));
     },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 429) retry.start(error.retryAfter ?? 60);

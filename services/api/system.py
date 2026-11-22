@@ -111,8 +111,8 @@ def refresh_backends(runtime: RuntimeDep) -> BackendsOut:
 @system.get("/api/system/setup")
 def setup(runtime: RuntimeDep, request: Request) -> SetupOut:
     report = backends(runtime)
-    brain = readiness.role(item.model_dump() for item in report.brains)
-    engine = readiness.role(item.model_dump() for item in report.engines)
+    brain = readiness.role((item.model_dump() for item in report.brains), include_mock=runtime.settings.dev)
+    engine = readiness.role((item.model_dump() for item in report.engines), include_mock=runtime.settings.dev)
     defaults = preferences(load(runtime.engine)).setup_completed_at is not None
     missing = []
     if brain["missing"]:
