@@ -33,7 +33,7 @@ data/               (gitignored) sqlite db + uploaded/rendered images
 
 - `Venue(id, name, rules_json, created_at)`: venue rules are user-entered and authoritative.
 - `Space(id, venue_id, name, venue_spec_json, dimensions_json)`: "Ballroom", "Cocktail lounge".
-- `Photo(id, space_id, path, kind: "upload" | "generated_base", approved: bool, width, height)`.
+- `Photo(id, space_id, path, kind: "upload" | "generated_base" | "video_frame" | "web", source_url, credit, approved: bool, width, height)`.
   A generated base (no-photo path) must be approved by the user before it is used, and is frozen afterwards.
 - `Look(id, space_id, name, design_spec_json, parent_look_id, created_at)`: immutable once saved; a variation is a new Look.
 - `Render(id, look_id, photo_id, engine, brain, status, path, prompt, qa_json, error, created_at)`.
@@ -58,6 +58,47 @@ This is not an open-ended agent loop: every step is bounded, and renders only ha
    (ceiling, windows, upper walls), plus whether the image dimensions match. If the score falls below a threshold, it auto-retries once,
    then shows the render with a "may have altered the room" badge. Optional vision QA through the brain: "count tables, list colors".
 6. **Save** the render on the Look. Compare views and PDF export only read saved renders and never regenerate.
+
+### Find a real venue (venue-finder agent)
+
+The user types a venue name, e.g. "Grand Hotel, Riverside Ballroom, Springfield". A brain **with web search/fetch
+tools enabled** (claude: `--allowed-tools WebSearch,WebFetch`; copilot: its web fetch + `--allow-all-urls`;
+codex: `--search`; kimi: its search tool) researches the public web and returns `VenueResearch`
+(`packages/schema/venue-research.schema.json`): candidate matches with address, website, spaces (capacity,
+dimensions, finishes, fixtures), publicly posted photos (image URL + source page + credit), published policies
+(`rules_found`), and provided items. **Every field carries a source URL.**
+
+The user picks the right match and reviews it in an import screen:
+- Spaces → `Space` + `VenueSpec` (editable).
+- `rules_found` → shown as *suggested* rules; they become `VenueRules` only when the user ticks them. This keeps the
+  "the LLM never invents rules" guarantee.
+- Photos → two options per photo: **Use as reference** (default; the photo URL/thumbnail is only passed as a reference image
+  to generate an approved base view, like the no-photo path but grounded in the real room) or **Import as base photo**
+  (the server downloads it after the user confirms they have the right to use it for personal planning; the credit and source are stored).
+  Exports always print photo credits.
+- Download safety: http(s) only, public IPs only (SSRF guard; re-check after redirects), image content-types only,
+  ≤ 20 MB, ≤ 12 photos per space, EXIF stripped.
+
+### Three ways to get a venue in (all end as approved base photos + a VenueSpec)
+
+1. **Name it** → venue finder (above) searches the web for photos and facts.
+2. **Upload photos** you already have (5–30 per space).
+3. **Upload a video tour** (mp4/mov/webm/HEVC, ≤ 5 min, ≤ 1 GB). `pipeline/video.py`:
+   - `ffprobe` for duration, rotation and fps. Candidate frames come from `ffmpeg` scene-change detection
+     (`select='gt(scene,0.25)'`) plus one frame every 1.5 s, auto-rotated.
+   - Score each frame for sharpness (Laplacian variance), exposure (histogram clipping) and motion blur. Drop the bad ones.
+   - Dedupe near-identical views with a perceptual hash plus SSIM, then pick 6–15 frames with maximum view diversity
+     (greedy farthest-point on pHash distance). Favor wide, level, well-lit frames.
+   - **Vision pass** (brain with image input): for each kept frame return `{space_guess, view: "wide|corner|detail",
+     description, fixtures[], is_usable_base}`. Then cluster the frames into spaces (one video may walk through ballroom → lounge
+     → terrace) and draft a `VenueSpec` per space (style, walls, floor, windows, fixtures, rough size estimate flagged as
+     approximate).
+   - Optionally upscale or denoise a chosen frame with the photoreal engine ("same photo, sharper, no changes").
+   - The user reviews the frames grouped by space, renames or merges spaces, ticks the frames to keep → `Photo(kind="video_frame")`.
+   Every kept frame then behaves exactly like an uploaded photo: decorate, compare, export.
+
+Web photos found by the venue finder can also be used as base photos. The user confirms once per venue that they
+are using them for personal planning, and credits are kept.
 
 ### No-photo path
 
@@ -89,8 +130,9 @@ Engine notes (verified Nov 2026):
 - **codex**: `codex exec --skip-git-repo-check -C <tmp> "$imagegen ..."` (needs the `image_generation` feature
   enabled and a ChatGPT login). Find the produced image in the cwd/output dir. Uses ChatGPT plan quota.
 - **mflux**: subprocess `mflux-generate-*` (FLUX.2 Klein edit / Qwen-Image 2.1 edit, 4-bit). Free, slow on 16 GB Macs.
-- **scene3d**: renders the DesignSpec as a three.js scene (parametric room + low-poly decor) via the web app's
-  `/render/scene` route in headless Chromium (Playwright). It needs no AI and is stylized, not photoreal.
+- **scene3d** (internal, never a user-visible output): renders a plain layout-guide image of table positions from the
+  DesignSpec via the web app's `/render/scene` route in headless Chromium (Playwright). It is passed as an extra reference image to a
+  photoreal engine so table counts and placement come out right.
 - **mock**: tints the input and stamps the prompt; used in tests and CI.
 
 ## Brain interface (`services/pipeline/pipeline/brains/base.py`)
@@ -118,6 +160,10 @@ POST /api/venues                 GET /api/venues              GET/PATCH /api/ven
 POST /api/venues/{id}/spaces     GET/PATCH /api/spaces/{id}
 POST /api/spaces/{id}/photos (multipart)   DELETE /api/photos/{id}
 POST /api/spaces/{id}/generate-base  -> job   POST /api/photos/{id}/approve
+POST /api/venues/research        {query, brain?} -> Job (kind venue_research; result.research: VenueResearch)
+POST /api/venues/import          {research_job_id, match_index, space_names[], accepted_rules[], photos:[{url, mode: reference|import, rights_confirmed}]} -> Venue
+POST /api/venues/{id}/video       multipart file -> Job (kind video_ingest; result: frames[{photo_id, space_guess, view, description, usable}], spaces_suggested[{name, venue_spec, photo_ids[]}])
+POST /api/venues/{id}/video/apply {job_id, spaces:[{name, photo_ids[], venue_spec}]} -> Venue
 POST /api/spaces/{id}/chat       {message, spec, brain} -> {reply, spec, warnings, ambiguities}
 POST /api/spec/check             {spec, venue_id} -> {spec, warnings}
 POST /api/spaces/{id}/looks      {name, spec, parent_look_id?}    GET /api/looks/{id}
