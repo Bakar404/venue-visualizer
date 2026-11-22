@@ -26,11 +26,11 @@ def test_edit_prompt_lists_decor_and_keep_clause():
     for needle in ("dusty blue", "silver", "chiavari", "60", "white dance floor", "uplighting",
                    "oak paneling", "crystal chandeliers"):
         assert needle in prompt
-    from pipeline.prompts import KEEP_UNCHANGED
-    assert KEEP_UNCHANGED in prompt
+    from pipeline import prompts as _prompts
+    assert _prompts.KEEP_UNCHANGED in prompt
     for item in ("walls", "window architecture", "doors", "ceiling", "chandeliers and fixtures", "floor material",
                  "camera position", "lens and framing"):
-        assert item in KEEP_UNCHANGED
+        assert item in _prompts.KEEP_UNCHANGED
 
 
 def test_edit_prompt_mentions_flameless_candles():
