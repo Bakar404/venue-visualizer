@@ -113,3 +113,32 @@ async def test_mock_brain_web_returns_canned_research():
     schema = research_schema()
     out = await MockBrain().complete_json("s", build_research_prompt("The Plaza, NYC"), schema, web=True)
     assert out["query"] == "The Plaza, NYC" and not validation_errors(out, schema)
+
+
+@pytest.mark.parametrize("bad", ['{"tables": ', "[1, 2]", '"text"', "nope"])
+def test_codex_decode_strings_rejects_malformed_payloads(bad):
+    _, encoded = strictify(CHAT_RESPONSE_SCHEMA)
+    with pytest.raises(BrainError):
+        decode_strings({"reply": "ok", "spec_patch": bad, "ambiguities": []}, encoded)
+
+
+async def test_codex_brain_confines_reads_and_cleans_env(tmp_path, monkeypatch):
+    from pipeline._proc import ProcResult
+    from pipeline.brains import codex as codex_mod
+
+    calls = []
+
+    async def fake_run(argv, *, cwd, timeout_s, stdin_text=None, env=None, clean_env=False):
+        calls.append({"argv": argv, "cwd": cwd, "clean_env": clean_env})
+        out = {"reply": "ok", "spec_patch": "{}", "ambiguities": []}
+        return ProcResult(argv=argv, returncode=0, stdout=json.dumps(out), stderr="", seconds=0.1)
+
+    monkeypatch.setattr(codex_mod, "which", lambda name: "/bin/codex")
+    monkeypatch.setattr(codex_mod, "run_cli", fake_run)
+    obj = await CodexBrain().complete_json("SYS", "USER", CHAT_RESPONSE_SCHEMA)
+    assert obj == {"reply": "ok", "spec_patch": {}, "ambiguities": []}
+    [call] = calls
+    prompt = call["argv"][-1]
+    assert call["clean_env"] is True and call["cwd"].name.startswith("vv-codex-")
+    assert "Do not read files outside the working directory" in prompt
+    assert prompt.index("SYS") < prompt.index("Do not read files") < prompt.index("USER")

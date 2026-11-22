@@ -2,10 +2,10 @@
 
 Model from VV_MFLUX_MODEL (default "flux2-klein-4b"):
   * FLUX.2 Klein (flux2-klein-4b | flux2-klein-9b | flux2-klein-9b-kv):
-      mflux-generate-flux2      --model M --prompt P --width W --height H --steps 4 --seed S -q 4 --output OUT
-      mflux-generate-flux2-edit --model M --image-paths IN [REF...] --prompt P --steps 4 --seed S -q 4 --output OUT
+      mflux-generate-flux2      --model M --prompt=P --width W --height H --steps 4 --seed S -q 4 --output OUT
+      mflux-generate-flux2-edit --model M --image-paths IN [REF...] --prompt=P --steps 4 --seed S -q 4 --output OUT
   * Qwen-Image 2.1 edit (qwen-image-2.1 | qwen-2.1 | qwen-image-21 | qwen*):
-      mflux-generate-qwen-2.1-edit [--image-paths IN [REF...]] --prompt P --width W --height H --seed S
+      mflux-generate-qwen-2.1-edit [--image-paths IN [REF...]] --prompt=P --width W --height H --seed S
                                    --quantize 4 --output OUT        (no --image-paths = text-to-image)
 VV_MFLUX_STEPS overrides the step count; VV_MFLUX_SEED the seed (default 7). The first run downloads weights.
 detect() only checks platform + PATH (importing MLX for `--version` would take several seconds).
@@ -64,7 +64,7 @@ def build_argv(cmd_path: str, model: str, prompt: str, out: Path, width: int, he
         argv = [cmd_path]
         if images:
             argv += ["--image-paths", *[str(p) for p in images]]
-        argv += ["--prompt", prompt, "--width", str(width), "--height", str(height), "--seed", seed,
+        argv += [f"--prompt={prompt}", "--width", str(width), "--height", str(height), "--seed", seed,
                  "--quantize", "4", "--output", str(out)]
         if steps:
             argv += ["--steps", steps]
@@ -74,7 +74,7 @@ def build_argv(cmd_path: str, model: str, prompt: str, out: Path, width: int, he
         argv += ["--image-paths", *[str(p) for p in images]]
     else:
         argv += ["--width", str(width), "--height", str(height)]
-    argv += ["--prompt", prompt, "--steps", steps or "4", "--seed", seed, "-q", "4", "--output", str(out)]
+    argv += [f"--prompt={prompt}", "--steps", steps or "4", "--seed", seed, "-q", "4", "--output", str(out)]
     return argv
 
 

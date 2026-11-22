@@ -5,8 +5,10 @@ Guards: http/https only; no credentials in URLs; every hostname is resolved and 
 of those are rejected, for IPv4 and IPv6); the connection is pinned to the validated IP (Host header and TLS SNI
 keep the real hostname), so a second DNS answer cannot redirect it (DNS rebinding); redirects are followed by
 hand (max 5) and each hop is re-validated; 15 s network timeout; only image/* content types we can decode;
-streamed with a byte cap; decoded with Pillow (decompression-bomb guarded) and re-saved without any metadata
-(EXIF/GPS/XMP dropped, orientation applied first). Any violation raises `FetchError`.
+`Accept-Encoding: identity` is requested and any other Content-Encoding is rejected, so the byte cap applied to
+the raw stream also bounds the decoded size (no gzip/brotli bombs); decoded with Pillow (decompression-bomb
+guarded) and re-saved without any metadata (EXIF/GPS/XMP dropped, orientation applied first) via a temp file
+that is only published if the download was not cancelled or timed out. Any violation raises `FetchError`.
 """
 from __future__ import annotations
 
@@ -119,11 +121,18 @@ async def validate_url(url: str) -> tuple[httpx.URL, str]:
     return parsed, addresses[0].split("%")[0]
 
 
+def _host_header(url: httpx.URL) -> str:
+    """Host header value: IDNA (punycode) hostname, IPv6 literals in brackets, explicit port kept."""
+    host = url.raw_host.decode("ascii")
+    if ":" in host:
+        host = f"[{host}]"
+    return host if url.port is None else f"{host}:{url.port}"
+
+
 def _pinned_request(client: httpx.AsyncClient, url: httpx.URL, ip: str) -> httpx.Request:
-    host_header = url.host if url.port is None else f"{url.host}:{url.port}"
-    headers = {"Host": host_header, "User-Agent": _USER_AGENT,
+    headers = {"Host": _host_header(url), "User-Agent": _USER_AGENT, "Accept-Encoding": "identity",
                "Accept": "image/avif,image/webp,image/png,image/jpeg,image/heic;q=0.9"}
-    extensions = {"sni_hostname": url.host} if url.scheme == "https" else {}
+    extensions = {"sni_hostname": url.raw_host.decode("ascii")} if url.scheme == "https" else {}
     return client.build_request("GET", url.copy_with(host=ip), headers=headers, extensions=extensions)
 
 
@@ -132,19 +141,56 @@ def _media_type(content_type: str | None) -> str:
 
 
 async def _read_capped(resp: httpx.Response, max_bytes: int) -> bytes:
+    """Read the body with a cap on the bytes received from the wire (identity encoding only)."""
+    encoding = resp.headers.get("content-encoding", "").strip().lower()
+    if encoding not in ("", "identity"):
+        raise FetchError(f"refusing compressed response (Content-Encoding: {encoding})")
     length = resp.headers.get("content-length")
     if length and length.isdigit() and int(length) > max_bytes:
         raise FetchError(f"image is too large ({int(length):,} bytes > {max_bytes:,})")
     buf = bytearray()
-    async for chunk in resp.aiter_bytes():
+    async for chunk in _raw_chunks(resp):
         buf += chunk
         if len(buf) > max_bytes:
             raise FetchError(f"image is too large (> {max_bytes:,} bytes)")
     return bytes(buf)
 
 
-def _clean_and_save(data: bytes, dest_dir: Path) -> Path:
-    """Decode, apply EXIF orientation, drop all metadata and save under a random name."""
+async def _raw_chunks(resp: httpx.Response):
+    if resp.is_stream_consumed:  # body already in memory (responses built from bytes, e.g. in tests)
+        yield resp.content
+        return
+    async for chunk in resp.aiter_raw():
+        yield chunk
+
+
+_PART_PREFIX = ".part-"
+
+
+async def _save_cancellable(data: bytes, dest_dir: Path) -> Path:
+    """Run `_clean_and_save` in a thread, publishing its file only if we were not cancelled/timed out.
+
+    The thread writes a hidden temp file; it is renamed on the event loop afterwards. If the caller is
+    cancelled meanwhile (e.g. the total-download timeout), the temp file is deleted once the thread ends."""
+    task = asyncio.ensure_future(asyncio.to_thread(_clean_and_save, data, dest_dir, _PART_PREFIX))
+    try:
+        part = await asyncio.shield(task)
+    except asyncio.CancelledError:
+        task.add_done_callback(_discard_part)
+        raise
+    final = part.with_name(part.name.removeprefix(_PART_PREFIX))
+    part.replace(final)
+    return final
+
+
+def _discard_part(task: asyncio.Future) -> None:
+    if task.cancelled() or task.exception() is not None:
+        return
+    task.result().unlink(missing_ok=True)
+
+
+def _clean_and_save(data: bytes, dest_dir: Path, prefix: str = "") -> Path:
+    """Decode, apply EXIF orientation, drop all metadata and save under a random name (with `prefix`)."""
     with warnings.catch_warnings():
         warnings.simplefilter("error", Image.DecompressionBombWarning)
         try:
@@ -172,13 +218,17 @@ def _clean_and_save(data: bytes, dest_dir: Path) -> Path:
     img = img.convert(mode)
     clean = Image.frombytes(img.mode, img.size, img.tobytes())  # pixels only: no EXIF/GPS/XMP/text chunks
     dest_dir.mkdir(parents=True, exist_ok=True)
-    out = dest_dir / f"{uuid.uuid4().hex}{ext}"
+    out = dest_dir / f"{prefix}{uuid.uuid4().hex}{ext}"
     opts: dict = {"icc_profile": icc} if icc else {}
     if target == "JPEG":
         opts.update(quality=92, optimize=True)
     elif target == "WEBP":
         opts.update(quality=92)
-    clean.save(out, target, **opts)
+    try:
+        clean.save(out, target, **opts)
+    except BaseException:
+        out.unlink(missing_ok=True)
+        raise
     return out
 
 
@@ -232,5 +282,5 @@ async def _download_image(url: str, dest_dir: Path, max_bytes: int, *,
                     raise FetchError(f"download of {current} failed: {e}") from e
             finally:
                 await resp.aclose()
-            return await asyncio.to_thread(_clean_and_save, data, Path(dest_dir))
+            return await _save_cancellable(data, Path(dest_dir))
     raise FetchError(f"too many redirects (> {MAX_REDIRECTS}) starting from {url}")

@@ -53,7 +53,7 @@ def test_backend_report_shape(monkeypatch: pytest.MonkeyPatch):
     report = registry.backend_report()
     assert [b["id"] for b in report["brains"]] == ["claude", "codex", "copilot", "kimi"]
     assert [e["id"] for e in report["engines"]] == ["copilot", "codex", "mflux"]
-    assert report["defaults"] == {"brain": "mock", "engine": None}  # mock brain = internal offline fallback
+    assert report["defaults"] == {"brain": None, "engine": None}  # hidden mock is never a reported default
     for entry in report["brains"] + report["engines"]:
         assert set(entry) >= {"id", "label", "kind", "available", "logged_in", "version", "detail"}
         assert entry["available"] is False
@@ -101,3 +101,32 @@ def test_scene3d_only_registered_when_importable(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(registry.importlib, "import_module", fake_import)
     registry.refresh()
     assert "scene3d" not in registry.engines(include_internal=True)
+
+
+def test_default_engine_env_ignores_hidden_engines(monkeypatch: pytest.MonkeyPatch, caplog):
+    monkeypatch.setattr(shutil, "which", lambda name, *a, **k: "/bin/true" if name == "codex" else None)
+    for var in ("VV_DEV", "VV_MOCK", "VV_DEFAULT_BRAIN"):
+        monkeypatch.delenv(var, raising=False)
+    registry.refresh()
+    for hidden in ("scene3d", "mock"):
+        monkeypatch.setenv("VV_DEFAULT_ENGINE", hidden)
+        assert registry.pick_engine(None).id == "codex"
+        assert registry.backend_report()["defaults"]["engine"] == "codex"
+    assert "internal engine" in caplog.text
+    monkeypatch.setenv("VV_DEV", "1")
+    registry.refresh()
+    monkeypatch.setenv("VV_DEFAULT_ENGINE", "mock")
+    assert registry.pick_engine(None).id == "mock"  # allowed in dev mode
+    monkeypatch.setenv("VV_DEFAULT_ENGINE", "scene3d")
+    assert registry.pick_engine(None).id == "codex"  # never, even in dev mode
+
+
+def test_report_defaults_only_name_listed_backends(monkeypatch: pytest.MonkeyPatch):
+    _nothing_installed(monkeypatch)
+    monkeypatch.setenv("VV_DEFAULT_BRAIN", "mock")
+    assert registry.backend_report()["defaults"]["brain"] is None
+    monkeypatch.setenv("VV_DEV", "1")
+    registry.refresh()
+    report = registry.backend_report()
+    assert report["defaults"] == {"brain": "mock", "engine": "mock"}
+    assert report["defaults"]["brain"] in [b["id"] for b in report["brains"]]

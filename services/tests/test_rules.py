@@ -88,3 +88,49 @@ def test_capacity_warning():
     assert "96" in w.message and "150" in w.message
     spec.tables.count = 19
     assert capacity_warnings(spec) == []
+
+
+def test_flameless_elsewhere_does_not_exempt_live_candles():
+    spec = _spec(extras=["LED garlands and live candles", "LED uplighting near candles", "battery tea lights",
+                         "flameless pillar candles"])
+    fixed, warnings = check(spec, VenueRules(live_candles=False))
+    assert fixed.extras == ["LED garlands and flameless candles", "LED uplighting near flameless candles",
+                            "battery tea lights", "flameless pillar candles"]
+    assert [w.field for w in warnings if w.rule == "live_candles"] == ["/extras/0", "/extras/1"]
+    again, more = check(fixed, VenueRules(live_candles=False))
+    assert again.extras == fixed.extras and not [w for w in more if w.rule == "live_candles"]
+
+
+def test_free_text_fields_are_scanned_with_pointers():
+    spec = _spec(centerpieces__container="glass hurricane with taper candles",
+                 palette=["ivory", "gold confetti", "sage"], lighting__uplighting="warm amber with haze",
+                 linens__runner="taped-down gold runner", chairs__sash="sparkler-themed sash",
+                 space="fog-filled ballroom")
+    fixed, warnings = check(spec, STRICT)
+    assert fixed.centerpieces.container == "glass hurricane with flameless taper candles"
+    assert fixed.palette == ["ivory", "sage"]
+    assert fixed.lighting.uplighting == "warm amber"
+    assert fixed.linens.runner == "gold runner"
+    assert fixed.chairs.sash is None  # optional field emptied → removed
+    assert fixed.space == default_spec().space  # required field emptied → default
+    assert {(w.rule, w.field) for w in warnings} >= {
+        ("live_candles", "/centerpieces/container"), ("confetti", "/palette/1"), ("fog", "/lighting/uplighting"),
+        ("adhesives", "/linens/runner"), ("sparklers", "/chairs/sash"), ("fog", "/space")}
+
+
+def test_long_notes_rewrite_is_truncated_not_raised():
+    notes = ("We love live candles. " * 95)[:1995]
+    spec = _spec(notes=notes)
+    fixed, warnings = check(spec, VenueRules(live_candles=False))
+    assert len(fixed.notes) <= 2000 and "live candles" not in fixed.notes
+    assert any(w.field == "/notes" for w in warnings)
+
+
+def test_rule_notes_are_human_sentences():
+    from pipeline.rules import rule_notes
+
+    _, warnings = check(_spec(centerpieces__candles="live", palette=["gold confetti"]), STRICT)
+    notes = rule_notes(warnings)
+    assert any("flameless" in n and "open flames" in n for n in notes)
+    assert "Removed 'gold confetti' — the venue doesn't allow confetti." in notes
+    assert all(n.endswith(".") for n in notes)

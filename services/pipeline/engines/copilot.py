@@ -8,9 +8,10 @@ the model to call it once and print `SAVED_TO: <path>`.
 The tool raises a `custom-tool` permission request. In -p mode an unapproved request does not get denied; the
 CLI waits forever. So we pre-approve exactly that tool with `--allow-tool=custom-tool(image_generation)`
 (verified on 1.0.115) and never use --allow-all-tools. Each run gets its own `--session-id=<uuid4>`, so the
-output folder is known in advance. The output is located from stdout, falling back to the newest image in that
-session's images folder (or, without a session id, any session's images folder) written since the run
-started. We only list/copy image files there; nothing else under ~/.copilot is read.
+output folder is known in advance. The output must be bound to THIS run: a SAVED_TO path is accepted only inside
+`<state>/<this session id>/images/` or the job's temp cwd, and the fallback is the newest image written since the
+run started in those same two folders. Another session's images are never used; if nothing can be attributed
+the run fails. We only list/copy image files there; nothing else under ~/.copilot is read.
 """
 from __future__ import annotations
 
@@ -64,24 +65,33 @@ def _within(path: Path, roots: list[Path]) -> bool:
     return False
 
 
+_SESSION_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
 def locate_output(stdout: str, states: Path, since: float, cwd: Path | None = None,
                   session_id: str | None = None) -> Path | None:
-    """Find the generated image: a SAVED_TO / saved_to path in stdout, else the newest new PNG.
+    """Find the image THIS run generated: a SAVED_TO / saved_to path in stdout, else the newest new image.
 
-    With `session_id`, the fallback only considers `<states>/<session_id>/images/`.
+    Only `<states>/<session_id>/images/` (when `session_id` is given) and `cwd` are considered, both for
+    SAVED_TO paths and for the fallback; staged inputs (`vv-input*`) never count as output.
     """
-    roots = [states] + ([cwd] if cwd else [])
+    roots: list[Path] = []
+    if session_id and _SESSION_ID.match(session_id) and session_id not in (".", ".."):
+        roots.append(states / session_id / "images")
+    if cwd:
+        roots.append(cwd)
+
+    def ok(p: Path) -> bool:
+        return (p.suffix.lower() in _IMAGE_SUFFIXES and not p.name.startswith("vv-input") and p.is_file()
+                and _within(p, roots))
+
     for rx in _SAVED_RE:
         for m in rx.finditer(stdout or ""):
             p = Path(os.path.expanduser(m.group(1).strip().rstrip(".,;)")))
-            if p.suffix.lower() in _IMAGE_SUFFIXES and p.is_file() and _within(p, roots):
+            if ok(p):
                 return p
     newest: tuple[float, Path] | None = None
-    pattern = f"{session_id}/images/*" if session_id else "*/images/*"
-    candidates = [p for p in states.glob(pattern) if p.suffix.lower() in _IMAGE_SUFFIXES] \
-        if states.is_dir() else []
-    if cwd and cwd.is_dir():
-        candidates += [p for p in cwd.glob("*.png") if not p.name.startswith("vv-input")]
+    candidates = [p for root in roots if root.is_dir() for p in root.iterdir() if ok(p)]
     for p in candidates:
         try:
             mtime = p.stat().st_mtime

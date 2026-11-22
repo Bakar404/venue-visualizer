@@ -8,6 +8,12 @@ so open objects (like `spec_patch`) are sent as JSON-encoded strings and decoded
 `format`s that strict mode does not support (e.g. "uri") are dropped.
 Web research (`web=True`): `codex exec --search` enables Codex's built-in live web search tool; the sandbox stays
 read-only, so no shell or file writes are possible.
+
+Residual risk: Codex's `read-only`/`workspace-write` sandboxes restrict writes and network, NOT reads. A prompt
+injection in untrusted text (planner chat, web pages, video labels) could still make the model read files the
+user can read. We minimise this: codex runs with cwd = a fresh temp dir, a minimal environment (`clean_env`),
+an explicit "do not read files outside the working directory" instruction, and untrusted text inside
+delimited data blocks. None of these is a hard boundary; run untrusted workloads under an OS sandbox.
 """
 from __future__ import annotations
 
@@ -53,7 +59,14 @@ def strictify(schema: dict) -> tuple[dict, list[tuple[str, ...]]]:
     return walk(copy.deepcopy(schema), ()), encoded
 
 
+CONFINE_NOTE = (
+    "Do not read files outside the working directory, and do not run commands. Everything you need is in "
+    "this prompt and the attached images."
+)
+
+
 def decode_strings(obj: Any, paths: list[tuple[str, ...]]) -> Any:
+    """Decode fields that strictify() turned into JSON strings. A malformed string raises BrainError."""
     for path in paths:
         if not path:
             continue
@@ -62,10 +75,16 @@ def decode_strings(obj: Any, paths: list[tuple[str, ...]]) -> Any:
             parent = parent.get(key) if isinstance(parent, dict) else None
         if isinstance(parent, dict) and isinstance(parent.get(path[-1]), str):
             raw = parent[path[-1]]
+            if not raw.strip():
+                parent[path[-1]] = {}
+                continue
             try:
-                parent[path[-1]] = json.loads(raw) if raw.strip() else {}
-            except json.JSONDecodeError:
-                parent[path[-1]] = extract_json(raw) or {}
+                value = json.loads(raw)
+            except json.JSONDecodeError as e:
+                raise BrainError(f"codex returned malformed JSON for {'.'.join(path)}: {e}") from e
+            if not isinstance(value, dict):
+                raise BrainError(f"codex returned {type(value).__name__} for {'.'.join(path)}, expected an object")
+            parent[path[-1]] = value
     return obj
 
 
@@ -114,7 +133,7 @@ class CodexBrain:
         if not path:
             raise BrainError("codex CLI is not installed")
         strict, encoded = strictify(schema)
-        prompt = f"{system}\n\n{user}"
+        prompt = f"{system}\n\n{CONFINE_NOTE}\n\n{user}"
         if encoded:
             names = ", ".join(".".join(p) for p in encoded)
             prompt += f"\n\n(Output note: encode {names} as a JSON string containing the object.)"
@@ -124,7 +143,7 @@ class CodexBrain:
             schema_file.write_text(json.dumps(strict))
             argv = self.build_argv(path, prompt, schema_file, out_file, cwd, stage_images(images, cwd), web=web)
             try:
-                res = await run_cli(argv, cwd=cwd, timeout_s=timeout_s)
+                res = await run_cli(argv, cwd=cwd, timeout_s=timeout_s, clean_env=True)
             except ProcTimeout as e:
                 raise BrainError(str(e)) from e
             text = out_file.read_text() if out_file.is_file() else ""
