@@ -1,0 +1,6 @@
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut1.spec.ts:41:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout
+[2/2] [mobile] › e2e/ut1.spec.ts:57:1 › UT1: phone tabs use the same internal scroll @mobile
+  2 passed (20.1s)

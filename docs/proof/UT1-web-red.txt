@@ -1,0 +1,40 @@
+        pnpm exec playwright show-trace test-results/ut1-UT1-phone-tabs-use-the-same-internal-scroll-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/ut1.spec.ts:41:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout 
+
+    Error: the page itself must not scroll
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 900
+    Received:    4039
+
+      16 |     innerHeight: window.innerHeight,
+      17 |   }));
+    > 18 |   expect(scrollHeight, "the page itself must not scroll").toBeLessThanOrEqual(innerHeight);
+         |                                                           ^
+      19 |   const log = page.getByRole("log", { name: "Conversation" });
+      20 |   expect(await log.evaluate((el) => el.scrollHeight > el.clientHeight), "the chat history scrolls on its own").toBe(true);
+      21 |   await expect(page.locator("#chat-input")).toBeInViewport();
+        at expectPinnedLayout (/Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-web/apps/web/e2e/ut1.spec.ts:18:59)
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-web/apps/web/e2e/ut1.spec.ts:44:3
+
+    Error Context: test-results/ut1-UT1-studio-fills-the-v-aed59-olls-inside-a-pinned-layout-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut1-UT1-studio-fills-the-v-aed59-olls-inside-a-pinned-layout-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut1-UT1-studio-fills-the-v-aed59-olls-inside-a-pinned-layout-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut1.spec.ts:41:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout 
+    [mobile] › e2e/ut1.spec.ts:57:1 › UT1: phone tabs use the same internal scroll @mobile ─────────
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test e2e/ut1.spec.ts --reporter=line

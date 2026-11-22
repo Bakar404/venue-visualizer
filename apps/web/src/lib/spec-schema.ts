@@ -51,5 +51,11 @@ export const specFormSchema = z.looseObject({
   install: z
     .object({ uses_adhesives: z.boolean().optional(), uses_nails: z.boolean().optional(), ceiling_draping: z.boolean().optional() })
     .optional(),
+  scene: z
+    .object({
+      time_of_day: z.enum(["daylight", "golden_hour", "evening", "night"]).optional(),
+      windows: z.enum(["as_photographed", "dark", "sheer_draped"]).optional(),
+    })
+    .optional(),
   notes: z.string().max(SPEC_LIMITS.notes, `Keep notes under ${SPEC_LIMITS.notes} characters`).nullable().optional(),
 });

@@ -1,0 +1,40 @@
+
+        pnpm exec playwright show-trace test-results/ut6-UT6a-switching-every-p-10390-bles-Import-without-the-box-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  4) [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('region', { name: 'Preview' }).getByRole('list', { name: 'Reference photos' }).getByRole('listitem').nth(1).getByRole('button', { name: 'Generate an empty base view from this' })
+
+
+      77 |   const preview = page.getByRole("region", { name: "Preview" });
+      78 |   const refs = preview.getByRole("list", { name: "Reference photos" }).getByRole("listitem");
+    > 79 |   await refs.nth(1).getByRole("button", { name: "Generate an empty base view from this" }).click();
+         |                                                                                            ^
+      80 |   await expect(preview.getByText(/Generating the room|Waiting for the engine/)).toBeVisible();
+      81 |   await page.screenshot({ path: proof("UT6b-generating-from-reference.png") });
+      82 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-web/apps/web/e2e/ut6.spec.ts:79:92
+
+    Error Context: test-results/ut6-UT6b-generate-an-empty-ee231-a-reference-then-approve-it-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6b-generate-an-empty-ee231-a-reference-then-approve-it-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6b-generate-an-empty-ee231-a-reference-then-approve-it-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  4 failed
+    [chromium] › e2e/ut6.spec.ts:17:1 › UT6a: base photos without the confirmation can't be silently dropped 
+    [chromium] › e2e/ut6.spec.ts:39:1 › UT6a: switching every photo to reference only enables Import without the box 
+    [chromium] › e2e/ut6.spec.ts:47:1 › UT6b: a references-only space shows its references and the ways to get a base photo 
+    [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it 

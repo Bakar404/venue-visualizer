@@ -1,3 +1,4 @@
+import { normalizeChatResponse } from "@/lib/chat";
 import { ApiError } from "@/lib/errors";
 import { mockApi } from "@/lib/mock-api";
 import type { Job, VenueImportResult, VVApi } from "@/lib/types";
@@ -110,9 +111,11 @@ export const httpApi: VVApi = {
   deletePhoto: (id) => request(`/api/photos/${enc(id)}`, { method: "DELETE" }),
   generateBase: (spaceId, body) =>
     request(`/api/spaces/${enc(spaceId)}/generate-base`, { method: "POST", ...json(body) }),
+  importReference: (spaceId, body) =>
+    request(`/api/spaces/${enc(spaceId)}/references/import`, { method: "POST", ...json(body) }),
   approvePhoto: (id) => request(`/api/photos/${enc(id)}/approve`, { method: "POST" }),
-  chat: (spaceId, body) =>
-    request(`/api/spaces/${enc(spaceId)}/chat`, { method: "POST", ...json(body) }),
+  chat: async (spaceId, body) =>
+    normalizeChatResponse(await request(`/api/spaces/${enc(spaceId)}/chat`, { method: "POST", ...json(body) })),
   chatHistory: (spaceId) => request(`/api/spaces/${enc(spaceId)}/chat`),
   checkSpec: (body) => request("/api/spec/check", { method: "POST", ...json(body) }),
   defaultSpec: () => request("/api/spec/default"),

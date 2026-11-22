@@ -1,0 +1,7 @@
+
+Running 3 tests using 3 workers
+
+[1/3] [chromium] › e2e/ut2.spec.ts:5:1 › UT2: asking to see it offers Render now; one click queues one render of the current plan
+[2/3] [chromium] › e2e/ut2.spec.ts:46:1 › UT2: a reply that changed nothing has no render action
+[3/3] [chromium] › e2e/ut2.spec.ts:33:1 › UT2: a reply that changed the plan offers a quiet Render this change
+  3 passed (9.6s)

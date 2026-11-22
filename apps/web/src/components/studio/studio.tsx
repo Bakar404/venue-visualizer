@@ -15,6 +15,7 @@ import { ChatPanel, WarningCallout } from "@/components/studio/chat-panel";
 import { DescribeVenue } from "@/components/studio/describe-venue";
 import { SaveLookDialog, VariationDialog } from "@/components/studio/look-dialogs";
 import { PhotoStrip } from "@/components/studio/photo-strip";
+import { ReferencePhotos } from "@/components/studio/reference-photos";
 import { RenderStage } from "@/components/studio/render-stage";
 import { SpecForm } from "@/components/studio/spec-form";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -28,7 +29,7 @@ import { api, errorMessage } from "@/lib/api";
 import { isActive, trackJobs, useLookHasActiveJobs } from "@/lib/jobs";
 import { usePreferences } from "@/lib/preferences";
 import { qk, useBackends, useLook, useLooks, useSpace, useVenue } from "@/lib/queries";
-import { defaultSpec, formatDate, latestRenderFor, specEquals, suggestLookName } from "@/lib/spec";
+import { defaultSpec, formatDate, latestRenderFor, specEquals, suggestLookName, timeOfDayLabel } from "@/lib/spec";
 import { setStudioActions } from "@/lib/studio-actions";
 import type { DesignSpec, Look, RenderResponse, RuleWarning, Space } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -82,7 +83,11 @@ function StudioLoaded({ space }: { space: Space }) {
   const [copyOf, setCopyOf] = useState<{ id: string; name: string; roomDraft: DesignSpec } | null>(null);
   /** The `?look=` value whose spec has already been loaded into the draft. */
   const [appliedLookParam, setAppliedLookParam] = useState<string | null>(null);
+  /** The brain's name for the plan from the latest chat reply; prefills Save as Look. */
+  const [chatLookName, setChatLookName] = useState<string | null>(null);
   const checkSeq = useRef(0);
+  /** Blocks a second Render all from a fast double click before React re-renders with `isPending`. */
+  const renderStarting = useRef(false);
 
   const draft = localSpec ?? space.current_spec ?? defaultSpec(space.name.toLowerCase());
   // Async results (rule checks, chat replies) compare against the latest draft, not the one they closed over.
@@ -242,13 +247,27 @@ function StudioLoaded({ space }: { space: Space }) {
       adoptLook(look);
     },
     onError: (e) => toast.error("Couldn't start rendering", { description: errorMessage(e) }),
+    onSettled: () => {
+      renderStarting.current = false;
+    },
   });
-  const renderDisabled = renderAll.isPending || lookRendering || !engine;
+  const rendering = renderAll.isPending || lookRendering;
+  const renderDisabled = rendering || !engine;
   const renderAllIfIdle = () => {
-    if (renderAll.isPending || lookRendering) toast.info("Already rendering this Look");
+    if (renderStarting.current || rendering) toast.info("Already rendering this Look");
     else if (!engine) toast.info(backends.isPending ? "Still checking for image engines…" : "No image engine found");
-    else renderAll.mutate();
+    else {
+      renderStarting.current = true;
+      renderAll.mutate();
+    }
   };
+  const engineInfo = backends.data?.engines.find((e) => e.id === engine);
+  const renderInfo = engineInfo
+    ? { engineLabel: engineInfo.label, typicalSeconds: engineInfo.caps?.typical_seconds, costNote: engineInfo.caps?.cost_note }
+    : null;
+  // The render on screen shows a Look whose plan differs from the draft (chat or form edits since).
+  const planChanged = Boolean(activeLook && !specEquals(activeLook.spec, draft));
+  const timeLabel = timeOfDayLabel(draft);
 
   const saveLook = useMutation({
     mutationFn: (name: string) => api.createLook(space.id, { name, spec: draft, parent_look_id: null }),
@@ -356,7 +375,8 @@ function StudioLoaded({ space }: { space: Space }) {
   const warnings = check?.warnings ?? [];
 
   return (
-    <div className="flex flex-1 flex-col lg:h-[calc(100dvh-3.5rem)]">
+    // Fills the viewport under the site header (h-14 + 1px border); each column scrolls on its own.
+    <div className="flex h-[calc(100dvh-3.5rem-1px)] min-h-0 flex-col overflow-hidden">
       <div className="border-b">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 lg:px-6">
           <div className="min-w-0">
@@ -413,8 +433,8 @@ function StudioLoaded({ space }: { space: Space }) {
         </Tabs>
       </div>
 
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[15rem_minmax(0,1fr)_24rem] xl:grid-cols-[17rem_minmax(0,1fr)_27rem]">
-        <aside aria-label="Photos" className={cn("min-h-0 overflow-y-auto p-4 lg:block lg:border-r", tab !== "photos" && "hidden")}>
+      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)_24rem] xl:grid-cols-[17rem_minmax(0,1fr)_27rem]">
+        <aside aria-label="Photos" className={cn("scrollbar-thin min-h-0 overflow-y-auto overscroll-contain p-4 lg:block lg:border-r", tab !== "photos" && "hidden")}>
           {usablePhotos.length ? (
             <PhotoStrip
               spaceId={space.id}
@@ -437,7 +457,10 @@ function StudioLoaded({ space }: { space: Space }) {
           )}
         </aside>
 
-        <section aria-label="Preview" className={cn("min-h-0 overflow-y-auto p-4 lg:block lg:p-6", tab !== "canvas" && "hidden")}>
+        <section
+          aria-label="Preview"
+          className={cn("scrollbar-thin min-h-0 overflow-y-auto overscroll-contain p-4 lg:block lg:p-6", tab !== "canvas" && "hidden")}
+        >
           {selectedPhoto ? (
             <div className="mx-auto max-w-5xl">
               <RenderStage
@@ -450,8 +473,27 @@ function StudioLoaded({ space }: { space: Space }) {
                 regenerating={regenerate.isPending}
                 regenerateDisabled={!engine}
                 toolbar={<BackendPicker kind="engine" options={backends.data?.engines} value={engine} onChange={setEngine} />}
+                stale={planChanged}
+                onRenderLatest={renderAllIfIdle}
+                renderLatestDisabled={renderDisabled}
               />
             </div>
+          ) : space.references?.length ? (
+            <ReferencePhotos
+              space={space}
+              onReady={(photo) => {
+                setPickedPhoto(photo.id);
+                setTab("canvas");
+              }}
+              onDescribe={() => {
+                setTab("photos");
+                requestAnimationFrame(() => {
+                  const card = document.getElementById("describe-venue");
+                  card?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  card?.querySelector<HTMLElement>("input, textarea, button[role=combobox]")?.focus({ preventScroll: true });
+                });
+              }}
+            />
           ) : (
             <div className="mx-auto flex aspect-[3/2] max-w-5xl flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-6 text-center">
               <ImageIcon className="size-6 text-muted-foreground" />
@@ -466,7 +508,7 @@ function StudioLoaded({ space }: { space: Space }) {
           )}
         </section>
 
-        <aside aria-label="Plan" className={cn("flex min-h-[75dvh] flex-col lg:min-h-0 lg:border-l", tab !== "plan" && "hidden lg:flex")}>
+        <aside aria-label="Plan" className={cn("flex min-h-0 flex-col lg:border-l", tab !== "plan" && "hidden lg:flex")}>
           {copyOf && (
             <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-sm" role="status">
               <CopyIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
@@ -478,7 +520,17 @@ function StudioLoaded({ space }: { space: Space }) {
               </Button>
             </div>
           )}
-          <ChatPanel spaceId={space.id} spec={draft} brain={brain} onBrain={setBrain} onSpec={applyChatSpec} />
+          <ChatPanel
+            spaceId={space.id}
+            spec={draft}
+            brain={brain}
+            onBrain={setBrain}
+            onSpec={applyChatSpec}
+            onRender={usablePhotos.length ? renderAllIfIdle : undefined}
+            renderInfo={renderInfo}
+            rendering={rendering}
+            onLookName={setChatLookName}
+          />
           <Collapsible open={specOpen} onOpenChange={setSpecOpen} className="border-t">
             <CollapsibleTrigger className="group flex w-full items-center gap-3 px-4 py-3 text-left">
               <span className="text-sm font-medium">Plan details</span>
@@ -487,12 +539,13 @@ function StudioLoaded({ space }: { space: Space }) {
                   {warnings.length === 1 ? "1 rule conflict" : `${warnings.length} rule conflicts`}
                 </span>
               )}
+              {timeLabel && <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{timeLabel}</span>}
               <span className="ml-auto flex items-center gap-1 text-sm text-muted-foreground tabular">
                 <NumberFlow value={draft.guest_count ?? 0} /> guests, <NumberFlow value={draft.tables.count} /> tables
               </span>
               <ChevronDownIcon className="size-4 text-muted-foreground transition-transform duration-200 group-data-panel-open:rotate-180" />
             </CollapsibleTrigger>
-            <CollapsibleContent keepMounted className="max-h-[45dvh] overflow-y-auto px-4 data-closed:hidden">
+            <CollapsibleContent keepMounted className="scrollbar-thin max-h-[40dvh] overflow-y-auto overscroll-contain px-4 data-closed:hidden">
               {warnings.length > 0 && (
                 <div className="space-y-2 pb-3" aria-live="polite">
                   {warnings.map((w) => (
@@ -541,7 +594,7 @@ function StudioLoaded({ space }: { space: Space }) {
       <SaveLookDialog
         open={saveOpen}
         onOpenChange={setSaveOpen}
-        suggestedName={suggestLookName(draft)}
+        suggestedName={chatLookName?.trim() || suggestLookName(draft)}
         onSave={(name) => saveLook.mutate(name)}
         pending={saveLook.isPending}
       />

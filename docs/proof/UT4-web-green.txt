@@ -1,0 +1,6 @@
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut4.spec.ts:30:1 › UT4: “make it 7pm so it's dark out” sets night in one turn
+[2/2] [chromium] › e2e/ut4.spec.ts:7:1 › UT4: the plan has a Time & windows section; picking Night shows in the summary
+  2 passed (3.6s)

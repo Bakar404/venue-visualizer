@@ -1,0 +1,40 @@
+
+[1/1] [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render
+  1) [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('region', { name: 'Preview' }).getByText('Your plan changed since this render')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('region', { name: 'Preview' }).getByText('Your plan changed since this render') with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Preview' }).getByText('Your plan changed since this render')
+
+
+      12 |
+      13 |   await sendChat(page, "Make the linens sage green");
+    > 14 |   await expect(banner).toBeVisible();
+         |                        ^
+      15 |   await page.screenshot({ path: proof("UT8-plan-changed-banner.png") });
+      16 |
+      17 |   await preview.getByRole("button", { name: /Render to see it/ }).click();
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-web/apps/web/e2e/ut8.spec.ts:14:24
+
+    Error Context: test-results/ut8-UT8-when-the-plan-chan-a86b4-ays-so-until-the-new-render-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut8-UT8-when-the-plan-chan-a86b4-ays-so-until-the-new-render-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut8-UT8-when-the-plan-chan-a86b4-ays-so-until-the-new-render-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render 
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test e2e/ut8.spec.ts --reporter=line

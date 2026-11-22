@@ -1,0 +1,6 @@
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut3.spec.ts:5:1 › UT3: a quick-reply chip sends only the option, never the question
+[2/2] [chromium] › e2e/ut3.spec.ts:24:1 › UT3: the question is shown as text above the option chips
+  2 passed (4.8s)

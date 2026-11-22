@@ -9,7 +9,7 @@ import { venueSpecFromResearch } from "@/lib/import-payload";
 import { buildPrompt, mockBrain } from "@/lib/mock-brain";
 import { buildTextPdf } from "@/lib/mock-pdf";
 import { SAMPLE_SIZE, SAMPLES, type SampleLook, type SampleScene } from "@/lib/samples";
-import { LOW_STRUCTURE_SCORE, applyRules, colorFor, defaultRules, defaultSpec, diffSpecs } from "@/lib/spec";
+import { LOW_STRUCTURE_SCORE, applyRules, colorFor, defaultRules, defaultSpec, diffSpecs, specEquals } from "@/lib/spec";
 import type {
   Backends,
   ChatMessage,
@@ -40,6 +40,8 @@ type JobRow = {
   finalized: boolean;
   renderId?: string;
   spaceId?: string;
+  /** generate_base from a reference photo: draw the empty room shown in it. */
+  referenceUrl?: string;
   engine: string;
   /** Status lines shown while running, spread evenly over the duration. */
   messages?: string[];
@@ -237,6 +239,14 @@ function seed(): DB {
     },
   });
 
+  // Imported from the web in reference mode: the room has reference photos but no base photo yet (UT6).
+  db.venues.set("venue-wren-hall", {
+    id: "venue-wren-hall",
+    name: "Wren Hall",
+    created_at: "2026-10-12T15:00:00Z",
+    rules: { ...defaultRules(), provided_items: ["Round tables", "White folding chairs"] },
+  });
+
   const blush: DesignSpec = {
     ...defaultSpec("Grand Ballroom"),
     guest_count: 140,
@@ -308,6 +318,27 @@ function seed(): DB {
     { id: "space-ballroom", venue_id: "venue-larkspur", name: "Grand Ballroom", venue_spec: BALLROOM_SPEC, current_spec: blush },
     { id: "space-terrace", venue_id: "venue-larkspur", name: "Garden Terrace", venue_spec: TERRACE_SPEC, current_spec: cocktail },
     { id: "space-hayloft", venue_id: "venue-hollow-creek", name: "Hayloft", venue_spec: BARN_SPEC, current_spec: stringLights },
+    {
+      id: "space-wren-long-room",
+      venue_id: "venue-wren-hall",
+      name: "Long Room",
+      venue_spec: { ...BALLROOM_SPEC, style: "georgian assembly room" },
+      current_spec: null,
+      references: [
+        {
+          url: SAMPLES["ballroom-a"].empty,
+          source_page: "https://wrenhall.example/spaces/long-room",
+          caption: "The Long Room from the entrance",
+          credit: "Wren Hall (demo image)",
+        },
+        {
+          url: SAMPLES["ballroom-b"].empty,
+          source_page: "https://wrenhall.example/gallery",
+          caption: "Looking back toward the windows",
+          credit: "Wren Hall gallery (demo image)",
+        },
+      ],
+    },
   ];
   for (const s of spaces) db.spaces.set(s.id, clone(s));
 
@@ -347,6 +378,27 @@ function seed(): DB {
       [["photo-hayloft", 0.83]],
     ],
   ];
+  // Structure-check outcomes seen in real renders (UT7): heavy relighting that couldn't be verified, and a changed room.
+  const seededQa: Record<string, Partial<NonNullable<Render["qa"]>>> = {
+    "render-look-cocktail-photo-terrace": {
+      structure: {
+        score: 0.42, method: "misaligned", aligned: false, inliers: 9, scale: null, rotation: null, coverage: null,
+        reason: "no consistent match with the photo",
+      },
+      structure_warning: "This render may have altered the room or changed the framing.",
+      structure_message: {
+        level: "unverifiable",
+        text: "Lighting changed a lot, so we couldn't confirm the room matches. Compare with the slider.",
+      },
+    },
+    "render-look-string-lights-photo-hayloft": {
+      structure: {
+        score: 0.38, method: "misaligned", aligned: true, inliers: 64, scale: 1, rotation: 0, coverage: 0.94,
+        reason: "the render lost the room's structure",
+      },
+      structure_warning: "This render may have altered the room or changed the framing.",
+    },
+  };
   for (const [look, targets] of looks) {
     db.looks.set(look.id, look);
     for (const [photoId, score] of targets) {
@@ -361,8 +413,8 @@ function seed(): DB {
         status: "done",
         url: out.url,
         prompt: buildPrompt(look.spec),
-        structure_score: score,
-        qa: { tables_seen: look.spec.tables.count, notes: out.note ?? "Demo photograph; counts come from the plan." },
+        structure_score: seededQa[id]?.structure?.score ?? score,
+        qa: { tables_seen: look.spec.tables.count, notes: out.note ?? "Demo photograph; counts come from the plan.", ...seededQa[id] },
         error: null,
         created_at: look.created_at,
         attempt: 1,
@@ -380,6 +432,17 @@ function seed(): DB {
 function db(): DB {
   if (!state) state = seed();
   return state;
+}
+
+/** Read-only peek at the mock database for end-to-end tests (`window.__vvMock`). Mock mode only. */
+if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_VV_MOCK === "1") {
+  Object.assign(window, {
+    __vvMock: {
+      looks: () => clone([...db().looks.values()]),
+      renders: () => [...db().renders.values()].map((r) => clone(publicRender(r))),
+      chat: (spaceId: string) => clone(db().chat.get(spaceId) ?? []),
+    },
+  });
 }
 
 function photosFor(spaceId: string): Photo[] {
@@ -510,7 +573,9 @@ async function finalize(row: JobRow) {
       row.job = { ...row.job, status: "failed", progress: 1, error: "The space was deleted." };
       return;
     }
-    const sample = sceneForStyle(space.venue_spec.style);
+    const sample =
+      (Object.keys(SAMPLES) as SampleScene[]).find((k) => row.referenceUrl && SAMPLES[k].empty === row.referenceUrl) ??
+      sceneForStyle(space.venue_spec.style);
     const photo: PhotoRow = {
       id: uid(),
       space_id: space.id,
@@ -546,7 +611,7 @@ async function tick() {
 function newJob(
   kind: Job["kind"],
   engine: string,
-  target: Pick<JobRow, "renderId" | "spaceId" | "messages" | "complete"> & { durationMs?: number } = {},
+  target: Pick<JobRow, "renderId" | "spaceId" | "referenceUrl" | "messages" | "complete"> & { durationMs?: number } = {},
 ): Job {
   const job: Job = { id: uid(), kind, status: "queued", progress: 0, error: null, message: null, created_at: now(), result: null };
   const { durationMs = DONE_MS, ...rest } = target;
@@ -800,10 +865,27 @@ export const mockApi: VVApi = {
     db().photos.delete(id);
     for (const [rid, r] of db().renders) if (r.photo_id === id) db().renders.delete(rid);
   },
-  async generateBase(spaceId, { engine }) {
+  async generateBase(spaceId, { engine, reference_url }) {
     await latency();
-    requireSpace(spaceId);
-    return newJob("generate_base", engineAvailable(engine), { spaceId });
+    const space = requireSpace(spaceId);
+    if (reference_url && !(space.references ?? []).some((r) => r.url === reference_url)) {
+      throw new ApiError(422, "That photo isn't one of this space's references.");
+    }
+    return newJob("generate_base", engineAvailable(engine), { spaceId, referenceUrl: reference_url });
+  },
+  async importReference(spaceId, { url, rights_confirmed }) {
+    await sleep(500);
+    const space = requireSpace(spaceId);
+    if (rights_confirmed !== true) throw new ApiError(422, "Confirm you're using this photo for personal planning before importing it.");
+    const ref = (space.references ?? []).find((r) => r.url === url);
+    if (!ref) throw new ApiError(422, "That photo isn't one of this space's references.");
+    const sample = (Object.keys(SAMPLES) as SampleScene[]).find((k) => SAMPLES[k].empty === url) ?? null;
+    const id = uid();
+    db().photos.set(id, {
+      id, space_id: space.id, url, kind: "web", approved: true, sample, created_at: now(),
+      ...(ref.source_page ? { source_url: ref.source_page } : {}), credit: ref.credit ?? null, ...SAMPLE_SIZE,
+    });
+    return photosFor(space.id).find((p) => p.id === id)!;
   },
   async approvePhoto(id) {
     await latency();
@@ -830,6 +912,9 @@ export const mockApi: VVApi = {
       spec: ruled.spec,
       warnings: ruled.warnings,
       rule_notes: ruled.warnings.map((w) => `${w.message} ${w.fix}`),
+      intent: result.intent,
+      spec_changed: !specEquals(ruled.spec, base),
+      look_name: result.look_name,
       ambiguities: result.ambiguities,
       brain: brain ?? "mock",
     };
@@ -980,14 +1065,10 @@ export const mockApi: VVApi = {
           source_url: p.source_page, credit: p.credit ?? null, ...SAMPLE_SIZE,
         });
       }
-      // Reference-only spaces get a base view drawn from the real photos, waiting for approval.
-      if (mine.length > 0 && mine.every((x) => x.mode === "reference")) {
-        const ref = mine[0];
-        const sample = (Object.keys(SAMPLES) as SampleScene[]).find((k) => SAMPLES[k].empty === ref.url) ?? sceneForStyle(space.venue_spec.style);
-        const id = uid();
-        db().photos.set(id, {
-          id, space_id: space.id, url: SAMPLES[sample].empty, kind: "generated_base", approved: false, sample, created_at: now(), ...SAMPLE_SIZE,
-        });
+      // Reference photos stay on the space; the studio offers to import one or draw a base view from it.
+      const refs = mine.filter((x) => x.mode === "reference");
+      if (refs.length) {
+        space.references = refs.map(({ url, source_page, caption, credit }) => ({ url, source_page, caption, credit }));
       }
     }
     return { ...venueOut(venue), skipped_photos: [] };

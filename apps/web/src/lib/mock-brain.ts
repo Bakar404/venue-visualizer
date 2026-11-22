@@ -1,6 +1,6 @@
 /** Deterministic keyword "brain" for mock mode, in the spirit of the API's offline mock brain. */
 import { knownColorNames } from "@/lib/spec";
-import type { DesignSpec, VenueRules } from "@/lib/types";
+import type { Ambiguity, ChatIntent, DesignSpec, VenueRules } from "@/lib/types";
 
 const FLOWERS = [
   "garden roses",
@@ -56,15 +56,61 @@ function colorNear(text: string, keyword: string): string | null {
   return colorsIn(window)[0] ?? null;
 }
 
+/** "burgundy and plum, blue uplighting" → blue: the color right before the keyword wins, else one right after. */
+function colorOf(text: string, keyword: string): string | null {
+  const idx = text.indexOf(keyword);
+  if (idx < 0) return null;
+  const before = colorsIn(text.slice(Math.max(0, idx - 24), idx)).at(-1);
+  const gap = before ? text.slice(text.lastIndexOf(before, idx) + before.length, idx) : "";
+  if (before && /^[\s-]*$/.test(gap)) return before;
+  return colorsIn(text.slice(idx, idx + keyword.length + 24))[0] ?? before ?? null;
+}
+
+const RENDER_ASK = /\b(see it|see this|see that|see how|show me|let me see|render|preview|how (it|that|this) (looks|would look|will look)|what (it|that|this) looks like)\b/;
+const MOODS = ["moody", "romantic", "rustic", "elegant", "whimsical", "modern", "classic", "boho", "glam", "garden", "minimal", "cozy", "dramatic", "airy"];
+const TIME_WORDS: Record<NonNullable<NonNullable<DesignSpec["scene"]>["time_of_day"]>, string> = {
+  daylight: "daylight",
+  golden_hour: "golden hour",
+  evening: "evening",
+  night: "night",
+};
+
+function sceneFrom(text: string): DesignSpec["scene"] | null {
+  if (/\b(golden hour|sunset)\b/.test(text)) return { time_of_day: "golden_hour" };
+  if (/\b(night|nighttime|after dark|dark (out|outside))\b|\bnot daylight\b|\b(7|8|9|10|11)\s?(pm|p\.m\.)/.test(text)) {
+    return { time_of_day: "night", windows: "dark" };
+  }
+  if (/\b(evening|dusk|(5|6)\s?(pm|p\.m\.))\b/.test(text)) return { time_of_day: "evening" };
+  if (/\b(daylight|daytime|brunch|morning|afternoon|noon|sunny)\b/.test(text)) return { time_of_day: "daylight", windows: "as_photographed" };
+  return null;
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** A short name for what this message asked for, e.g. "Moody night, blue uplighting". */
+function lookNameFor(text: string, spec: DesignSpec, palette: string[], changes: string[]): string | null {
+  const mood = MOODS.find((m) => new RegExp(`\\b${m}\\b`).test(text));
+  const time = sceneFrom(text)?.time_of_day;
+  const head = [mood, time ? TIME_WORDS[time] : null].filter(Boolean).join(" ");
+  const detail = /uplight/.test(text) && spec.lighting.uplighting
+    ? `${spec.lighting.uplighting} uplighting`
+    : palette.length >= 2
+      ? `${palette[0]} & ${palette[1]}`
+      : (changes[0] ?? "");
+  const name = head && detail ? `${head}, ${detail}` : head || detail;
+  return name ? cap(name) : null;
+}
+
 export function mockBrain(
   message: string,
   input: DesignSpec,
   rules: VenueRules,
-): { reply: string; spec: DesignSpec; ambiguities: string[] } {
+): { reply: string; spec: DesignSpec; intent: ChatIntent; look_name: string | null; ambiguities: Ambiguity[] } {
   const text = ` ${message.toLowerCase()} `;
   const spec = structuredClone(input);
   const changes: string[] = [];
-  const ambiguities: string[] = [];
+  const ambiguities: Ambiguity[] = [];
+  const wantsRender = RENDER_ASK.test(text);
 
   const guests = text.match(/(\d+|\w+)\s+(guests|people|attendees)/);
   if (guests && num(guests[1])) {
@@ -97,7 +143,9 @@ export function mockBrain(
     changes.push(`${spec.tables.count} tables of ${seats}`);
   }
 
-  const colors = colorsIn(text.replace(/uplight\w*\s+\w+(\s+\w+)?/g, " "));
+  const uplightColor = colorOf(text, "uplight");
+  const withoutUplight = uplightColor ? text.replace(new RegExp(`\\b${uplightColor}([\\s-]+uplight\\w*)`), " $1") : text;
+  const colors = colorsIn(withoutUplight.replace(/uplight\w*\s+(in\s+)?\w+(\s+\w+)?/g, " "));
   const linen = colorNear(text, "linen") ?? colorNear(text, "tablecloth");
   const chairColor = CHAIR_STYLES.map((s) => colorNear(text, s)).find(Boolean) ?? colorNear(text, "chair");
   if (colors.length && (text.includes("palette") || colors.length >= 2 || (!linen && !chairColor))) {
@@ -133,7 +181,7 @@ export function mockBrain(
     spec.centerpieces.flowers = flowers;
     changes.push(flowers.join(" and "));
   } else if (/\bflowers?\b|\bfloral\b/.test(text)) {
-    ambiguities.push("Use garden roses", "Use peonies", "Use ranunculus");
+    ambiguities.push({ question: "Which flowers would you like?", options: ["Garden roses", "Peonies", "Ranunculus"] });
   }
   if (text.includes("greenery") || text.includes("eucalyptus")) spec.centerpieces.greenery = text.includes("eucalyptus") ? "eucalyptus" : "mixed greenery";
 
@@ -146,13 +194,31 @@ export function mockBrain(
     changes.push(spec.lighting.string_lights ? "string lights" : "no string lights");
   }
   if (/uplight/.test(text)) {
-    spec.lighting.uplighting = /no uplight/.test(text) ? null : colorNear(text, "uplight") ?? "warm amber";
+    spec.lighting.uplighting = /no uplight/.test(text) ? null : uplightColor ?? "warm amber";
     changes.push(spec.lighting.uplighting ? `${spec.lighting.uplighting} uplighting` : "no uplighting");
   }
   if (/pin ?spot/.test(text)) spec.lighting.pin_spots = true;
-  if (/\b(dim|moody|candlelit|intimate)\b/.test(text)) spec.lighting.ambient = "dim";
-  else if (/\b(daylight|daytime|bright|brunch)\b/.test(text)) spec.lighting.ambient = "daylight";
-  else if (/\bwarm\b/.test(text)) spec.lighting.ambient = "evening_warm";
+  if (/\bmoodier\b/.test(text)) {
+    spec.lighting.ambient = "dim";
+    changes.push("dimmer, moodier lighting");
+    if (!/uplight/.test(text) && spec.lighting.uplighting) {
+      const current = spec.lighting.uplighting;
+      ambiguities.push({
+        question: `Keep the ${current} uplighting, or switch to cool blue?`,
+        options: [`Keep the ${current} uplighting`, "Switch to cool blue uplighting"],
+      });
+    }
+  }
+  const scene = sceneFrom(text);
+  if (scene) {
+    spec.scene = { ...spec.scene, ...scene };
+    const t = scene.time_of_day ? TIME_WORDS[scene.time_of_day] : "";
+    changes.push(spec.scene.windows === "dark" ? `${t} with dark windows` : t);
+  }
+  const ambientText = text.replace(/\bwarm\s+\w+\s+uplight\w*/g, " ");
+  if (/\b(dim|moody|candlelit|intimate)\b/.test(ambientText) || scene?.time_of_day === "night") spec.lighting.ambient = "dim";
+  else if (/\b(daylight|daytime|bright|brunch)\b/.test(ambientText) && !/not daylight/.test(ambientText)) spec.lighting.ambient = "daylight";
+  else if (/\bwarm\b/.test(ambientText)) spec.lighting.ambient = "evening_warm";
 
   spec.effects = { fog: false, confetti: false, sparklers: false, ...spec.effects };
   if (/\bfog\b|\bhaze\b/.test(text)) spec.effects.fog = !/no (fog|haze)/.test(text);
@@ -173,18 +239,25 @@ export function mockBrain(
   }
 
   if (changes.length === 0 && ambiguities.length === 0) {
+    if (wantsRender) {
+      return { reply: "Your plan is ready to render. It uses everything in Plan details right now.", spec, intent: "render", look_name: null, ambiguities: [] };
+    }
     const provided = rules.provided_items?.[0];
     return {
       reply: `I couldn't find a specific change in that. Try colors, a guest count, table shapes or centerpieces${provided ? `, or build around the venue's ${provided.toLowerCase()}` : ""}.`,
       spec,
-      ambiguities: ["Blush and gold palette", "Tall centerpieces", "Add string lights"],
+      intent: "none",
+      look_name: null,
+      ambiguities: [{ question: "", options: ["Blush and gold palette", "Tall centerpieces", "Add string lights"] }],
     };
   }
 
   const reply = changes.length
     ? `Updated the plan: ${changes.slice(0, 6).join(", ")}.`
     : "Happy to add flowers. Which would you like?";
-  return { reply, spec, ambiguities };
+  const intent: ChatIntent = wantsRender ? "render" : changes.length ? "edit" : "question";
+  const palette = colors.length >= 2 ? colors : [];
+  return { reply, spec, intent, look_name: changes.length ? lookNameFor(text, spec, palette, changes) : null, ambiguities };
 }
 
 export function buildPrompt(spec: DesignSpec): string {
@@ -199,5 +272,10 @@ export function buildPrompt(spec: DesignSpec): string {
     spec.lighting.string_lights ? "string lights" : null,
     ...spec.extras,
   ].filter(Boolean);
-  return `Add ${add.join(", ")}. Keep unchanged: walls, windows, ceiling, floor, chandeliers, camera angle.`;
+  const t = spec.scene?.time_of_day;
+  const w = spec.scene?.windows;
+  const when = t || (w && w !== "as_photographed")
+    ? ` Set it ${t ? (t === "night" ? "at night" : t === "golden_hour" ? "at golden hour" : `in the ${TIME_WORDS[t]}`) : ""}${w === "dark" ? " with dark windows" : w === "sheer_draped" ? " with sheer drapes over the windows" : ""}.`
+    : "";
+  return `Add ${add.join(", ")}.${when} Keep unchanged: walls, windows, ceiling, floor, chandeliers, camera angle.`;
 }

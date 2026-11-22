@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftIcon, ArrowUpRightIcon, ChevronDownIcon, LinkIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PhotoCredit, hostOf } from "@/components/photo-credit";
@@ -76,11 +76,14 @@ export function ImportReview({ jobId, matchIndex, match, onBack }: { jobId: stri
   const providedItems = useMemo(() => [...new Set(match.provided_items ?? [])], [match.provided_items]);
   const [provided, setProvided] = useState<Set<string>>(() => new Set());
   const [rights, setRights] = useState(false);
+  const rightsRef = useRef<HTMLElement>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const included = spaces.filter((s) => s.include);
   const wanted = included.reduce((n, s) => n + s.photos.filter((p) => p.use).length, 0);
   const importing = rights ? wanted : 0;
+  // Base photos need the confirmation; never quietly import them as references instead.
+  const needsRights = wanted > 0 && !rights;
   const errors = {
     name: !name.trim() ? "Give the venue a name." : null,
     spaces: included.length === 0 ? "Pick at least one space." : null,
@@ -157,7 +160,7 @@ export function ImportReview({ jobId, matchIndex, match, onBack }: { jobId: stri
       onSubmit={(e) => {
         e.preventDefault();
         setSubmitted(true);
-        if (valid) save.mutate();
+        if (valid && !needsRights) save.mutate();
       }}
     >
       <header className="grid gap-3">
@@ -202,8 +205,8 @@ export function ImportReview({ jobId, matchIndex, match, onBack }: { jobId: stri
             Spaces
           </h3>
           <p className="text-sm text-muted-foreground">
-            Untick spaces you won&apos;t use. Photos switched off, or imported without the confirmation below, are kept as reference only, never
-            as the base.
+            Untick spaces you won&apos;t use. Photos switched off are kept as reference only. Photos set to use as the base need the
+            confirmation below.
           </p>
           {submitted && errors.spaces && <p className="mt-1 text-sm text-destructive">{errors.spaces}</p>}
         </div>
@@ -382,7 +385,7 @@ export function ImportReview({ jobId, matchIndex, match, onBack }: { jobId: stri
       <footer className="grid gap-4 border-t pt-6">
         {wanted > 0 && (
           <div className="flex items-start gap-3">
-            <Checkbox id="review-rights" className="mt-0.5" checked={rights} onCheckedChange={setRights} aria-describedby="review-rights-hint" />
+            <Checkbox ref={rightsRef} id="review-rights" className="mt-0.5" checked={rights} onCheckedChange={setRights} aria-describedby="review-rights-hint" />
             <div className="grid gap-1">
               <Label htmlFor="review-rights" className="font-normal leading-snug">
                 I&apos;m using these photos for personal planning and will credit the source
@@ -390,15 +393,30 @@ export function ImportReview({ jobId, matchIndex, match, onBack }: { jobId: stri
               <p id="review-rights-hint" className="text-xs text-muted-foreground">
                 {rights
                   ? `${importing} photo${importing === 1 ? "" : "s"} will be saved as base photos with their credit, which is shown on the photo and in PDF exports.`
-                  : "Until you tick this, every photo is kept as reference only and nothing is downloaded."}
+                  : "Nothing is downloaded until you tick this. To import without it, switch the photos off to keep them as reference only."}
               </p>
             </div>
           </div>
         )}
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" size="lg" disabled={save.isPending}>
+          <Button type="submit" size="lg" disabled={save.isPending || needsRights} aria-describedby={needsRights ? "review-needs-rights" : undefined}>
             {save.isPending ? "Importing…" : `Import ${included.length} space${included.length === 1 ? "" : "s"}`}
           </Button>
+          {needsRights && (
+            <button
+              type="button"
+              id="review-needs-rights"
+              onClick={() => {
+                const box = rightsRef.current;
+                box?.scrollIntoView({ behavior: "smooth", block: "center" });
+                box?.focus({ preventScroll: true });
+              }}
+              className="max-w-md rounded-sm text-left text-sm text-pretty text-warning-foreground underline decoration-warning-border underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [@media(hover:hover)]:hover:decoration-current"
+            >
+              {wanted === 1 ? "1 photo is" : `${wanted} photos are`} set to “Use as base photo”. Tick the box above to import{" "}
+              {wanted === 1 ? "it" : "them"}, or switch {wanted === 1 ? "it" : "them"} off.
+            </button>
+          )}
           {website && (
             <a
               href={website}

@@ -1,0 +1,40 @@
+  1) [chromium] › e2e/ut5.spec.ts:5:1 › UT5: Save as Look prefills the brain's name for the latest change 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByRole('dialog').getByLabel('Name')
+    Expected: "Moody night, blue uplighting"
+    Received: "Burgundy, plum & blue"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveValue" getByRole('dialog').getByLabel('Name') with timeout 10000ms
+      - waiting for getByRole('dialog').getByLabel('Name')
+        24 × locator resolved to <input id="look-name" data-slot="input" autocomplete="off" value="Burgundy, plum & blue" class="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-inp…/>
+           - unexpected value "Burgundy, plum & blue"
+
+
+       8 |   await page.getByRole("button", { name: "Save as Look" }).click();
+       9 |   const name = page.getByRole("dialog").getByLabel("Name");
+    > 10 |   await expect(name).toHaveValue("Moody night, blue uplighting");
+         |                      ^
+      11 |   await page.screenshot({ path: proof("UT5-save-as-look-name.png") });
+      12 |
+      13 |   await page.getByRole("dialog").getByRole("button", { name: /Save/ }).click();
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-web/apps/web/e2e/ut5.spec.ts:10:22
+
+    Error Context: test-results/ut5-UT5-Save-as-Look-prefi-da206--name-for-the-latest-change-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut5-UT5-Save-as-Look-prefi-da206--name-for-the-latest-change-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut5-UT5-Save-as-Look-prefi-da206--name-for-the-latest-change-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/ut5.spec.ts:5:1 › UT5: Save as Look prefills the brain's name for the latest change 
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test e2e/ut5.spec.ts --reporter=line
