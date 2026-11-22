@@ -65,7 +65,7 @@ Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or
 |---|---|---|---|
 | POST | `/api/venues/research` | `{query, brain?}` | 202 `Job` (`kind: "venue_research"`); `result: {research: VenueResearch}` when done |
 | POST | `/api/venues/import` | `{research_job_id, match_index, space_names: string[], accepted_rules?: string[], accepted_provided_items?: string[], photos?: {url, mode?: "reference" \| "import", rights_confirmed?: boolean}[]}` | 201 `Venue` |
-| POST | `/api/venues/{id}/video` | Multipart `file`, optional `brain`; MP4, MOV, WebM, M4V, or HEVC, up to 1 GB and five minutes | 202 `Job` (`kind: "video_ingest"`) |
+| POST | `/api/venues/{id}/video` | Multipart `file`, optional `brain`; MP4, MOV, WebM or M4V (HEVC inside MOV/MP4 is fine), up to 1 GB and five minutes | 202 `Job` (`kind: "video_ingest"`) |
 | POST | `/api/venues/{id}/video/apply` | `{job_id, spaces: {name, photo_ids: string[], venue_spec?: VenueSpec}[]}` | Updated `Venue` |
 | POST | `/api/jobs/{id}/cancel` | No body | Updated `Job` |
 

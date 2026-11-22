@@ -21,8 +21,8 @@ import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 1024 * 1024 * 1024;
 const MAX_SECONDS = 5 * 60;
-const VIDEO_TYPES = /^video\/(mp4|quicktime|webm|hevc|x-m4v)$/;
-const VIDEO_EXT = /\.(mp4|mov|webm|m4v|hevc)$/i;
+const VIDEO_TYPES = /^video\/(mp4|quicktime|webm|x-m4v)$/;
+const VIDEO_EXT = /\.(mp4|mov|webm|m4v)$/i;
 
 const STEPS = [
   "Pulling frames from your video…",
@@ -41,7 +41,7 @@ function formatBytes(n: number): string {
 type Picked = { file: File; url: string; duration: number | null; probing: boolean };
 
 function validate(p: Picked): string | null {
-  if (!VIDEO_TYPES.test(p.file.type) && !VIDEO_EXT.test(p.file.name)) return "Use an MP4, MOV, WebM or HEVC video.";
+  if (!VIDEO_TYPES.test(p.file.type) && !VIDEO_EXT.test(p.file.name)) return "Use an MP4, MOV or WebM video (iPhone HEVC .mov is fine).";
   if (p.file.size > MAX_BYTES) return `This video is ${formatBytes(p.file.size)}; the limit is 1 GB.`;
   if (p.duration !== null && p.duration > MAX_SECONDS + 1) return `This video is ${formatElapsed(p.duration * 1000)} long; keep it under 5 minutes.`;
   return null;
@@ -249,7 +249,7 @@ export function VideoTour() {
             <Button type="button" variant="outline" onClick={() => input.current?.click()}>
               Choose a video
             </Button>
-            <p className="text-xs text-muted-foreground">Or drop it here. MP4, MOV, WebM or HEVC, up to 1 GB and 5 minutes.</p>
+            <p className="text-xs text-muted-foreground">Or drop it here. MP4, MOV or WebM (including iPhone HEVC), up to 1 GB and 5 minutes.</p>
             {submitted && errors.video && <p className="text-sm text-destructive">{errors.video}</p>}
           </div>
         )}
