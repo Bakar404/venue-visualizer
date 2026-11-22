@@ -22,6 +22,7 @@ from .integrations import (
     pipeline_module,
     pipeline_output,
     require_web_brain,
+    require_web_research,
 )
 from .jobs import completing, progress, video_input
 from .models import Job, Look, Photo, Render, Space, Venue, new_id
@@ -73,7 +74,7 @@ async def _render(runtime: Runtime, job: Job, work: Path) -> Outcome:
     original = media_path(runtime.settings.data_dir, photo.path)
     if not photo.approved or not original.is_file():
         raise IntegrationError(409, "The original base photo is missing or not approved")
-    engine = await invoke(pick_engine, runtime.settings, render.engine, "can_edit")
+    engine = await invoke(pick_engine, runtime, render.engine, "can_edit")
     spec, warnings = rules.check(
         DesignSpec.model_validate(look.design_spec_json), VenueRules.model_validate(venue.rules_json)
     )
@@ -126,7 +127,7 @@ async def _render(runtime: Runtime, job: Job, work: Path) -> Outcome:
         qa["structure_warning"] = "This render may have altered the room or changed the framing."
     if render.brain:
         try:
-            brain = await invoke(pick_brain, render.brain)
+            brain = await invoke(pick_brain, runtime, render.brain)
             vision = await brain.complete_json(
                 "Check an event-decor render. Return only the requested JSON.",
                 "Count the visible tables and briefly describe their colors.",
@@ -155,7 +156,7 @@ async def _generate_base(runtime: Runtime, job: Job, work: Path) -> Outcome:
     assert job.space_id is not None
     with Session(runtime.engine) as session:
         space = session.get_one(Space, job.space_id)
-    engine = await invoke(pick_engine, runtime.settings, job.payload_json["engine"], "can_generate")
+    engine = await invoke(pick_engine, runtime, job.payload_json["engine"], "can_generate")
     progress(runtime, job, 0.25)
     dest = work / "base.png"
     reference_url = job.payload_json.get("reference_url")
@@ -197,8 +198,9 @@ async def _generate_base(runtime: Runtime, job: Job, work: Path) -> Outcome:
 
 
 async def _research(runtime: Runtime, job: Job) -> Outcome:
+    await invoke(require_web_research, runtime)
     module = pipeline_module("research", "research_venue")
-    brain = await invoke(pick_brain, job.payload_json["brain"])
+    brain = await invoke(pick_brain, runtime, job.payload_json["brain"])
     require_web_brain(brain)
     progress(runtime, job, 0.25)
     try:
@@ -218,7 +220,7 @@ async def _video(runtime: Runtime, job: Job, work: Path) -> Outcome:
     assert job.venue_id is not None
     module = pipeline_module("video", "ingest_video")
     brain_id = job.payload_json.get("brain")
-    brain = await invoke(pick_brain, brain_id) if brain_id else None
+    brain = await invoke(pick_brain, runtime, brain_id) if brain_id else None
     progress(runtime, job, 0.15)
     result = (
         await invoke(module.ingest_video, video_input(runtime, job), work, brain=brain, max_frames=12)

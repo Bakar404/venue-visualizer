@@ -16,6 +16,8 @@ class Settings:
     dev: bool = False
     web_url: str = LOCAL_WEB_URL
     inline_jobs: bool = False
+    lan: bool = False
+    lan_proxy_key: str | None = field(default=None, repr=False)
     engine_limits: dict[str, int] = field(default_factory=dict)
     allowed_hosts: tuple[str, ...] = field(default_factory=lambda: _env_list("VV_ALLOWED_HOSTS"))
     allowed_origins: tuple[str, ...] = field(default_factory=lambda: _env_list("VV_ALLOWED_ORIGINS"))
@@ -42,5 +44,7 @@ class Settings:
             dev=os.environ.get("VV_DEV") == "1",
             web_url=os.environ.get("VV_WEB_URL") or LOCAL_WEB_URL,
             inline_jobs=os.environ.get("VV_INLINE_JOBS") == "1",
+            lan=os.environ.get("VV_LAN") == "1",
+            lan_proxy_key=os.environ.get("VV_LAN_PROXY_KEY") or None,
             engine_limits=limits,
         )

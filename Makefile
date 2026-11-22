@@ -1,12 +1,20 @@
-.PHONY: setup dev api worker web test schema sample
+.PHONY: setup dev dev-lan doctor api worker web test schema sample
 setup:
 	cd services && uv sync
 	pnpm install
-dev:
-	@echo "Starting api (8000), worker, web (3000)"; \
-	(cd services && uv run uvicorn api.main:app --reload --port 8000) & \
+dev-lan: export VV_LAN = 1
+dev dev-lan:
+	@bind=$$(cd services && uv run python -m api.lan) && \
+	VV_LAN_PROXY_KEY=$$(node -p 'require("node:crypto").randomBytes(32).toString("hex")') && \
+	export VV_LAN_PROXY_KEY && \
+	echo "Starting api (8000), worker, web (3000) on $$bind" || exit 1; \
+	(cd services && uv run uvicorn api.main:app --no-proxy-headers --reload --host "$$bind" --port 8000) & \
 	(cd services && uv run python -m api.worker) & \
-	pnpm dev:web; wait
+	VV_API_URL="$${VV_API_URL:-http://127.0.0.1:8000}" \
+		NODE_OPTIONS="$${NODE_OPTIONS:+$$NODE_OPTIONS }--require=\"$(CURDIR)/services/api/lan_proxy.cjs\"" \
+		pnpm dev:web --hostname "$$bind"; wait
+doctor:
+	cd services && uv run python -m api.doctor
 api:
 	cd services && uv run uvicorn api.main:app --reload --port 8000
 worker:

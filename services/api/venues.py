@@ -32,6 +32,7 @@ from .integrations import (
     pipeline_module,
     pipeline_output,
     require_web_brain,
+    require_web_research,
 )
 from .jobs import ACTIVE, dispatch, video_input
 from .models import Job, Look, Photo, Render, Space, Venue, new_id
@@ -72,8 +73,9 @@ def create_venue(body: VenueCreate, runtime: RuntimeDep) -> VenueOut:
 
 @router.post("/research", status_code=202)
 def research_venue(body: ResearchIn, runtime: RuntimeDep) -> JobOut:
+    require_web_research(runtime)
     pipeline_module("research", "research_venue")
-    brain = pick_brain(body.brain)
+    brain = pick_brain(runtime, body.brain)
     require_web_brain(brain)
     job = Job(
         kind="venue_research",
@@ -263,7 +265,7 @@ def upload_video(
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in VIDEO_SUFFIXES:
         raise HTTPException(422, "Upload an MP4, MOV, WebM, M4V or HEVC video")
-    brain_id = pick_brain(brain).id if brain is not None else None
+    brain_id = pick_brain(runtime, brain).id if brain is not None else None
     job = Job(
         kind="video_ingest",
         queue_key="video",

@@ -374,6 +374,30 @@ class BackendCaps(BaseModel):
     max_refs: int = 0
 
 
+class BackendInstall(BaseModel):
+    macos: str
+    linux: str
+    docs_url: str
+
+
+class TestResult(BaseModel):
+    ok: bool
+    seconds: float
+    detail: str
+
+
+class LastTest(TestResult):
+    at: UtcTime
+
+
+class BackendTestOut(TestResult):
+    sample_url: str | None = None
+
+
+class BackendTestIn(Input):
+    confirm_credits: StrictBool = False
+
+
 class BackendStatus(BaseModel):
     id: str
     label: str
@@ -382,6 +406,11 @@ class BackendStatus(BaseModel):
     logged_in: bool | None
     version: str | None
     detail: str | None
+    install: BackendInstall
+    login: str | None
+    used_for: list[Literal["chat", "web_research", "vision", "images"]]
+    cost_note: str
+    last_test: LastTest | None
     caps: BackendCaps | None = None
 
 
@@ -400,3 +429,15 @@ class BackendsOut(BaseModel):
     defaults: BackendDefaults
     thresholds: BackendThresholds
     internal: dict[str, BackendStatus] = {}
+
+
+class SetupSteps(BaseModel):
+    tools: bool
+    defaults: bool
+    try_it: bool
+
+
+class SetupOut(BaseModel):
+    complete: bool
+    missing: list[Literal["brain", "engine", "defaults"]]
+    steps: SetupSteps

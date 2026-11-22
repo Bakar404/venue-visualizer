@@ -103,8 +103,8 @@ def _enqueue_render(session: Session, look: Look, photo: Photo, engine_id: str, 
 @router.post("/api/looks/{look_id}/render", status_code=202, tags=["jobs"])
 def render_look(look_id: UUID, runtime: RuntimeDep, body: RenderIn | None = None) -> RenderBatch:
     body = body or RenderIn()
-    engine = pick_engine(runtime.settings, body.engine, "can_edit")
-    brain = pick_brain(body.brain) if body.brain_qa or body.brain else None
+    engine = pick_engine(runtime, body.engine, "can_edit")
+    brain = pick_brain(runtime, body.brain) if body.brain_qa or body.brain else None
     with write_session(runtime.engine) as session:
         look = require(session, Look, str(look_id))
         photos = session.exec(
@@ -134,7 +134,7 @@ def regenerate(render_id: UUID, runtime: RuntimeDep, body: Regenerate | None = N
     body = body or Regenerate()
     with Session(runtime.engine) as session:
         source = require(session, Render, str(render_id))
-    engine = pick_engine(runtime.settings, body.engine or source.engine, "can_edit")
+    engine = pick_engine(runtime, body.engine or source.engine, "can_edit")
     with write_session(runtime.engine) as session:
         previous = require(session, Render, source.id)
         photo = require(session, Photo, previous.photo_id)

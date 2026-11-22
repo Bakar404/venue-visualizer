@@ -20,7 +20,7 @@ from pathlib import Path
 VERSION_TIMEOUT_S = 2.5
 _LOG_LIMIT = 20_000
 
-_version_cache: dict[tuple[str, ...], tuple[str | None, str | None]] = {}
+_version_cache: dict[tuple[str, tuple[str, ...], tuple[tuple[str, str], ...]], tuple[str | None, str | None]] = {}
 
 
 @dataclass
@@ -62,39 +62,19 @@ def which(name: str) -> str | None:
         return None
 
 
-def probe_version(path: str, args: tuple[str, ...] = ("--version",)) -> tuple[str | None, str | None]:
+def probe_version(path: str, args: tuple[str, ...] = ("--version",), *,
+                  env: dict[str, str] | None = None) -> tuple[str | None, str | None]:
     """Return (version, error) for a binary. Cached per (path, args); never raises; bounded by a timeout.
 
     The binary runs in its own session so a timeout kills it and anything it spawned."""
-    key = (path, *args)
+    key = (path, args, tuple(sorted((env or {}).items())))
     if key in _version_cache:
         return _version_cache[key]
     try:
-        proc = subprocess.Popen(
-            [path, *args],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            stdin=subprocess.DEVNULL,
-            text=True,
-            env=_child_env(),
-            start_new_session=True,
-        )
-        try:
-            stdout, stderr = proc.communicate(timeout=VERSION_TIMEOUT_S)
-        except subprocess.TimeoutExpired:
-            _signal_group(proc.pid, signal.SIGKILL)
-            try:
-                proc.communicate(timeout=1)
-            except subprocess.TimeoutExpired:
-                pass
-            finally:
-                for pipe in (proc.stdout, proc.stderr):
-                    if pipe:
-                        pipe.close()
-            raise
-        out = (stdout or stderr or "").strip().splitlines()
+        probe = probe_cli(path, args, env=env)
+        out = (probe.stdout or probe.stderr).strip().splitlines()
         version = out[0].strip()[:120] if out else None
-        result = (version, None if proc.returncode == 0 else f"--version exited {proc.returncode}")
+        result = (version, None if probe.returncode == 0 else f"--version exited {probe.returncode}")
     except subprocess.TimeoutExpired:
         result = (None, "version check timed out")
     except Exception as e:  # noqa: BLE001 - detect() must never raise
@@ -105,6 +85,30 @@ def probe_version(path: str, args: tuple[str, ...] = ("--version",)) -> tuple[st
 
 def clear_version_cache() -> None:
     _version_cache.clear()
+
+
+def probe_cli(path: str, args: tuple[str, ...], *, env: dict[str, str] | None = None,
+              clean_env: bool = False) -> ProcResult:
+    argv = [path, *args]
+    start = time.monotonic()
+    proc = subprocess.Popen(
+        argv, cwd=Path.home(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+        text=True, errors="replace", env=_child_env(env, clean_env), start_new_session=True,
+    )
+    try:
+        stdout, stderr = proc.communicate(timeout=VERSION_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        _signal_group(proc.pid, signal.SIGKILL)
+        try:
+            proc.communicate(timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
+        finally:
+            for pipe in (proc.stdout, proc.stderr):
+                if pipe:
+                    pipe.close()
+        raise
+    return ProcResult(argv, proc.returncode, stdout, stderr, time.monotonic() - start)
 
 
 # Variables a CLI may legitimately need when it runs with a minimal environment (`clean_env=True`):
@@ -120,18 +124,19 @@ _CLEAN_ENV_KEYS = (
 
 def _is_api_credential(key: str) -> bool:
     k = key.upper()
-    return k.endswith("_API_KEY") or k in {"ANTHROPIC_AUTH_TOKEN", "OPENAI_ORG_ID", "OPENAI_PROJECT"}
+    return k.endswith("_API_KEY") or k in {
+        "ANTHROPIC_AUTH_TOKEN", "OPENAI_ORG_ID", "OPENAI_PROJECT", "VV_LAN_PROXY_KEY",
+    }
 
 
 def _child_env(extra: dict[str, str] | None = None, clean: bool = False) -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if k in _CLEAN_ENV_KEYS} if clean else dict(os.environ)
-    # Subscription-only: drop per-token API credentials so every CLI uses the user's logged-in plan.
-    env = {k: v for k, v in env.items() if not _is_api_credential(k)}
     env.setdefault("NO_COLOR", "1")
     env.setdefault("TERM", "dumb")
     if extra:
         env.update(extra)
-    return env
+    # Filter after merging overrides so no caller can reintroduce per-token billing credentials.
+    return {k: v for k, v in env.items() if not _is_api_credential(k)}
 
 
 KILL_GRACE_S = 3.0

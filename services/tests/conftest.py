@@ -27,7 +27,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("VV_DEFAULT_ENGINE", "mock")
     monkeypatch.setenv("VV_DEFAULT_BRAIN", "mock")
     monkeypatch.setattr(shutil, "which", lambda *_args, **_kwargs: None)
-    with TestClient(create_app(), base_url="http://localhost:8000") as api:
+    with TestClient(create_app(), base_url="http://localhost:8000", client=("127.0.0.1", 54321)) as api:
         yield api
 
 

@@ -16,6 +16,7 @@ import tempfile
 from pathlib import Path
 
 from .._proc import ProcTimeout, extract_json, probe_version, run_cli, tail, which
+from ..providers import login_status
 from .base import BrainError, BrainStatus
 
 WEB_TOOLS = ["WebSearch", "WebFetch"]
@@ -48,13 +49,23 @@ class ClaudeBrain:
     label = "Claude Code"
     binary = "claude"
 
+    def __init__(self, config_dir: str | None = None):
+        self.config_dir = config_dir
+
+    @property
+    def env(self) -> dict[str, str] | None:
+        directory = self.config_dir or os.environ.get("CLAUDE_CONFIG_DIR")
+        return {"CLAUDE_CONFIG_DIR": directory} if directory else None
+
     def detect(self) -> BrainStatus:
         try:
             path = which(self.binary)
             if not path:
                 return BrainStatus(available=False, detail="claude not found on PATH")
-            version, err = probe_version(path)
-            return BrainStatus(available=True, logged_in=None, version=version, detail=err)
+            env = self.env
+            version, err = probe_version(path, env=env)
+            logged_in = login_status(self.id, path, env)
+            return BrainStatus(available=True, logged_in=logged_in, version=version, detail=err)
         except Exception as e:  # noqa: BLE001
             return BrainStatus(available=False, detail=f"detect failed: {e}")
 
@@ -124,7 +135,7 @@ class ClaudeBrain:
                 prompt += f"\n\nImages to inspect (open each with the Read tool):\n{listed}"
             try:
                 res = await run_cli(self.build_argv(path, system, schema, staged, web=web), cwd=cwd,
-                                    timeout_s=timeout_s, stdin_text=prompt)
+                                    timeout_s=timeout_s, stdin_text=prompt, env=self.env)
             except ProcTimeout as e:
                 raise BrainError(str(e)) from e
         if res.returncode != 0 and not res.stdout.strip():

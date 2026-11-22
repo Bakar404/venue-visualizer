@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 
-from api.db import database, initialize, write_session
+from api.db import VERSION, database, initialize, write_session
 from api.models import ChatMessage, Space, Venue
 from pipeline.models import default_spec
 
@@ -44,6 +44,8 @@ def test_schema_v2_upgrade_preserves_chat_and_adds_response_storage(tmp_path):
     with engine.begin() as conn:
         conn.exec_driver_sql("DELETE FROM schema_version WHERE version > 2")
         conn.exec_driver_sql("INSERT OR IGNORE INTO schema_version (version) VALUES (2)")
+        conn.exec_driver_sql("DROP TABLE settings")
+        conn.exec_driver_sql("DROP TABLE landevice")
         columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(chatmessage)")}
         if "chat_meta_json" in columns:
             conn.exec_driver_sql("ALTER TABLE chatmessage DROP COLUMN chat_meta_json")
@@ -51,7 +53,8 @@ def test_schema_v2_upgrade_preserves_chat_and_adds_response_storage(tmp_path):
     initialize(engine)
     initialize(engine)
     with engine.connect() as conn:
-        assert conn.exec_driver_sql("SELECT MAX(version) FROM schema_version").scalar_one() == 3
+        assert conn.exec_driver_sql("SELECT MAX(version) FROM schema_version").scalar_one() == VERSION
+        assert conn.exec_driver_sql("SELECT id FROM settings").scalar_one() == 1
     with write_session(engine) as session:
         [history] = session.exec(select(ChatMessage)).all()
         assert history.content == "Your original plan." and history.chat_meta_json is None

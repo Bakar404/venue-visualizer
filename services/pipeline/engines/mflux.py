@@ -91,7 +91,7 @@ class MfluxEngine:
             if missing:
                 return EngineStatus(available=False, detail=f"{', '.join(missing)} not found on PATH "
                                                            "(uv tool install mflux)")
-            return EngineStatus(available=True, logged_in=None, version=None, detail=f"model {model}")
+            return EngineStatus(available=True, logged_in=True, version=None, detail=f"model {model}")
         except Exception as e:  # noqa: BLE001
             return EngineStatus(available=False, detail=f"detect failed: {e}")
 

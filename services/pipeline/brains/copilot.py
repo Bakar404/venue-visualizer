@@ -37,6 +37,9 @@ class CopilotBrain:
     label = "GitHub Copilot CLI"
     binary = "copilot"
 
+    def __init__(self, model: str | None = None):
+        self.model = model
+
     def detect(self) -> BrainStatus:
         try:
             path = which(self.binary)
@@ -67,7 +70,7 @@ class CopilotBrain:
             ]
         else:
             argv.append("--available-tools=")
-        model = os.environ.get("VV_COPILOT_MODEL")
+        model = self.model or os.environ.get("VV_COPILOT_MODEL")
         if model:
             argv.append(f"--model={model}")
         argv += [f"--attachment={a}" for a in attachments]

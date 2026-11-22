@@ -187,7 +187,7 @@ def generate_base(space_id: UUID, body: GenerateBase, runtime: RuntimeDep) -> Jo
     if body.reference_url is not None:
         with Session(runtime.engine) as session:
             _require_reference(require(session, Space, str(space_id)), body.reference_url)
-    engine = pick_engine(runtime.settings, body.engine, "can_generate")
+    engine = pick_engine(runtime, body.engine, "can_generate")
     if body.reference_url is not None and engine.capabilities().max_refs < 1:
         raise HTTPException(422, f"{engine.label} can't use a reference photo; pick Copilot, Codex or mflux.")
     with write_session(runtime.engine) as session:
@@ -233,7 +233,7 @@ def chat_history(space_id: UUID, runtime: RuntimeDep) -> list[ChatMessageOut]:
 def chat(space_id: UUID, body: ChatIn, runtime: RuntimeDep) -> ChatOut:
     from pipeline.spec_ops import chat_to_spec
 
-    chosen = pick_brain(body.brain)
+    chosen = pick_brain(runtime, body.brain)
     with Session(runtime.engine) as session:
         space = require(session, Space, str(space_id))
         venue = require(session, Venue, space.venue_id)

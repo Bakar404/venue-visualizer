@@ -4,6 +4,8 @@ from importlib import import_module
 from pathlib import Path
 
 from .config import Settings
+from .deps import Runtime
+from .settings import load, preferences
 
 
 class IntegrationError(RuntimeError):
@@ -40,18 +42,34 @@ def _visible(engine_id: str, settings: Settings) -> bool:
     return engine_id != "scene3d" and (engine_id != "mock" or settings.dev)
 
 
-def backend_report(settings: Settings) -> dict:
-    from pipeline.registry import ENGINE_ORDER
+def backend_report(runtime: Runtime) -> dict:
+    from pipeline.registry import ENGINE_ORDER, status_fields
     from pipeline.registry import backend_report as report
 
-    results = report()
-    engines = [_with_max_refs(item) for item in results["engines"] if _visible(item["id"], settings)]
-    available = {item["id"] for item in engines if item["available"]}
+    saved = load(runtime.engine)
+    prefs = preferences(saved)
+    results = report(options=prefs.providers.options(), default_brain=prefs.default_brain,
+                     default_engine=prefs.default_engine)
+    last_tests = saved.values_json.get("last_tests", {})
+
+    def enrich(item: dict) -> dict:
+        key = f"{item['kind']}:{item['id']}"
+        return {**item, **status_fields(item["id"], item["kind"]), "last_test": last_tests.get(key)}
+
+    brains = [enrich(item) for item in results["brains"]]
+    engines = [
+        enrich(_with_max_refs(item)) for item in results["engines"] if _visible(item["id"], runtime.settings)
+    ]
+    available = {item["id"] for item in engines if item["available"] and item["logged_in"] is not False}
     preferred = results["defaults"]["engine"]
     default = (
         preferred if preferred in available else next((key for key in ENGINE_ORDER if key in available), None)
     )
-    return {**results, "engines": engines, "defaults": {**results["defaults"], "engine": default}}
+    return {
+        "brains": brains, "engines": engines,
+        "defaults": {**results["defaults"], "engine": default},
+        "internal": {key: enrich(item) for key, item in results["internal"].items()},
+    }
 
 
 def _with_max_refs(item: dict) -> dict:
@@ -67,20 +85,21 @@ def _with_max_refs(item: dict) -> dict:
     return {**item, "caps": {**item["caps"], "max_refs": max_refs}}
 
 
-def pick_engine(settings: Settings, preference: str | None, capability: str):
+def pick_engine(runtime: Runtime, preference: str | None, capability: str):
     from pipeline.registry import BackendUnavailable
     from pipeline.registry import pick_engine as pick
 
-    choice = preference.strip().lower() if preference else None
-    if choice not in (None, "auto") and not _visible(choice, settings):
+    prefs = preferences(load(runtime.engine))
+    choice = preference.strip().lower() if preference else prefs.default_engine
+    if choice not in (None, "auto") and not _visible(choice, runtime.settings):
         raise IntegrationError(422, f"{choice!r} is not a user-facing engine in this mode")
     try:
-        engine = pick(choice)
-        if not _visible(engine.id, settings):
-            default = backend_report(settings)["defaults"]["engine"]
+        engine = pick(choice, options=prefs.providers.options())
+        if not _visible(engine.id, runtime.settings):
+            default = backend_report(runtime)["defaults"]["engine"]
             if default is None:
                 raise IntegrationError(503, "No user-facing image engine is available")
-            engine = pick(default)
+            engine = pick(default, options=prefs.providers.options())
     except BackendUnavailable as exc:
         raise IntegrationError(503, str(exc)) from exc
     except ValueError as exc:
@@ -92,16 +111,22 @@ def pick_engine(settings: Settings, preference: str | None, capability: str):
     return engine
 
 
-def pick_brain(preference: str | None):
+def pick_brain(runtime: Runtime, preference: str | None):
     from pipeline.registry import BackendUnavailable
     from pipeline.registry import pick_brain as pick
 
     try:
-        return pick(preference)
+        prefs = preferences(load(runtime.engine))
+        return pick(preference or prefs.default_brain, options=prefs.providers.options())
     except BackendUnavailable as exc:
         raise IntegrationError(503, str(exc)) from exc
     except ValueError as exc:
         raise IntegrationError(422, str(exc)) from exc
+
+
+def require_web_research(runtime: Runtime) -> None:
+    if not preferences(load(runtime.engine)).allow_web_research:
+        raise IntegrationError(403, "Web research is disabled in Settings.")
 
 
 def require_web_brain(brain) -> None:

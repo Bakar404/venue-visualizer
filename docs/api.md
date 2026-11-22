@@ -16,7 +16,22 @@ or an exact origin in the comma-separated `VV_ALLOWED_ORIGINS` setting.
 ```ts
 type BackendStatus = { id: string; label: string; kind: "brain" | "engine"; available: boolean;
   logged_in: boolean | null; version: string | null; detail: string | null;
-  caps?: { can_generate: boolean; can_edit: boolean; typical_seconds: number; cost_note: string; photoreal: boolean } };
+  install: { macos: string; linux: string; docs_url: string }; login: string | null;
+  used_for: ("chat" | "web_research" | "vision" | "images")[]; cost_note: string;
+  last_test: { ok: boolean; at: string; seconds: number; detail: string } | null;
+  caps: { can_generate: boolean; can_edit: boolean; typical_seconds: number; cost_note: string; photoreal: boolean; max_refs: number } | null };
+type Settings = {
+  default_brain: "claude" | "codex" | "copilot" | "kimi" | "mock" | null;
+  default_engine: "copilot" | "codex" | "mflux" | "mock" | null;
+  allow_web_research: boolean; setup_completed_at: string | null;
+  providers: { claude: { config_dir: string | null }; copilot: { model: string | null }; kimi: { bin: string | null } };
+  lan: { enabled: boolean };
+};
+type Setup = { complete: boolean; missing: ("brain" | "engine" | "defaults")[];
+  steps: { tools: boolean; defaults: boolean; try_it: boolean } };
+type BackendTest = { ok: boolean; seconds: number; detail: string; sample_url: string | null };
+type Lan = { enabled: boolean; url: string | null; qr_svg: string | null;
+  pairing_code: string | null; pairing_required: true };
 type Venue = { id: string; name: string; rules: VenueRules; created_at: string; spaces: Space[] };
 type VenueImportResult = Venue & { skipped_photos: { url: string; reason: string }[] };
 type Space = { id: string; venue_id: string; name: string; venue_spec: VenueSpec; photos: Photo[]; current_spec: DesignSpec | null;
@@ -42,7 +57,14 @@ type Job = { id: string; kind: "render" | "generate_base"; status: JobStatus; pr
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | GET | `/api/health` | | `{ok: true}` |
-| GET | `/api/system/backends` | | `{brains: BackendStatus[], engines: BackendStatus[], defaults: {brain, engine}, thresholds: {structure_ok: number}}` |
+| GET | `/api/system/backends` | | `{brains: BackendStatus[], engines: BackendStatus[], defaults: {brain, engine}, thresholds: {structure_ok: number}, internal: {layout_guide: BackendStatus}}` |
+| POST | `/api/system/backends/refresh` | No body | Same as `GET /api/system/backends`, after clearing detection caches |
+| POST | `/api/system/backends/{kind}/{id}/test` | `{confirm_credits?: boolean}` | `BackendTest` |
+| GET | `/api/system/setup` | | `Setup` |
+| GET | `/api/settings` | | `Settings` |
+| PATCH | `/api/settings` | Partial `Settings`, including partial nested objects | Updated `Settings` |
+| GET | `/api/system/lan` | | `Lan` (localhost only) |
+| POST | `/api/system/lan/pair` | `{code: string}` | `{ok: true}` and a device cookie (LAN only) |
 | GET | `/api/venues` | | `Venue[]` |
 | POST | `/api/venues` | `{name, rules?}` | `Venue` |
 | GET/PATCH/DELETE | `/api/venues/{id}` | PATCH `{name?, rules?}` | `Venue` |
@@ -65,8 +87,38 @@ type Job = { id: string; kind: "render" | "generate_base"; status: JobStatus; pr
 | GET | `/api/jobs?space_id=` | | `Job[]` (latest 100) |
 | GET | `/api/looks/{id}/export.pdf` | | `application/pdf` |
 | GET | `/files/{path}` | | image bytes from `data/` (path traversal blocked) |
+| GET | `/files/tests/{sample_id}.png` | | Saved backend-test PNG |
 
 Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or running (no websockets in v1).
+
+## Setup and LAN
+
+- **Settings:** Leave keys out to keep their saved values. A `null` default brain, engine, or provider option restores the
+  existing env/automatic behavior. An explicit backend in an operation wins over the saved default, then the env default.
+  `setup_completed_at` is an ISO-8601 timestamp with an offset; set it when the user finishes setup, or clear it with
+  `null`. Web venue research defaults to enabled. Claude's `config_dir` must resolve to an existing directory under the
+  user's home. Kimi's `bin` is a command on `PATH` or an absolute executable path. Edit provider and LAN settings from
+  localhost, not a paired phone.
+- **Detection:** `available` means installed (or locally available for internal tools). `logged_in: false` excludes a
+  backend from automatic selection and setup readiness; `null` means the app cannot verify login without a test. Login
+  detection is cached for up to 60 seconds. If no backend of a given kind is usable, its default is `null`.
+  Setup is complete when a usable brain and engine are available and `setup_completed_at` is set. `steps.tools` reflects
+  backend availability, `steps.defaults` reflects the completion timestamp, and `steps.try_it` equals `complete`.
+- **Tests:** A brain gets one JSON completion with a 60-second timeout. An engine generates a low-quality 1024×1024 sample.
+  Engine tests other than mock and mflux require `confirm_credits: true` (422 otherwise). A completed test request returns
+  200 with `ok: false` and a user-facing detail on provider failure. Results are persisted separately for each brain and
+  engine; only a successful image test returns a `sample_url`. `make doctor` lists install and sign-in instructions
+  without generating anything; `uv run python -m api.doctor --json` emits the same checklist as JSON.
+- **LAN:** Off by default. `make dev-lan` forces it on with `VV_LAN=1`; otherwise the persisted toggle applies.
+  After changing the toggle, restart `make dev` to rebind both servers. Enabling LAN adds this machine's private IPv4
+  addresses to allowed API hosts and permits HTTP origins on those addresses on ports 3000 and 8000.
+  Use the returned web URL or QR code on a trusted Wi-Fi network: LAN mode uses plain HTTP by default.
+  The six-digit pairing code is available only on localhost and in the API console, and rotates when the API restarts.
+  A phone must pair before any API or file request except `GET /api/health` and `POST /api/system/lan/pair`.
+  Five incorrect codes per client IP in ten minutes block further attempts with 429 and `Retry-After`. Successful pairing
+  sets a signed, HttpOnly, SameSite=Strict cookie that lasts 30 days and survives restarts. Use the Make targets for
+  proxying through Next.js: they authenticate the original client IP on rewrites and disable Uvicorn's automatic
+  forwarded-header trust. If no private IPv4 address is found, the LAN URL and QR are `null`.
 
 ## Venue research, import, and video
 

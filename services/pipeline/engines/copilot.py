@@ -120,6 +120,9 @@ class CopilotEngine:
     label = "GitHub Copilot (image_generation)"
     binary = "copilot"
 
+    def __init__(self, model: str | None = None):
+        self.model = model
+
     def detect(self) -> EngineStatus:
         try:
             path = which(self.binary)
@@ -150,7 +153,7 @@ class CopilotEngine:
         ]
         if session_id:
             argv.append(f"--session-id={session_id}")
-        model = os.environ.get("VV_COPILOT_MODEL")
+        model = self.model or os.environ.get("VV_COPILOT_MODEL")
         if model:
             argv.append(f"--model={model}")
         return argv

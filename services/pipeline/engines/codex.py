@@ -21,6 +21,7 @@ from PIL import Image
 
 from .._proc import ProcTimeout, probe_version, run_cli, tail, which
 from ..prompts import build_layout_guide_clause
+from ..providers import login_status
 from .base import EditRequest, EngineCaps, EngineError, EngineStatus, GenerateRequest, ImageResult
 from .copilot import SIZES, locate_output, nearest_size, save_image
 
@@ -88,7 +89,7 @@ class CodexEngine:
             if not path:
                 return EngineStatus(available=False, detail="codex not found on PATH")
             version, err = probe_version(path)
-            return EngineStatus(available=True, logged_in=None, version=version, detail=err)
+            return EngineStatus(available=True, logged_in=login_status(self.id, path), version=version, detail=err)
         except Exception as e:  # noqa: BLE001
             return EngineStatus(available=False, detail=f"detect failed: {e}")
 

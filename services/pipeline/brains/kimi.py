@@ -73,9 +73,12 @@ class KimiBrain:
     id = "kimi"
     label = "Kimi Code CLI"
 
+    def __init__(self, binary: str | None = None):
+        self.custom_binary = binary
+
     @property
     def binary(self) -> str:
-        return os.environ.get("VV_KIMI_BIN") or "kimi"
+        return self.custom_binary or os.environ.get("VV_KIMI_BIN") or "kimi"
 
     def detect(self) -> BrainStatus:
         try:

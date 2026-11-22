@@ -1,13 +1,15 @@
 from contextlib import contextmanager
 from pathlib import Path
+from secrets import token_hex
 
 from sqlalchemy import URL, event, text
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 
-from .models import SchemaVersion
+from .models import SchemaVersion, Settings
 
-VERSION = 3
+VERSION = 4
 
 
 def database(data_dir: Path) -> Engine:
@@ -32,7 +34,7 @@ def initialize(engine: Engine) -> None:
         conn.exec_driver_sql("BEGIN IMMEDIATE")
         SchemaVersion.__table__.create(conn, checkfirst=True)
         version = conn.execute(text("SELECT MAX(version) FROM schema_version")).scalar_one()
-        if version not in (None, 1, 2, VERSION):
+        if version not in (None, 1, 2, 3, VERSION):
             raise RuntimeError(f"Unsupported database schema version: {version}; expected {VERSION}")
         SQLModel.metadata.create_all(conn)
         if version == 1:
@@ -42,6 +44,10 @@ def initialize(engine: Engine) -> None:
         if version in (1, 2):
             conn.exec_driver_sql("ALTER TABLE chatmessage ADD COLUMN chat_meta_json JSON")
         if version != VERSION:
+            conn.execute(
+                insert(Settings).values(id=1, values_json={}, lan_signing_key=token_hex(32))
+                .on_conflict_do_nothing(index_elements=["id"])
+            )
             conn.execute(text("INSERT INTO schema_version (version) VALUES (:version)"), {"version": VERSION})
 
 

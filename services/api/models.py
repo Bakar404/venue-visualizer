@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
 
-from sqlalchemy import JSON, Column, DateTime, Index, String
+from sqlalchemy import JSON, CheckConstraint, Column, DateTime, Index, String
 from sqlmodel import Field, SQLModel
 
 JobKind = Literal["render", "generate_base", "venue_research", "video_ingest"]
@@ -22,6 +22,19 @@ class SchemaVersion(SQLModel, table=True):
     __tablename__ = "schema_version"
 
     version: int = Field(primary_key=True)
+
+
+class Settings(SQLModel, table=True):
+    __table_args__ = (CheckConstraint("id = 1"),)
+
+    id: int = Field(default=1, primary_key=True)
+    values_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    lan_signing_key: str
+
+
+class LanDevice(SQLModel, table=True):
+    token_hash: str = Field(primary_key=True)
+    expires_at: int
 
 
 class Venue(SQLModel, table=True):

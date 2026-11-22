@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from .._proc import ProcTimeout, extract_json, probe_version, run_cli, tail, which
+from ..providers import login_status
 from .base import BrainError, BrainStatus
 from .claude import stage_images
 
@@ -105,7 +106,7 @@ class CodexBrain:
             if not path:
                 return BrainStatus(available=False, detail="codex not found on PATH")
             version, err = probe_version(path)
-            return BrainStatus(available=True, logged_in=None, version=version, detail=err)
+            return BrainStatus(available=True, logged_in=login_status(self.id, path), version=version, detail=err)
         except Exception as e:  # noqa: BLE001
             return BrainStatus(available=False, detail=f"detect failed: {e}")
 
