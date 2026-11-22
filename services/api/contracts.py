@@ -332,3 +332,4 @@ class BackendsOut(BaseModel):
     brains: list[BackendStatus]
     engines: list[BackendStatus]
     defaults: BackendDefaults
+    internal: dict[str, BackendStatus] = {}
