@@ -142,3 +142,11 @@ async def test_codex_brain_confines_reads_and_cleans_env(tmp_path, monkeypatch):
     assert call["clean_env"] is True and call["cwd"].name.startswith("vv-codex-")
     assert "Do not read files outside the working directory" in prompt
     assert prompt.index("SYS") < prompt.index("Do not read files") < prompt.index("USER")
+
+
+def test_claude_cli_schema_strips_meta_keys():
+    from pipeline.brains.claude import _cli_schema
+
+    out = _cli_schema({"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "x",
+                       "type": "object", "properties": {"a": {"$id": "y", "type": "string"}}})
+    assert "$schema" not in out and "$id" not in out and "$id" not in out["properties"]["a"]

@@ -32,6 +32,17 @@ def stage_images(images: list[Path] | None, cwd: Path) -> list[Path]:
     return staged
 
 
+
+def _cli_schema(schema: dict) -> dict:
+    """Claude Code's --json-schema validator rejects meta keys like a draft-2020-12 `$schema`; drop them."""
+    def strip(node):
+        if isinstance(node, dict):
+            return {k: strip(v) for k, v in node.items() if k not in {"$schema", "$id"}}
+        if isinstance(node, list):
+            return [strip(v) for v in node]
+        return node
+    return strip(schema)
+
 class ClaudeBrain:
     id = "claude"
     label = "Claude Code"
@@ -52,7 +63,7 @@ class ClaudeBrain:
             path, "-p",
             "--system-prompt", system,
             "--output-format", "json",
-            "--json-schema", json.dumps(schema, separators=(",", ":")),
+            "--json-schema", json.dumps(_cli_schema(schema), separators=(",", ":")),
             "--no-session-persistence",
             "--strict-mcp-config",
             "--disable-slash-commands",
