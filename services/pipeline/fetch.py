@@ -26,6 +26,7 @@ from ._images import register_heif
 
 register_heif()
 
+TOTAL_TIMEOUT_S = 60.0
 TIMEOUT_S = 15.0
 MAX_REDIRECTS = 5
 MAX_PIXELS = 80_000_000
@@ -184,7 +185,22 @@ def _clean_and_save(data: bytes, dest_dir: Path) -> Path:
 async def download_image(url: str, dest_dir: Path, max_bytes: int = 20_000_000, *,
                          transport: httpx.AsyncBaseTransport | None = None,
                          timeout_s: float = TIMEOUT_S) -> Path:
-    """Download one image safely into `dest_dir` and return its path (random uuid file name)."""
+    """Download one image safely into `dest_dir` and return its path (random uuid file name).
+
+    `timeout_s` bounds each connect/read; the whole download (all redirects + body) is capped at
+    TOTAL_TIMEOUT_S so a slow-drip server cannot hold a worker indefinitely.
+    """
+    try:
+        return await asyncio.wait_for(
+            _download_image(url, dest_dir, max_bytes, transport=transport, timeout_s=timeout_s),
+            timeout=TOTAL_TIMEOUT_S,
+        )
+    except asyncio.TimeoutError as e:
+        raise FetchError(f"download of {url} exceeded {TOTAL_TIMEOUT_S:g}s total") from e
+
+
+async def _download_image(url: str, dest_dir: Path, max_bytes: int, *,
+                          transport: httpx.AsyncBaseTransport | None, timeout_s: float) -> Path:
     current = url
     async with httpx.AsyncClient(transport=transport, timeout=httpx.Timeout(timeout_s),
                                  follow_redirects=False, trust_env=False) as client:

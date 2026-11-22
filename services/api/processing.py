@@ -85,7 +85,7 @@ async def _render(runtime: Runtime, job: Job, work: Path) -> Outcome:
             )
         )
         refs.append(pipeline_output(guide_result.path, work))
-        prompt += f"\n{layout_clause()}"
+        prompt += f"\n{layout_clause(spec.to_dict())}"
     progress(runtime, job, 0.25, prompt)
 
     logs = []

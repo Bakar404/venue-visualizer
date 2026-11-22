@@ -114,17 +114,11 @@ def layout_engine():
     return guide if guide and guide.detect().available else None
 
 
-def layout_clause() -> str:
+def layout_clause(spec: dict) -> str:
     from pipeline import prompts
 
-    clause = getattr(prompts, "build_layout_guide_clause", None)
-    if clause is not None:
-        return clause()
-    # TODO: Remove the fallback when the shared prompt builder lands.
-    return (
-        "Use the extra reference image only as a layout guide for table positions and counts. "
-        "Keep the original photo's architecture, camera angle, perspective, and photographic appearance."
-    )
+    tables = spec.get("tables") or {}
+    return prompts.build_layout_guide_clause(int(tables.get("count") or 0), str(tables.get("shape") or "round"))
 
 
 def pipeline_output(path: Path | str, work: Path) -> Path:
