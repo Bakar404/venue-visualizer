@@ -31,6 +31,10 @@ _UPLOAD_LIMITS = (
     (re.compile(r"/api/venues/[^/]+/video/?"), MAX_VIDEO_BYTES),
 )
 _PAIRING_EXEMPT = {("GET", "/api/health"), ("POST", "/api/system/lan/pair")}
+_UNVERIFIED_PROXY = (
+    "This request came through a proxy that didn't identify the browser. Start the web with `make dev` or "
+    "`pnpm --filter web dev`, which load services/api/lan_proxy.cjs, and open http://localhost:3000."
+)
 
 
 def _lan_policy(runtime: Runtime, cookie: str) -> tuple[tuple[str, ...], bool, bool]:
@@ -50,21 +54,32 @@ def _host(value: str) -> str:
     return re.sub(r":[0-9]+$", "", value.strip().lower())
 
 
-def _loopback(value: str) -> bool:
-    ip = lan.normalize_ip(value)
-    return ip is not None and ip.is_loopback
+def _port(value: str) -> int:
+    match = re.search(r":([0-9]{1,5})$", value.strip())
+    return int(match.group(1)) if match else 80
+
+
+def _proxied(scope: Scope, headers: Headers, host: str) -> bool:
+    """Did this request come through a proxy (Next.js rewrites, or anything else that relays)?
+
+    Any forwarding header counts, and so does a Host that isn't this API's own loopback address and port: a
+    direct request from this computer names the socket it connects to. Names from VV_ALLOWED_HOSTS don't
+    count, because a reverse proxy that keeps Host and strips forwarding headers would otherwise look local.
+    """
+    if any(name.startswith("x-forwarded-") or name in ("forwarded", "x-real-ip") for name in headers):
+        return True
+    server = scope.get("server")
+    return not (server and _host(host) in lan.LOOPBACK_HOSTS and _port(host) == server[1])
 
 
 class RequestPolicy:
     """Host, origin, locality and pairing checks for every HTTP request and WebSocket upgrade.
 
-    A request on a loopback socket that carries X-Forwarded-Host or X-Forwarded-For came through a proxy
-    (Next.js rewrites), so the socket says nothing about the browser. It is local only if:
-      (i)  LAN mode is off and every forwarded host (and forwarded-for address) is loopback. This is safe only
-           because every non-LAN way of starting the web binds it to 127.0.0.1, so only this machine can reach
-           the proxy; the API warns at startup if the web is reachable from the network.
-      (ii) it carries a valid X-VV-Client attestation (added by services/api/lan_proxy.cjs under `make dev-lan`,
-           keyed per run) for a loopback client address.
+    The bind address proves nothing about a proxied request: Next.js copies the browser's Host into
+    X-Forwarded-Host, and the web may have been started on 0.0.0.0. A request on a loopback socket that came
+    through a proxy (see `_proxied`) is local only with a valid X-VV-Client attestation for a loopback client.
+    services/api/lan_proxy.cjs adds it in every Next.js process started by the package scripts, signed with
+    VV_LAN_PROXY_KEY (per run, `make dev-lan`) or the shared `<data_dir>/.vv-proxy-key`.
     """
 
     def __init__(self, app: ASGIApp, hosts: list[str], origins: list[str]):
@@ -95,7 +110,6 @@ class RequestPolicy:
             await reject(400, "Invalid host")
             return
         host, *forwarded_hosts = (_host(value) for value in hosts + forwarded)
-        forwarded_for = [part for value in headers.getlist("x-forwarded-for") for part in value.split(",")]
 
         addrs, active, valid_cookie = await run_in_threadpool(
             _lan_policy, runtime, connection.cookies.get(lan.COOKIE, ""),
@@ -106,18 +120,12 @@ class RequestPolicy:
             return
 
         peer = socket_peer
-        if socket_peer is not None and socket_peer.is_loopback and (forwarded or forwarded_for):
-            key = runtime.settings.lan_proxy_key
+        unverified_proxy = False
+        if socket_peer is not None and socket_peer.is_loopback and _proxied(scope, headers, hosts[0]):
+            key = connection.app.state.proxy_key
             claims = headers.getlist("x-vv-client")
-            attested = lan.proxy_client(key, claims[0]) if key and len(claims) == 1 else None
-            if attested is not None:
-                peer = attested
-            elif not (
-                not active
-                and all(value in lan.LOOPBACK_HOSTS for value in forwarded_hosts)
-                and all(_loopback(value) for value in forwarded_for)
-            ):
-                peer = None
+            peer = lan.proxy_client(key, claims[0]) if key and len(claims) == 1 else None
+            unverified_proxy = peer is None
         local = (
             peer is not None and peer.is_loopback and host not in addrs
             and not any(value in addrs for value in forwarded_hosts)
@@ -130,6 +138,9 @@ class RequestPolicy:
         if not local:
             if websocket:
                 await reject(403, "WebSockets are only available on this computer.")
+                return
+            if not active and unverified_proxy:
+                await reject(403, _UNVERIFIED_PROXY)
                 return
             if not active or ((method, scope["path"]) not in _PAIRING_EXEMPT and not valid_cookie):
                 await reject(403, "Pair this device before using Venue Visualizer over the LAN.")
@@ -201,6 +212,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             await run_in_threadpool(initialize, engine)
             app.state.runtime = Runtime(config, engine)
+            app.state.proxy_key = await run_in_threadpool(lan.proxy_key, config)
             app.state.pairing = lan.Pairing()
             app.state.backend_tests = system.BackendTests()
             if lan.enabled(config):

@@ -120,8 +120,10 @@ Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or
   200 with `ok: false` and a user-facing detail on provider failure. Results are persisted separately for each brain and
   engine; only a successful image test returns a `sample_url`. `make doctor` lists install and sign-in instructions
   without generating anything; `uv run python -m api.doctor --json` emits the same checklist as JSON.
-- **LAN:** Off by default and only on while `make dev-lan` runs (`VV_LAN=1` plus a per-run `VV_LAN_PROXY_KEY`);
-  there is no settings toggle. `make dev`, `make web`, `make api` and `pnpm dev:web` bind to 127.0.0.1. LAN mode adds
+- **LAN:** Off by default and only on while `make dev-lan` (alias `make lan`) runs (`VV_LAN=1` plus a per-run
+  `VV_LAN_PROXY_KEY`); there is no settings toggle. It serves a production build (`next start`) on the LAN address
+  while the API stays on 127.0.0.1. `make dev`, `make web`, `make api`, `pnpm dev:web` and the `apps/web`
+  `dev`/`start` scripts bind to 127.0.0.1. LAN mode adds
   this machine's private IPv4 addresses (the default-route interface first; Docker, bridge, VPN and tunnel interfaces
   skipped) to allowed API hosts and permits HTTP origins on those addresses on ports 3000 and 8000.
   Use the returned web URL or QR code on a trusted Wi-Fi network: LAN mode uses plain HTTP by default.
@@ -134,10 +136,13 @@ Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or
   sets a signed, HttpOnly, SameSite=Strict cookie that lasts 30 days and survives restarts, but is honoured only in LAN
   mode. `LanDevice` is `{id, label, paired_at, last_seen, expires_at}`; the label comes from the User-Agent and
   `last_seen` updates at most once a minute. Forgetting all devices rotates the signing key so old cookies stop working.
-  Behind the Next.js proxy, a request is local only if LAN mode is off and the forwarded host is localhost (safe because
-  the web listens on 127.0.0.1; the API warns at startup otherwise), or `lan_proxy.cjs` attested a loopback client.
-  WebSocket upgrades follow the same rules and are refused unless local. Use the Make targets for proxying through
-  Next.js: they authenticate the original client IP on rewrites and disable Uvicorn's automatic forwarded-header trust.
+  A request is proxied if it has any `X-Forwarded-*`, `Forwarded` or `X-Real-IP` header, or a Host other than the
+  API's own loopback address and port. A proxied request is local only with a valid `X-VV-Client` attestation (set by
+  `lan_proxy.cjs`, HMAC-SHA256 under `VV_LAN_PROXY_KEY` or else `<data_dir>/.vv-proxy-key`) naming a loopback client;
+  otherwise it gets 403 (or must pair, in LAN mode). The bind address and forwarded host never make a request local.
+  WebSocket upgrades follow the same rules and are refused unless local. Start the web with the `apps/web` scripts or
+  Make targets: they preload the shim on every rewrite, and the Make targets disable Uvicorn's forwarded-header trust.
+  `PATCH /api/settings` checks ownership before reading the body, so non-owners always get the same 403.
   If no private IPv4 address is found, the LAN URL and QR are `null`.
 
 ## Venue research, import, and video

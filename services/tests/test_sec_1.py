@@ -20,7 +20,8 @@ from .sec_helpers import HOST, lan_env, pair_phone, phone, proxied
 
 REPO = Path(__file__).resolve().parents[2]
 LOCAL_WEB = "pnpm --filter web dev --hostname 127.0.0.1"
-LAN_WEB = 'pnpm --filter web dev --hostname "$$bind"'
+# LAN mode serves a production build (SEC2-2), through the wrapper that preloads the attestation shim.
+LAN_WEB = 'node ../../scripts/next-with-shim.mjs start --hostname "$$bind" --port 3000'
 
 
 def make_recipes() -> dict[str, str]:
@@ -73,14 +74,16 @@ def test_make_dry_run_shows_the_web_hostname(target, expected):
     assert "pnpm dev:web" not in output
 
 
-# --- (b) proxied requests only count as local in the two safe cases --------------------------------
+# --- (b) proxied requests count as local only with an attestation for a loopback client (SEC2-1) ----
 
 def test_proxied_request_from_wifi_device_is_not_local_when_lan_is_off(setup_machine, monkeypatch):  # noqa: F811
     lan_env(monkeypatch, lan=False, key=False)
     with desktop() as api:
         assert api.get("/api/venues").status_code == 200
-        # Next's own rewrite of a desktop browser request: loopback forwarded host, no client claim.
-        assert proxied(api.app, "localhost:3000").get("/api/venues").status_code == 200
+        # Next's rewrite of a desktop browser request, attested by lan_proxy.cjs.
+        assert proxied(api.app, "localhost:3000", "127.0.0.1").get("/api/venues").status_code == 200
+        # Without the attestation a loopback forwarded host proves nothing (SEC2-1).
+        assert proxied(api.app, "localhost:3000").get("/api/venues").status_code == 403
         # The exploit: a Wi-Fi device sends `Host: localhost:3000` to a Next server bound to 0.0.0.0.
         spoof = proxied(api.app, "localhost:3000", **{"X-Forwarded-For": "192.168.10.4"})
         assert spoof.get("/api/venues").status_code == 403

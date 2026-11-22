@@ -1,18 +1,22 @@
 """User preferences shared between API requests, workers and CLI diagnostics."""
 
+import json
 import os
 from datetime import UTC
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import AfterValidator, AwareDatetime, Field, StrictBool, StringConstraints
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from pydantic import AfterValidator, AwareDatetime, Field, StrictBool, StringConstraints, ValidationError
 from sqlalchemy import inspect
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
+from starlette.concurrency import run_in_threadpool
 
 from pipeline.registry import ProviderOptions
 
+from .config import REPO
 from .config import Settings as Config
 from .contracts import Input, LastTest
 from .db import database, write_session
@@ -67,12 +71,13 @@ def _kimi_bin(value: str) -> str:
     raise ValueError(error)
 
 
-def _safe(check, value: str | None) -> str | None:
+def _safe(check, value: str | None, data_dir: Path) -> str | None:
     """Drop a saved path that no longer passes validation (e.g. saved by an older version)."""
     try:
-        return check(value) if value is not None else None
+        path = check(value) if value is not None else None
     except ValueError:
         return None
+    return None if path is not None and Path(path).is_relative_to(data_dir) else path
 
 
 class ClaudeOptions(Input):
@@ -140,12 +145,16 @@ def load(engine: Engine) -> Settings:
         return row(session)
 
 
-def preferences(settings: Settings) -> SettingsOut:
+def preferences(settings: Settings, data_dir: Path | None = None) -> SettingsOut:
+    """Saved preferences, with provider paths re-validated: anything invalid or inside the data folder is dropped."""
+    # Same default as Config.from_env, so callers without a Config (doctor, workers) apply the same exclusion.
+    data_dir = Path(data_dir or os.environ.get("VV_DATA_DIR") or REPO / "data").expanduser().resolve()
     saved = SettingsOut.model_validate(settings.values_json.get("preferences", {}))
     providers = saved.providers
+    claude_dir = _safe(_config_dir, providers.claude.config_dir, data_dir)
     return saved.model_copy(update={"lan": LanOptions(), "providers": providers.model_copy(update={
-        "claude": providers.claude.model_copy(update={"config_dir": _safe(_config_dir, providers.claude.config_dir)}),
-        "kimi": providers.kimi.model_copy(update={"bin": _safe(_kimi_bin, providers.kimi.bin)}),
+        "claude": providers.claude.model_copy(update={"config_dir": claude_dir}),
+        "kimi": providers.kimi.model_copy(update={"bin": _safe(_kimi_bin, providers.kimi.bin, data_dir)}),
     })})
 
 
@@ -174,13 +183,48 @@ def _merge(before: dict, patch: dict) -> dict:
 
 @router.get("")
 def get_settings(runtime: RuntimeDep) -> SettingsOut:
-    return _out(runtime.settings, preferences(load(runtime.engine)))
+    return _out(runtime.settings, preferences(load(runtime.engine), runtime.settings.data_dir))
 
 
-@router.patch("")
-def patch_settings(body: SettingsPatch, runtime: RuntimeDep, request: Request) -> SettingsOut:
+def _require_owner(request: Request) -> None:
     if not request.state.owner:
         raise HTTPException(403, "Change settings on this computer, not from a paired device.")
+
+
+def _validate_patch(raw: bytes, content_type: str) -> SettingsPatch:
+    """Parse and validate like FastAPI does for a JSON body parameter, with the same 422 errors."""
+    if not raw:
+        raise RequestValidationError([{"type": "missing", "loc": ("body",), "msg": "Field required", "input": None}])
+    media = content_type.split(";", 1)[0].strip().lower()
+    value: object = raw
+    if media == "application/json" or (media.startswith("application/") and media.endswith("+json")):
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as error:
+            raise RequestValidationError([{"type": "json_invalid", "loc": ("body", error.pos),
+                                           "msg": "JSON decode error", "input": {}, "ctx": {"error": error.msg}}],
+                                         body=error.doc) from None
+    try:
+        return SettingsPatch.model_validate(value, from_attributes=True)
+    except ValidationError as error:
+        raise RequestValidationError(
+            [{**item, "loc": ("body", *item["loc"])} for item in error.errors(include_url=False)], body=value,
+        ) from None
+
+
+async def _owner_patch(request: Request, _owner: Annotated[None, Depends(_require_owner)]) -> SettingsPatch:
+    """The PATCH body, read only after the owner check.
+
+    Validating provider paths touches the filesystem, so a non-owner must get the same 403 whatever it sends:
+    a 422 for a missing directory versus a 403 for an existing one would let a paired phone probe this computer.
+    FastAPI parses a declared body before running dependencies, so the body is read here instead.
+    """
+    raw = await request.body()
+    return await run_in_threadpool(_validate_patch, raw, request.headers.get("content-type", ""))
+
+
+@router.patch("", include_in_schema=False)
+def _patch_settings(body: Annotated[SettingsPatch, Depends(_owner_patch)], runtime: RuntimeDep) -> SettingsOut:
     patch = body.model_dump(exclude_unset=True, mode="json")
     lan = patch.pop("lan", {})
     if lan.get("enabled", runtime.settings.lan_mode) != runtime.settings.lan_mode:
@@ -191,11 +235,18 @@ def patch_settings(body: SettingsPatch, runtime: RuntimeDep, request: Request) -
         raise HTTPException(422, "Provider paths can't point inside the Venue Visualizer data folder.")
     with write_session(runtime.engine) as session:
         saved = row(session)
-        previous = preferences(saved)
+        previous = preferences(saved, runtime.settings.data_dir)
         current = SettingsOut.model_validate(_merge(previous.model_dump(mode="json"), patch))
         saved.values_json = {**saved.values_json, "preferences": current.model_dump(mode="json", exclude={"lan"})}
         session.add(saved)
     return _out(runtime.settings, current)
+
+
+# Documents PATCH /api/settings (its request body and 422) in the OpenAPI contract, and is never called: the
+# owner-first route above is registered first, so it serves every request, and it reads its body by hand.
+@router.patch("")
+def patch_settings(body: SettingsPatch) -> SettingsOut:
+    raise AssertionError("unreachable: the owner-first route above handles PATCH /api/settings")
 
 
 def save_test(engine: Engine, kind: str, backend_id: str, result: LastTest) -> None:

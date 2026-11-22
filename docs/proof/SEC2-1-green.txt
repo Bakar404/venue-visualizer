@@ -1,0 +1,7 @@
+# SEC2-1 (R2-1) green, after the fix
+$ cd services && uv run pytest -q --tb=line -p no:warnings tests/test_sec2_1.py
+...................................                                      [100%]
+35 passed in 6.95s
+
+$ cd services && uv run pytest -q -p no:warnings   (full suite)
+343 passed in 39.53s

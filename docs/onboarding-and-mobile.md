@@ -53,12 +53,17 @@ knows which AI subscription does what, and can use the app comfortably on a phon
   - "Record a walkthrough" uses `accept="video/*" capture="environment"`;
   - both are shown only on touch devices, next to the normal file pickers.
 - **Open on your phone (opt-in LAN mode):**
-  - only `make dev-lan` turns LAN mode on (`VV_LAN=1` plus a per-run proxy key). There is no Setup toggle:
-    `settings.lan.enabled` is read-only and reflects how the app was started, and trying to change it returns 422
-    "Restart with `make dev-lan` to open the app on your phone". `make dev`, `make web` and `pnpm dev:web` always
-    bind to 127.0.0.1;
-  - it binds the API and web to the local network and adds the address of the default-route interface to the
-    allowed hosts and origins (Docker, bridge, VPN and tunnel interfaces are skipped);
+  - only `make dev-lan` (alias `make lan`) turns LAN mode on (`VV_LAN=1` plus a per-run proxy key). There is no
+    Setup toggle: `settings.lan.enabled` is read-only and reflects how the app was started, and trying to change it
+    returns 422 "Restart with `make dev-lan` to open the app on your phone". `make dev`, `make web`,
+    `pnpm dev:web` and `pnpm --filter web dev|start` always bind to 127.0.0.1;
+  - LAN mode serves a **production build**: `make dev-lan` runs `pnpm --filter web build` (a minute or two), then
+    `next start` on the LAN address. The Next dev server (its `/_next/mcp` endpoint, hot reload and error overlays)
+    never listens beyond 127.0.0.1, so code edits need a restart of `make dev-lan` to show on the phone; use
+    `make dev` while developing;
+  - only the web binds to the local network; the API stays on 127.0.0.1 behind Next.js, which attests each phone's
+    address. LAN mode adds the address of the default-route interface to the allowed hosts and origins (Docker,
+    bridge, VPN and tunnel interfaces are skipped);
   - Setup shows a QR code and URL for the phone;
   - it's off by default. A warning explains that anyone on the same Wi-Fi could open the app, and offers a one-time
     **pairing code**: the phone must enter a 6-digit code shown on the computer before any LAN request is accepted,
@@ -68,14 +73,17 @@ knows which AI subscription does what, and can use the app comfortably on a phon
     retire it and lock pairing for 5 minutes, on top of the per-device limit;
   - Setup lists paired devices (browser and OS, paired and last seen) and can forget one or all. Forgetting all
     also invalidates every outstanding device cookie. Device cookies last 30 days and only work while
-    `make dev-lan` is running; starting with `make dev` keeps the list but ignores the cookies.
+    `make dev-lan` is running; starting with `make dev` keeps the list but ignores the cookies;
+  - known limitation (availability only): anyone on the Wi-Fi can keep pairing locked by sending wrong codes every
+    5 minutes. They still can't pair or see anything, and already-paired phones keep working; stop `make dev-lan`
+    or switch to a trusted network.
 
 ## 3. API contract (additions)
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | GET | `/api/settings` | | `Settings` |
-| PATCH | `/api/settings` | partial `Settings` | `Settings` (persisted in SQLite, wins over env). This computer only: 403 from paired phones or proxied non-localhost names; 422 when changing `lan` |
+| PATCH | `/api/settings` | partial `Settings` | `Settings` (persisted in SQLite, wins over env). This computer only: 403 from paired phones or proxied non-localhost names, before the body is read (the same 403 whatever they send); 422 when changing `lan` |
 | POST | `/api/system/backends/refresh` | | same as `GET /api/system/backends`, re-detected now |
 | POST | `/api/system/backends/{kind}/{id}/test` | `{confirm_credits?: boolean}` | `{ok, seconds, detail, sample_url?}`. Image tests need `confirm_credits: true` (except mock and mflux on this computer; a paired phone always confirms). One test per backend at a time (409); brain tests at most every 10 s and image tests every 60 s per backend (429 + `Retry-After`). The last 5 sample images are kept |
 | GET | `/api/system/setup` | | `{complete: boolean, missing: ("brain"\|"engine"\|"defaults")[], steps: {...}}` |
@@ -118,14 +126,17 @@ type Settings = {
 | S9 | e2e @mobile: "Take photos" and "Record a walkthrough" inputs have the right `accept` and `capture` |
 | S10 | pytest: LAN mode is off by default. When enabled, a LAN Host is rejected until it pairs with the right code; a wrong code is rate-limited; localhost is unaffected |
 
-Security follow-ups (proof in `docs/proof/SEC*-red.txt` → `SEC*-green.txt`, tests in `services/tests/test_sec_*.py`):
+Security follow-ups (proof in `docs/proof/SEC*-red.txt` → `SEC*-green.txt`, tests in `services/tests/test_sec_*.py` and `test_sec2_*.py`; the end-to-end check is `docs/proof/SEC2-live.txt`):
 
 | ID | Test |
 |---|---|
-| SEC1 | pytest: every non-LAN start command binds the web to 127.0.0.1 and `dev-lan` passes exactly one `--hostname`; a proxied request is local only if LAN mode is off and the forwarded host is loopback, or it carries a valid attestation for a loopback client; `Host: localhost:3000` relayed for a Wi-Fi peer is rejected; the API warns if the web is reachable from the network outside LAN mode; `kimi.bin` and `claude.config_dir` are strictly validated; settings writes come only from this computer |
+| SEC1 | pytest: every non-LAN start command binds the web to 127.0.0.1 and `dev-lan` passes exactly one `--hostname`; `Host: localhost:3000` relayed for a Wi-Fi peer is rejected; the API warns if the web is reachable from the network outside LAN mode; `kimi.bin` and `claude.config_dir` are strictly validated; settings writes come only from this computer (the proxied-request rule is superseded by SEC2-1) |
 | SEC2 | pytest: settings can't turn LAN mode on (422 with the `make dev-lan` hint); a saved toggle from older versions is ignored; `python -m api.lan` binds to 0.0.0.0 only with `VV_LAN=1` and the proxy key |
 | SEC3 | pytest: the pairing code is one-time, expires after 10 minutes, is refreshed by `GET /api/system/lan`, and 10 failures across all IPs retire it and lock pairing for 5 minutes; the code isn't logged |
 | SEC4 | pytest: paired devices are listed, forgotten one by one or all at once (old cookies stop working); cookies are ignored outside LAN mode and expire after 30 days; `last_seen` updates |
 | SEC5 | pytest: one running test per backend; brain/image cooldowns return 429 with `Retry-After`; phones must confirm credits for image tests; only the last 5 sample images are kept |
 | SEC6 | pytest: WebSocket upgrades go through the same policy; non-local ones are refused |
 | SEC7 | pytest: the LAN address is the default-route interface's, skipping Docker/bridge/utun/VPN interfaces |
+| SEC2-1 | pytest: a loopback socket with `X-Forwarded-Host: localhost:3000` and no attestation is not local (403 on `/api/settings` and owner-only endpoints); any forwarding header or a Host other than the API's own counts as proxied; an attestation for 127.0.0.1/::1 is local and owner, one for a LAN IP must pair and is never owner; a direct loopback request is still local; the key file is 0600, 64 hex chars, created atomically and shared by the API and the shim whichever starts first; every web start goes through `scripts/next-with-shim.mjs` on 127.0.0.1 |
+| SEC2-2 | pytest: `make dev-lan`/`make lan` builds and runs `next start` on the LAN address (never `next dev`), with the API on 127.0.0.1 and the worker; the wrapper refuses `next dev` on a non-loopback hostname even with `VV_LAN=1`; Next's loaded config has `experimental.mcpServer: false` under `VV_LAN=1` |
+| SEC2-3 | pytest: non-owners get the identical 403 for an existing vs missing `config_dir` (and for any body, which is never read); the owner still gets the same 422 messages; saved paths inside the data folder are dropped on read |

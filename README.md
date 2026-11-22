@@ -103,7 +103,8 @@ git clone https://github.com/Bakar404/venue-visualizer.git && cd venue-visualize
 cp .env.example .env                 # optional overrides; no keys needed
 make setup                           # uv sync + pnpm install
 cd services && uv sync --extra scene3d && uv run playwright install chromium && cd ..   # optional: exact table layouts
-make dev                             # API :8000, worker, web :3000
+make dev                             # API :8000, worker, web :3000 (all on 127.0.0.1)
+make lan                             # optional, instead of `make dev`: production build on your Wi-Fi for a phone (pairing code)
 ```
 
 Open http://localhost:3000. The landing page lists the brains and image engines it detected.

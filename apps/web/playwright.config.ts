@@ -12,7 +12,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: process.env.CI ? "line" : "list",
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: `http://127.0.0.1:${PORT}`,
     trace: "retain-on-failure",
   },
   projects: [
@@ -29,8 +29,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `NEXT_PUBLIC_VV_MOCK=1 pnpm dev --port ${PORT}`,
-    url: `http://localhost:${PORT}`,
+    // `pnpm dev` loads the API attestation shim; the server listens on 127.0.0.1 only.
+    command: `NEXT_PUBLIC_VV_MOCK=1 pnpm dev --hostname 127.0.0.1 --port ${PORT}`,
+    url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

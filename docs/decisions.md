@@ -74,18 +74,46 @@ The API only answers to localhost hosts (DNS-rebinding guard). It rejects cross-
 bodies on writes, so a random website can't trigger research or render jobs that spend the user's quota.
 
 ## 2026-11-22: LAN mode security model
-LAN mode exists only while `make dev-lan` runs (`VV_LAN=1` plus a random per-run `VV_LAN_PROXY_KEY`); settings can't
-enable it, so the owner can't lock themselves out with a toggle. Every other start command binds the web and API to
-127.0.0.1. Requests that Next.js proxies arrive on a loopback socket, so the socket alone proves nothing. A proxied
-request counts as local only if (i) LAN mode is off and the forwarded host is a loopback name, which is safe only
-because the proxy itself listens on 127.0.0.1 (the API warns at startup if the web is reachable from the network), or
-(ii) `lan_proxy.cjs` attested a loopback client IP with an HMAC under the per-run key. Settings writes, the pairing
-code and device management additionally require a non-proxied or loopback-named request from this computer, never a
-paired phone. The same policy guards WebSocket upgrades. Pairing codes are one-time, expire after 10 minutes, are
-shown only in Setup on this computer, and 10 failures from any address retire the code and lock pairing for 5 minutes
-(on top of 5 per IP per 10 minutes). Paired devices are listed and revocable; forgetting all rotates the cookie
-signing key. Cookies last 30 days and are honoured only in LAN mode. Backend tests are throttled per backend so a
-paired device can't drain quota. Plain HTTP on a trusted Wi-Fi remains the accepted risk.
+LAN mode exists only while `make dev-lan` (alias `make lan`) runs (`VV_LAN=1` plus a random per-run
+`VV_LAN_PROXY_KEY`); settings can't enable it, so the owner can't lock themselves out with a toggle. Every other start
+command binds the web and API to 127.0.0.1 (the `apps/web` `dev`/`start` scripts, `pnpm dev:web`, `make dev`/`web`
+and the Playwright server), and the API warns, best effort, about any Next.js dev/start process listening on a
+non-loopback address outside LAN mode.
+
+**Trust never comes from the bind address (SEC2-1).** Requests that Next.js proxies arrive on a loopback socket, and
+Next copies `x-forwarded-host` from the browser's own `Host` header, so neither the socket nor a forwarded host proves
+anything. A request is *proxied* if it carries any `x-forwarded-*`, `Forwarded` or `X-Real-IP` header, or a Host other
+than the API's own loopback address and port (`VV_ALLOWED_HOSTS` names don't count). A proxied request is local only
+with a valid `X-VV-Client` attestation: `lan_proxy.cjs` overwrites that header with the real socket peer and an
+HMAC-SHA256 over it. A loopback client is local; a LAN client still has to pair; only a direct request, or an attested
+loopback client with loopback forwarded hosts, is the owner. The earlier "LAN off + loopback forwarded host" rule is
+gone. Attestation is always on: the HMAC key is `VV_LAN_PROXY_KEY` if set, otherwise `<data_dir>/.vv-proxy-key`
+(32 random bytes as hex, mode 0600, created atomically with a temporary file and a hard link by whichever of the API
+and the web starts first, so both agree). The web reads `VV_DATA_DIR`, or the repo's `data/` relative to the shim;
+use an absolute `VV_DATA_DIR` so both resolve the same file. `scripts/next-with-shim.mjs` preloads the shim into
+every `next dev`/`next start`, and refuses non-loopback hostnames outside LAN mode.
+
+**LAN mode serves a production build (SEC2-2).** The dev server exposes `/_next/mcp`, HMR and error overlays, so
+`make dev-lan` runs `pnpm --filter web build` and then `next start` on the LAN address with the shim; the API stays on
+127.0.0.1 with `--no-proxy-headers`. The wrapper refuses `next dev` on any non-loopback hostname, even with `VV_LAN=1`,
+and `next.config.ts` sets `experimental.mcpServer: false` whenever `VV_LAN=1` as defence in depth.
+
+**Owner checks come before input (SEC2-3).** Settings writes, the pairing code and device management require the
+owner (this computer, never a paired phone). `PATCH /api/settings` checks ownership in a dependency that runs before
+the body is read, so a non-owner gets the same 403 whatever it sends and can't use 422 vs 403 to probe the
+filesystem through path validation. Saved provider paths are re-validated on every read, and paths inside the data
+folder are dropped there too.
+
+The same policy guards WebSocket upgrades. Pairing codes are one-time, expire after 10 minutes, are shown only in
+Setup on this computer, and 10 failures from any address retire the code and lock pairing for 5 minutes (on top of 5
+per IP per 10 minutes). Paired devices are listed and revocable; forgetting all rotates the cookie signing key.
+Cookies last 30 days and are honoured only in LAN mode. Backend tests are throttled per backend so a paired device
+can't drain quota.
+
+Accepted risks: plain HTTP on a trusted Wi-Fi. And an availability-only issue: anyone on the Wi-Fi can send 10 wrong
+codes (from several addresses) every 5 minutes and keep pairing locked indefinitely. It can't pair them or expose
+anything, and already-paired devices keep working; the fix is to stop `make dev-lan` or move to a trusted network.
+Per-client lockouts would let an attacker with many addresses brute-force codes, so the global lockout stays.
 
 ## 2026-11-21: The structure check aligns before comparing (calibrated)
 Copilot returns 3:2 images, while most phone and venue photos are 4:3. Resizing one onto the other made intact rooms

@@ -1,0 +1,26 @@
+# SEC2 live check: API on 127.0.0.1:8123 (VV_DATA_DIR=$(mktemp -d)), web via the new dev script on 127.0.0.1:3123
+# api: cd services && VV_DATA_DIR=/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/tmp.7yd4TDZRKZ uv run uvicorn api.main:app --host 127.0.0.1 --port 8123 --no-proxy-headers
+# web: VV_API_URL=http://127.0.0.1:8123 VV_DATA_DIR=/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/tmp.7yd4TDZRKZ pnpm --filter web dev --port 3123
+#      -> node ../../scripts/next-with-shim.mjs dev --hostname 127.0.0.1 --port 3123
+# (run from a temporary git worktree of this change, because Next 16 allows one next dev per app directory and
+#  another developer's dev server on :3000 holds apps/web's lock; the worktree was removed afterwards)
+
+$ curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3123/api/settings
+200
+$ curl -s -o /dev/null -w '%{http_code}' -H 'Host: localhost:3123' -H 'X-Forwarded-Host: localhost:3123' http://127.0.0.1:8123/api/settings
+403
+$ lsof -nP -iTCP:3123 -sTCP:LISTEN
+COMMAND   PID            USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+node    95735 ahmedabdelsalam   13u  IPv4 0x3532fb9e4998ffb2      0t0  TCP 127.0.0.1:3123 (LISTEN)
+
+# extra: owner-only endpoint through Next, and a forged X-VV-Client through Next (the shim overwrites it)
+$ curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3123/api/system/lan
+200
+$ curl -s -o /dev/null -w '%{http_code}' -H 'X-VV-Client: 127.0.0.1.forged' http://127.0.0.1:3123/api/settings
+200
+$ stat -f '%Sp' $VV_DATA_DIR/.vv-proxy-key
+-rw-------
+
+# stopped both servers
+$ lsof -nP -iTCP:3123 -iTCP:8123 -sTCP:LISTEN | wc -l
+0

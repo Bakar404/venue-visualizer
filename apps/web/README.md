@@ -6,8 +6,11 @@ The Next.js frontend for Venue Visualizer. It talks to the local API described i
 
 ```sh
 pnpm install
-pnpm --filter web dev          # http://localhost:3000, expects the API on :8000
+pnpm --filter web dev          # http://127.0.0.1:3000, expects the API on :8000
+pnpm --filter web dev --port 3123   # extra Next options are passed through
 ```
+
+`dev` and `start` run `next dev` / `next start` through [`scripts/next-with-shim.mjs`](../../scripts/next-with-shim.mjs), which binds to `127.0.0.1` and preloads `services/api/lan_proxy.cjs`. The shim signs each proxied request's client address (`X-VV-Client`) with the key in `VV_LAN_PROXY_KEY` or `<data dir>/.vv-proxy-key` (created by whichever of the web and API starts first). The API treats a proxied request as coming from this computer only with that attestation, so starting `next` directly gets 403 from the API. If you set `VV_DATA_DIR`, give the web and the API the same absolute path. The wrapper refuses a non-loopback `--hostname`: to open the app on a phone, use `make dev-lan` (or `make lan`) from the repo root, which builds the app and serves it with `next start` (never the dev server) on your Wi-Fi address, with a pairing code.
 
 Requests to `/api/*` and `/files/*` are proxied to `VV_API_URL`, which defaults to `http://localhost:8000`. The rewrite is in `next.config.ts`:
 
@@ -32,8 +35,9 @@ NEXT_PUBLIC_VV_MOCK=1 pnpm --filter web dev
 
 | Command | What it does |
 | --- | --- |
-| `pnpm --filter web dev` | Dev server |
+| `pnpm --filter web dev` | Dev server on 127.0.0.1:3000, with the attestation shim |
 | `pnpm --filter web build` | Production build with type checking |
+| `pnpm --filter web start` | Serve the production build on 127.0.0.1:3000, with the attestation shim |
 | `pnpm --filter web lint` | ESLint, including the React Compiler hook rules |
 | `pnpm --filter @vv/schema generate` | Regenerate `packages/schema/index.ts` from the JSON schemas |
 

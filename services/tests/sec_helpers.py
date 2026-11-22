@@ -43,7 +43,7 @@ def proxied(app, forwarded_host: str, client_ip: str | None = None, **headers: s
     """A request that Next.js rewrote to the API: it arrives on a loopback socket."""
     extra = {"Host": "localhost:8000", "X-Forwarded-Host": forwarded_host, **headers}
     if client_ip is not None:
-        extra["X-VV-Client"] = attest(client_ip)
+        extra["X-VV-Client"] = attest(client_ip, app.state.proxy_key)
     return TestClient(app, base_url="http://localhost:8000", client=("127.0.0.1", 54124), headers=extra)
 
 

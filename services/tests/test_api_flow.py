@@ -20,6 +20,7 @@ from pipeline.engines.mock import MockEngine
 from pipeline.models import RuleWarning, default_spec
 
 from .conftest import make_room
+from .sec_helpers import attest
 
 DESCRIPTION = (
     "12 round tables of 8, ivory linens, gold chiavari chairs, "
@@ -72,7 +73,8 @@ def test_host_and_write_request_policy(client):
     assert _json(client.get(health, headers={"Host": "localhost:8000"})) == {"ok": True}
     assert client.get(health, headers={"Host": "evil.example"}).status_code == 400
     assert client.get(health, headers={"Host": "[::1]:8000"}).status_code == 200
-    assert client.get(health, headers={"X-Forwarded-Host": "localhost:3000"}).status_code == 200
+    # A forwarded loopback host proves nothing without the proxy's X-VV-Client attestation (SEC2-1).
+    assert client.get(health, headers={"X-Forwarded-Host": "localhost:3000"}).status_code == 403
     assert client.get(health, headers={"X-Forwarded-Host": "evil.example"}).status_code == 400
 
     url = "/api/venues"
@@ -96,12 +98,16 @@ def test_additional_hosts_and_origins_from_env(tmp_path, monkeypatch):
     monkeypatch.setenv("VV_ALLOWED_ORIGINS", " https://planner.example.test ")
     monkeypatch.setattr(shutil, "which", lambda *_args, **_kwargs: None)
     headers = {"Origin": "https://planner.example.test"}
-    with TestClient(create_app(), base_url="http://api.example.test:8000", client=("127.0.0.1", 54321)) as client:
+    app = create_app()
+    with TestClient(app, base_url="http://api.example.test:8000", client=("127.0.0.1", 54321)) as client:
+        # A Host that isn't the API's own loopback address means a relay; it needs the attestation (SEC2-1).
+        assert client.post("/api/venues", json={"name": "Elm"}, headers=headers).status_code == 403
+        headers["X-VV-Client"] = attest("127.0.0.1", app.state.proxy_key)
         response = client.post("/api/venues", json={"name": "Elm"}, headers=headers)
         assert response.status_code == 201
         assert response.headers["Access-Control-Allow-Origin"] == headers["Origin"]
         # A proxy forwarding a non-loopback name could be relaying anyone, so it is not trusted as local.
-        proxied = {**headers, "X-Forwarded-Host": "planner.example.test"}
+        proxied = {"Origin": headers["Origin"], "X-Forwarded-Host": "planner.example.test"}
         assert client.post("/api/venues", json={"name": "Elm"}, headers=proxied).status_code == 403
 
 

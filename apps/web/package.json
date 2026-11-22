@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node ../../scripts/next-with-shim.mjs dev --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start",
+    "start": "node ../../scripts/next-with-shim.mjs start --hostname 127.0.0.1",
     "lint": "eslint",
     "test": "vitest run",
     "e2e": "playwright test"

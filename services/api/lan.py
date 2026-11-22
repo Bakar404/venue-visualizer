@@ -1,16 +1,18 @@
 """Private-network discovery, device pairing and local proxy identity.
 
-LAN mode is only on under `make dev-lan` (VV_LAN=1 plus a per-run VV_LAN_PROXY_KEY). See docs/decisions.md,
-"LAN mode security model".
+LAN mode is only on under `make dev-lan` (VV_LAN=1 plus a per-run VV_LAN_PROXY_KEY). Outside LAN mode the proxy
+attestation key is shared through `<data_dir>/.vv-proxy-key`. See docs/decisions.md, "LAN mode security model".
 """
 
 import asyncio
 import hmac
 import io
 import logging
+import os
 import re
 import secrets
 import socket
+import subprocess
 import time
 from collections import deque
 from collections.abc import Iterator
@@ -18,6 +20,8 @@ from datetime import UTC, datetime
 from hashlib import sha256
 from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from math import ceil
+from pathlib import Path
+from stat import S_IMODE as stat_mode
 from threading import Lock
 
 import segno
@@ -57,6 +61,10 @@ _VIRTUAL = re.compile(
 # Any public address works: connecting a UDP socket only selects a route, it sends nothing.
 _ROUTE_PROBE = ("1.1.1.1", 53)
 _WEB_CHECKS = (0, 5, 15, 45)
+PROXY_KEY_FILE = ".vv-proxy-key"
+_PROXY_KEY = re.compile(r"[0-9a-f]{64}")
+# `next dev`/`next start` processes, whichever way they were launched (Next renames its server "next-server").
+_NEXT_PROCESS = re.compile(r"next-server|next/dist/bin/next\b|(^|[\s/])next(\.js)?\s+(dev|start)\b")
 
 
 class LanOut(BaseModel):
@@ -136,11 +144,56 @@ def exposed_web(port: int) -> list[str]:
     return found
 
 
+def _output(argv: list[str]) -> str:
+    return subprocess.run(argv, capture_output=True, text=True, timeout=5, check=False).stdout
+
+
+def _exposed_address(address: str) -> bool:
+    host = address.rpartition(":")[0].strip("[]")
+    if host == "*":
+        return True
+    ip = normalize_ip(host)
+    return ip is not None and not ip.is_loopback
+
+
+def exposed_next() -> list[str]:
+    """`addr:port` for each `next dev`/`next start` process of this user listening beyond loopback (best effort)."""
+    try:
+        listening: dict[str, list[str]] = {}
+        pid = None
+        for line in _output(["lsof", "-nP", "-iTCP", "-sTCP:LISTEN", "-Fpn"]).splitlines():
+            if line.startswith("p"):
+                pid = line[1:]
+            elif line.startswith("n") and pid and _exposed_address(line[1:]):
+                listening.setdefault(pid, []).append(line[1:])
+        if not listening:
+            return []
+        commands = _output(["ps", "-ww", "-o", "pid=,command=", "-p", ",".join(listening)])
+        found = []
+        for line in commands.splitlines():
+            process, _, command = line.strip().partition(" ")
+            if process in listening and _NEXT_PROCESS.search(command):
+                found.extend(listening[process])
+        return sorted(dict.fromkeys(found))
+    except Exception:  # lsof/ps missing, sandboxed or unparseable: the port probe still runs.
+        log.debug("Could not list listening Next.js servers", exc_info=True)
+        return []
+
+
+def _exposed(port: int) -> list[str]:
+    return list(dict.fromkeys([*exposed_web(port), *exposed_next()]))
+
+
 async def watch_web_exposure(port: int) -> None:
-    """Outside LAN mode the web must listen on 127.0.0.1 only; warn if it can be reached from the network."""
+    """Outside LAN mode the web must listen on 127.0.0.1 only; warn if any Next server can be reached from the
+    network (the configured web port on this machine's addresses, or any next dev/start listening beyond loopback)."""
     for delay in _WEB_CHECKS:
         await asyncio.sleep(delay)
-        exposed = await asyncio.to_thread(exposed_web, port)
+        try:
+            exposed = await asyncio.to_thread(_exposed, port)
+        except Exception:
+            log.debug("Web exposure check failed", exc_info=True)
+            continue
         if exposed:
             log.warning(
                 "The web server is listening on %s while LAN mode is off, so devices on this network may reach "
@@ -164,6 +217,50 @@ def _signature(key: str, value: str) -> str:
 
 def _valid_signature(key: str, value: str, signature: str) -> bool:
     return signature.isascii() and hmac.compare_digest(_signature(key, value), signature)
+
+
+def _read_proxy_key(path: Path) -> str:
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    with os.fdopen(fd, encoding="ascii") as file:
+        if stat_mode(os.fstat(fd).st_mode) & 0o077:
+            os.fchmod(fd, 0o600)
+        value = file.read(256).strip()
+    if not _PROXY_KEY.fullmatch(value):
+        raise RuntimeError(f"{path} is not a valid proxy key (64 hex characters). Delete it and restart.")
+    return value
+
+
+def shared_proxy_key(data_dir: Path) -> str:
+    """Read `<data_dir>/.vv-proxy-key`, creating it (32 random bytes as hex, mode 0600) if needed.
+
+    lan_proxy.cjs does the same, so the API and the web agree whichever starts first. The key is written to a
+    private temporary file and hard-linked into place, so nobody ever sees a partial key and the first writer wins.
+    """
+    path = Path(data_dir) / PROXY_KEY_FILE
+    try:
+        return _read_proxy_key(path)
+    except FileNotFoundError:
+        pass
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f"{PROXY_KEY_FILE}.{secrets.token_hex(8)}.tmp")
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="ascii") as file:
+            file.write(secrets.token_hex(32) + "\n")
+            file.flush()
+            os.fsync(file.fileno())
+        try:
+            os.link(temporary, path)
+        except FileExistsError:
+            pass
+    finally:
+        temporary.unlink(missing_ok=True)
+    return _read_proxy_key(path)
+
+
+def proxy_key(config: Config) -> str:
+    """The X-VV-Client HMAC key: VV_LAN_PROXY_KEY (per run, under `make dev-lan`), else the shared key file."""
+    return config.lan_proxy_key or shared_proxy_key(config.data_dir)
 
 
 def proxy_client(key: str | None, header: str) -> IPv4Address | IPv6Address | None:

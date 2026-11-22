@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
     // Video tours are up to 1 GB, so allow a little headroom for multipart overhead.
     proxyClientMaxBodySize: Math.round(1.1 * 1024 ** 3),
     proxyTimeout: 600_000,
+    // LAN mode (`make dev-lan`) runs `next start`, which has no MCP endpoint; switch the dev server's
+    // /_next/mcp off too in case a dev server is ever started with VV_LAN=1.
+    ...(process.env.VV_LAN === "1" ? { mcpServer: false } : {}),
   },
   async rewrites() {
     return [
