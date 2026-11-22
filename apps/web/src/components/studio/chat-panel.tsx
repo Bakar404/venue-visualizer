@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowDownIcon, ArrowUpIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { BackendPicker } from "@/components/backend-picker";
@@ -83,8 +83,8 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
   const logRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  /** True while the reader is at (or near) the end; only then do new messages scroll the history. */
-  const stickRef = useRef(true);
+  const pinnedRef = useRef(true);
+  const lastScrollTop = useRef(0);
   const [unseen, setUnseen] = useState(false);
   const reduceMotion = useReducedMotion();
 
@@ -129,19 +129,49 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
   const messages = history.data ?? [];
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
 
-  // Whenever the history grows (a message, the thinking dots, chips) or the log itself gets shorter (a smaller
-  // window, a growing panel below), stay at the end only if the reader was already there.
-  useEffect(() => {
+  const updatePinIntent = useCallback((log: HTMLDivElement) => {
+    if (!log.clientHeight) return;
+    const bottom = Math.max(0, log.scrollHeight - log.clientHeight);
+    const top = log.scrollTop;
+    const expectedTop = Math.min(lastScrollTop.current, bottom);
+    // A queued scroll event can see a new bottom. Our own offset (or a layout clamp) isn't reader input.
+    if (Math.abs(top - expectedTop) <= 1) {
+      lastScrollTop.current = expectedTop;
+      return;
+    }
+    lastScrollTop.current = top;
+    if (bottom - top <= STICK_PX) {
+      pinnedRef.current = true;
+      setUnseen(false);
+    } else if (top < expectedTop) {
+      pinnedRef.current = false;
+    }
+  }, []);
+
+  const scrollToBottom = useCallback((log: HTMLDivElement) => {
+    log.scrollTo({ top: log.scrollHeight, behavior: "auto" });
+    lastScrollTop.current = log.scrollTop;
+  }, []);
+
+  const followPinned = useCallback(() => {
+    const log = logRef.current;
+    if (!log || !log.clientHeight) return;
+    // Don't overwrite a reader's movement even if its scroll event hasn't arrived yet.
+    updatePinIntent(log);
+    if (pinnedRef.current) scrollToBottom(log);
+  }, [scrollToBottom, updatePinIntent]);
+
+  useLayoutEffect(followPinned, [followPinned, history.data, history.isPending, meta, pendingText, send.isPending]);
+
+  useLayoutEffect(() => {
     const log = logRef.current;
     const content = contentRef.current;
     if (!log || !content) return;
-    const follow = new ResizeObserver(() => {
-      if (stickRef.current) log.scrollTop = log.scrollHeight;
-    });
+    const follow = new ResizeObserver(followPinned);
     follow.observe(content);
     follow.observe(log);
     return () => follow.disconnect();
-  }, []);
+  }, [followPinned]);
 
   // A reply that arrives while the reader is scrolled up gets a pill instead of a jump. The reply already in the
   // loaded history is the baseline (undefined until it loads; null when the conversation is new), so even the
@@ -156,27 +186,20 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
     }
     if (lastAssistantId === seenReply.current) return;
     seenReply.current = lastAssistantId;
-    if (lastAssistantId && !stickRef.current) setUnseen(true);
+    if (lastAssistantId && !pinnedRef.current) setUnseen(true);
   }, [history.isSuccess, lastAssistantId]);
 
-  const onLogScroll = () => {
+  const resumeFollowing = () => {
     const log = logRef.current;
     if (!log) return;
-    stickRef.current = log.scrollHeight - log.scrollTop - log.clientHeight <= STICK_PX;
-    if (stickRef.current) setUnseen(false);
-  };
-
-  const scrollToEnd = (smooth: boolean) => {
-    const log = logRef.current;
-    if (!log) return;
-    stickRef.current = true;
+    pinnedRef.current = true;
     setUnseen(false);
-    log.scrollTo({ top: log.scrollHeight, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
+    scrollToBottom(log);
   };
 
   /** The pill: bring the reader to the newest message and put keyboard focus there (the pill itself unmounts). */
   const showNewest = () => {
-    scrollToEnd(true);
+    resumeFollowing();
     logRef.current?.querySelector<HTMLElement>("ol > li:last-of-type")?.focus({ preventScroll: true });
   };
 
@@ -186,7 +209,7 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
     inFlight.current = true;
     setDraft("");
     // Sending is an explicit "I'm here": jump to the end so the reply is followed.
-    scrollToEnd(false);
+    resumeFollowing();
     send.mutate({ message, sent: spec }, { onSuccess: (res) => showReply(res, message, spec) });
   };
 
@@ -202,8 +225,8 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
       <div className="relative flex min-h-0 flex-1 flex-col">
       <div
         ref={logRef}
-        onScroll={onLogScroll}
-        className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain px-4"
+        onScroll={(event) => updatePinIntent(event.currentTarget)}
+        className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 [overflow-anchor:none]"
         role="log"
         aria-live="polite"
         aria-relevant="additions"
