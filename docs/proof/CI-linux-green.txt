@@ -1,0 +1,16 @@
+After the fix, on macOS (Python 3.14). Pytest output tails from services/:
+
+$ uv run ruff check . && uv run pytest -q
+All checks passed!
+408 passed, 1 warning in 42.07s
+
+$ TMPDIR=/tmp uv run pytest -q -p no:cacheprovider
+408 passed, 1 warning in 42.15s
+
+$ uv run pytest -q -p no:cacheprovider \
+  'tests/test_fx_fi3.py::test_one_plain_line_per_tool_with_indented_commands[Linux-x86_64]'
+1 passed, 1 warning in 0.02s
+
+The TMPDIR run includes the unchanged test that rejects a real /tmp executable.
+The FI3 case simulates Linux (x86_64) and checks the indented uv install guidance
+as well as the one-line tool statuses.

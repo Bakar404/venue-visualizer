@@ -21,7 +21,7 @@ _PREREQUISITES = (
     ("pnpm", ("pnpm",), "Installs and runs the web app", "npm install -g pnpm", "npm install -g pnpm"),
     ("Python", ("python3",), "Runs the API and worker", "uv python install 3.11", "uv python install 3.11"),
     ("uv", ("uv",), "Installs and runs the Python services", "brew install uv",
-     "curl -LsSf https://astral.sh/uv/install.sh | sh"),
+     "https://docs.astral.sh/uv/getting-started/installation/"),
     ("ffmpeg", ("ffmpeg", "ffprobe"), "Turns video tours into venue photos", "brew install ffmpeg",
      "sudo apt-get install ffmpeg"),
 )

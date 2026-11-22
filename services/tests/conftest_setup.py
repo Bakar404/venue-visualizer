@@ -4,20 +4,28 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
 
 from api.main import create_app
+from api.settings import _shared_temp
 from pipeline import _proc
 from pipeline.engines import scene3d
 
 
 @pytest.fixture
-def setup_machine(tmp_path, monkeypatch):
+def setup_machine(tmp_path, monkeypatch, request):
     home = tmp_path / "home"
-    home.mkdir()
+    if _shared_temp(home.resolve()):
+        # Provider settings reject shared temp paths even when HOME points there.
+        private_home = TemporaryDirectory(prefix=".pytest-home-", dir=Path(__file__).resolve().parents[1])
+        request.addfinalizer(private_home.cleanup)
+        home = Path(private_home.name)
+    else:
+        home.mkdir()
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("VV_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("PATH", "/fake/bin")
