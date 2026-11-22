@@ -5,7 +5,9 @@ User-facing lists hide internal backends: `scene3d` (the hidden layout-guide ren
 engine/brain unless dev mode (VV_DEV=1 or VV_MOCK=1). Internal backends can still be picked by explicit id
 (e.g. `pick_engine("scene3d")` for the layout guide, `pick_brain("mock")` as the offline fallback).
 scene3d is only registered if `pipeline.engines.scene3d` imports (it is owned by another module).
-A preference of None falls back to VV_DEFAULT_BRAIN / VV_DEFAULT_ENGINE, then "auto".
+A preference of None falls back to VV_DEFAULT_BRAIN / VV_DEFAULT_ENGINE, then "auto". VV_DEFAULT_ENGINE may only
+name a user-facing engine: scene3d always, and mock outside dev mode, are ignored with a warning (auto ordering).
+`backend_report()` defaults only ever name listed (user-facing) backends, or null when none is available.
 """
 from __future__ import annotations
 
@@ -135,7 +137,7 @@ def _detect(kind: str, backend: Any) -> BrainStatus | EngineStatus:
 def _pick(kind: str, pref: str | None, registry: dict[str, Any], order: tuple[str, ...], env: str,
           fallback: str | None) -> Any:
     """Explicit ids may name internal backends; "auto" walks `order` (already filtered to allowed ids)."""
-    choice = (pref or os.environ.get(env) or "auto").strip().lower()
+    choice = (pref or _env_choice(kind, env) or "auto").strip().lower()
     if choice != "auto":
         if choice not in registry:
             raise ValueError(f"unknown {kind} {choice!r}; choose one of: auto, {', '.join(registry)}")
@@ -150,6 +152,15 @@ def _pick(kind: str, pref: str | None, registry: dict[str, Any], order: tuple[st
         return registry[fallback]
     raise BackendUnavailable(f"no {kind} is available; install and log in to one of: "
                              f"{', '.join(b for b in order if b != 'mock')}")
+
+
+def _env_choice(kind: str, env: str) -> str | None:
+    """The env default, ignoring (with a warning) engines that are hidden from users."""
+    value = (os.environ.get(env) or "").strip().lower()
+    if kind == "engine" and value in internal_engine_ids():
+        log.warning("%s=%r names an internal engine; ignoring it and using auto ordering", env, value)
+        return None
+    return value or None
 
 
 def pick_brain(pref: str | None = None) -> Brain:
@@ -190,17 +201,20 @@ def backend_report() -> dict:
         "id": "scene3d", "label": "Layout guide (3D scene)", "kind": "engine", "available": False,
         "logged_in": None, "version": None, "detail": "pipeline.engines.scene3d is not importable"}
 
-    def default(fn) -> str | None:
+    def default(fn, listed: dict[str, Any], kind: str) -> str | None:
+        """First pick (env default, then auto) that is a listed, available backend; never a hidden one."""
         for pref in (None, "auto"):
             try:
-                return fn(pref).id
+                picked = fn(pref)
             except (ValueError, BackendUnavailable):
                 continue
+            if picked.id in listed and _detect(kind, picked).available:
+                return picked.id
         return None
 
     return {
         "brains": [x for x in entries if x["kind"] == "brain"],
         "engines": [x for x in entries if x["kind"] == "engine"],
-        "defaults": {"brain": default(pick_brain), "engine": default(pick_engine)},
+        "defaults": {"brain": default(pick_brain, b, "brain"), "engine": default(pick_engine, e, "engine")},
         "internal": {"layout_guide": layout_guide},
     }

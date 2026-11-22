@@ -90,3 +90,67 @@ async def test_mock_brain_parses_example_message():
     assert s.lighting.uplighting == "warm amber"
     assert s.palette == ["ivory", "gold", "blush"]
     assert result.warnings == []
+
+
+class ScriptedBrain:
+    id = "scripted"
+    label = "Scripted"
+
+    def __init__(self, *answers):
+        self.answers = list(answers)
+        self.calls: list[str] = []
+
+    async def complete_json(self, system, user, schema, images=None, timeout_s=180):
+        self.calls.append(user)
+        answer = self.answers.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+
+GOOD = {"reply": "Six banquet tables.", "spec_patch": {"tables": {"shape": "banquet", "count": 6}},
+        "ambiguities": []}
+
+
+@pytest.mark.parametrize("first", [
+    BrainError("codex returned no JSON object: blah"),
+    {"reply": "", "spec_patch": {}, "ambiguities": []},
+    {"reply": "ok", "spec_patch": {}, "ambiguities": "none"},
+    {"reply": "ok", "spec_patch": [], "ambiguities": []},
+    {"reply": "ok", "spec_patch": {}, "ambiguities": [], "extra": 1},
+    {"reply": "ok", "spec_patch": '{"tables": ', "ambiguities": []},
+    {"spec_patch": {}, "ambiguities": []},
+])
+async def test_bad_envelope_or_no_json_gets_one_retry(first):
+    brain = ScriptedBrain(first, GOOD)
+    result = await chat_to_spec(brain, "long tables", default_spec(), None, None)
+    assert len(brain.calls) == 2 and result.attempts == 2
+    assert "It was rejected:" in brain.calls[1]
+    assert result.spec.tables.count == 6 and result.reply == "Six banquet tables."
+    assert result.rule_notes == []
+
+
+async def test_two_bad_envelopes_raise():
+    brain = ScriptedBrain({"reply": "", "spec_patch": {}, "ambiguities": []}, BrainError("no JSON"))
+    with pytest.raises(BrainError):
+        await chat_to_spec(brain, "x", default_spec(), None, None)
+    assert len(brain.calls) == 2
+
+
+async def test_reply_mentions_rule_adjustments():
+    answer = {"reply": "Added live taper candles and a sparkler exit.",
+              "spec_patch": {"centerpieces": {"candles": "live"}, "extras": ["sparkler exit"]}, "ambiguities": []}
+    result = await chat_to_spec(ScriptedBrain(answer), "candles", default_spec(), None,
+                                VenueRules(live_candles=False, sparklers=False))
+    assert result.spec.centerpieces.candles == "flameless" and result.spec.extras == []
+    assert len(result.rule_notes) == 2 and all(n.endswith(".") for n in result.rule_notes)
+    assert result.reply == ("Added live taper candles and a sparkler exit.\n\nAdjusted for venue rules: "
+                            + "; ".join(result.rule_notes))
+
+
+def test_pointers_follow_rfc6901():
+    from pipeline.spec_ops import _pointer
+
+    assert _pointer([]) == ""
+    assert _pointer(["a/b", "c~d", 0]) == "/a~1b/c~0d/0"
+    assert _pointer(["tables", "count"]) == "/tables/count"

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from pipeline.engines.base import EditRequest, GenerateRequest
+from pipeline.engines.base import EditRequest, EngineError, GenerateRequest
 from pipeline.engines.copilot import CopilotEngine, build_instruction, locate_output, nearest_size
 from pipeline.engines.mflux import MfluxEngine, build_argv, dims_for
 from pipeline.engines.mock import MockEngine
@@ -63,29 +63,39 @@ def test_locate_output_parses_saved_to(tmp_path: Path):
     states = tmp_path / "session-state"
     target = _png(states / "abc" / "images" / "image-1.png")
     _png(states / "zzz" / "images" / "image-newer.png")
-    assert locate_output(f"Done!\nSAVED_TO: {target}\n", states, time.time() - 60) == target
-    assert locate_output(f'tool result {{"saved_to": "{target}"}}', states, time.time() - 60) == target
+    since = time.time() - 60
+    assert locate_output(f"Done!\nSAVED_TO: {target}\n", states, since, session_id="abc") == target
+    assert locate_output(f'tool result {{"saved_to": "{target}"}}', states, since, session_id="abc") == target
 
 
-def test_locate_output_ignores_paths_outside_allowed_roots(tmp_path: Path):
+def test_locate_output_only_accepts_this_runs_session_or_cwd(tmp_path: Path):
     states = tmp_path / "session-state"
+    cwd = tmp_path / "job"
+    other = _png(states / "other-session" / "images" / "image-1.png")
     outside = _png(tmp_path / "elsewhere" / "secret.png")
-    assert locate_output(f"SAVED_TO: {outside}", states, time.time() - 60) is None
+    staged = _png(cwd / "vv-input-0.png")
+    since = time.time() - 60
+    for path in (other, outside, staged):
+        assert locate_output(f"SAVED_TO: {path}", states, since, cwd, session_id="mine") is None
+    # without a session id the session-state tree is not trusted at all, even via SAVED_TO
+    assert locate_output(f"SAVED_TO: {other}", states, since) is None
+    assert locate_output("nothing", states, since, session_id="../other-session/images/..") is None
+    mine = _png(cwd / "vv-output.png")
+    assert locate_output(f"SAVED_TO: {other}", states, since, cwd, session_id="mine") == mine
 
 
-def test_locate_output_falls_back_to_newest_new_png(tmp_path: Path):
+def test_locate_output_falls_back_to_newest_new_image_of_this_session(tmp_path: Path):
     states = tmp_path / "session-state"
     now = time.time()
-    _png(states / "old" / "images" / "image-old.png", mtime=now - 3600)
-    newest = _png(states / "s2" / "images" / "image-b.png", mtime=now + 2)
-    _png(states / "s1" / "images" / "image-a.png", mtime=now + 1)
-    _png(states / "s3" / "files" / "not-an-image-output.png", mtime=now + 5)
-    assert locate_output("I generated the image.", states, now) == newest
-    assert locate_output("SAVED_TO: /does/not/exist.png", states, now) == newest
-    assert locate_output("nothing", states, now + 100) is None
-    assert locate_output("nothing", tmp_path / "missing", now) is None
-    # with a session id, only that session's images folder is considered
-    assert locate_output("nothing", states, now, session_id="s1").name == "image-a.png"
+    _png(states / "s1" / "images" / "image-old.png", mtime=now - 3600)
+    _png(states / "s2" / "images" / "image-b.png", mtime=now + 2)
+    newest = _png(states / "s1" / "images" / "image-a.png", mtime=now + 1)
+    _png(states / "s1" / "files" / "not-an-image-output.png", mtime=now + 5)
+    assert locate_output("I generated the image.", states, now, session_id="s1") == newest
+    assert locate_output("SAVED_TO: /does/not/exist.png", states, now, session_id="s1") == newest
+    assert locate_output("nothing", states, now + 100, session_id="s1") is None
+    assert locate_output("nothing", tmp_path / "missing", now, session_id="s1") is None
+    assert locate_output("nothing", states, now) is None  # another session's newer image is never borrowed
     assert locate_output("nothing", states, now, session_id="nope") is None
 
 
@@ -126,6 +136,11 @@ def test_mflux_argv_and_dims(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     edit = build_argv("/x/mflux-generate-qwen-2.1-edit", "qwen-image-2.1", "p", tmp_path / "o.png", 1024, 672,
                       [tmp_path / "in.png"])
     assert edit[1] == "--image-paths" and "--quantize" in edit and "--model" not in edit
+    for argv in (build_argv("/x/flux2", "flux2-klein-4b", "-dash first", tmp_path / "o.png", 1024, 672, []),
+                 build_argv("/x/qwen", "qwen-image-2.1", "--width 9", tmp_path / "o.png", 1024, 672, [])):
+        assert "--prompt" not in argv  # one argv token, so a prompt starting with "-" is not parsed as a flag
+        assert sum(a.startswith("--prompt=") for a in argv) == 1
+    assert "--prompt=-dash first" in build_argv("/x/f", "flux2-klein-4b", "-dash first", tmp_path / "o", 32, 32, [])
 
 
 def test_mflux_detect_requires_apple_silicon(monkeypatch: pytest.MonkeyPatch):
@@ -137,3 +152,36 @@ def test_mflux_detect_requires_apple_silicon(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(mod.platform, "system", lambda: "Darwin")
     monkeypatch.setattr(mod.platform, "machine", lambda: "arm64")
     assert MfluxEngine().detect().available
+
+
+async def test_codex_engine_never_borrows_shared_generated_images(tmp_path: Path, room: Path,
+                                                                    monkeypatch: pytest.MonkeyPatch):
+    from pipeline._proc import ProcResult
+    from pipeline.engines import codex as mod
+
+    shared = tmp_path / "codex-home" / "generated_images"
+    monkeypatch.setenv("CODEX_HOME", str(shared.parent))
+    monkeypatch.setattr(mod, "which", lambda name: "/usr/local/bin/codex")
+    calls = []
+
+    async def fake_run_cli(argv, *, cwd, timeout_s, stdin_text=None, env=None, clean_env=False):
+        calls.append((argv, clean_env))
+        other = _png(shared / "someone-else.png")  # another run's image, newer than our start
+        if len(calls) == 1:
+            return ProcResult(argv, 0, f"SAVED_TO: {other}\n", "", 1.0)
+        Image.new("RGB", (1536, 1024), (10, 20, 30)).save(cwd / "vv-output.png")
+        return ProcResult(argv, 0, f"SAVED_TO: {cwd / 'vv-output.png'}\n", "", 1.0)
+
+    monkeypatch.setattr(mod, "run_cli", fake_run_cli)
+    req = EditRequest(prompt="add tables", input_image=room, out_path=tmp_path / "out" / "r.png",
+                      ref_images=[room], design_spec={"tables": {"count": 7, "shape": "banquet"}})
+    with pytest.raises(EngineError, match="no image"):
+        await mod.CodexEngine().edit(req)
+    res = await mod.CodexEngine().edit(req)
+    assert res.path.is_file() and (res.width, res.height) == (1536, 1024)
+    argv, clean_env = calls[-1]
+    assert clean_env
+    instruction = argv[-1]
+    assert "style reference" not in instruction.replace("not a style reference", "")
+    assert "placement/count guide" in instruction and "exactly 7 long rectangular banquet tables" in instruction
+    assert "Do not read files outside the working directory" in instruction

@@ -40,6 +40,47 @@ def build_scene_url(
     return f"{web_url.rstrip('/')}/render/scene?{query}"
 
 
+MAX_URL_CHARS = 8000
+# Free-text keys that do not affect the layout guide (only table count/shape/positions and the room do).
+_SPEC_DROP = {"notes": None, "extras": []}
+_VENUE_DROP = ("notes", "fixtures", "walls", "floor", "windows", "style")
+
+
+def _shorten(value, limit: int):
+    if isinstance(value, str):
+        return value[:limit]
+    if isinstance(value, list):
+        return [_shorten(v, limit) for v in value]
+    if isinstance(value, dict):
+        return {k: _shorten(v, limit) for k, v in value.items()}
+    return value
+
+
+def fitted_scene_url(
+    web_url: str,
+    design_spec: dict,
+    venue_spec: dict | None = None,
+    camera: str = "wide",
+    max_chars: int = MAX_URL_CHARS,
+) -> str:
+    """`build_scene_url`, trimming free text when the URL would exceed `max_chars`.
+
+    Browsers/servers reject very long URLs. The scene only needs table counts, shape and room size, so free
+    text is dropped or shortened (never numbers/enums) until it fits; EngineError if it still cannot."""
+    url = build_scene_url(web_url, design_spec, venue_spec, camera)
+    if len(url) <= max_chars:
+        return url
+    spec = {k: v for k, v in design_spec.items() if k not in _SPEC_DROP}
+    spec.update({k: v for k, v in _SPEC_DROP.items() if v is not None and k in design_spec})
+    venue = {k: v for k, v in (venue_spec or {}).items() if k not in _VENUE_DROP}
+    for limit in (None, 48, 16):
+        candidate = (spec, venue) if limit is None else (_shorten(spec, limit), _shorten(venue, limit))
+        url = build_scene_url(web_url, candidate[0], candidate[1], camera)
+        if len(url) <= max_chars:
+            return url
+    raise EngineError(f"The design spec is too large for the scene renderer URL ({len(url)} > {max_chars} chars).")
+
+
 def _chromium_installed() -> bool:
     from playwright.sync_api import sync_playwright
 
@@ -66,8 +107,13 @@ class Scene3DEngine:
                     available=False,
                     detail="Chromium is not installed; run uv run --extra scene3d playwright install chromium.",
                 )
-            response = httpx.get(self.web_url, timeout=1.0, follow_redirects=True)
-            response.raise_for_status()
+            probe = f"{self.web_url.rstrip('/')}/render/scene?probe=1"
+            response = httpx.get(probe, timeout=1.0, follow_redirects=True)
+            if response.status_code != 200:
+                return EngineStatus(
+                    available=False,
+                    detail=f"Scene route {probe} returned HTTP {response.status_code}; is the web app running?",
+                )
             return EngineStatus(available=True, detail=f"Local scene renderer at {self.web_url}")
         except ImportError:
             return EngineStatus(available=False, detail="Playwright is missing; install the scene3d extra.")
@@ -105,7 +151,7 @@ class Scene3DEngine:
             from playwright.async_api import async_playwright
         except ImportError as exc:
             raise EngineError("Install the scene3d extra and Playwright Chromium before rendering.") from exc
-        url = build_scene_url(self.web_url, req.design_spec, req.venue_spec)
+        url = fitted_scene_url(self.web_url, req.design_spec, req.venue_spec)
         errors: list[str] = []
         try:
             async with asyncio.timeout(req.timeout_s):

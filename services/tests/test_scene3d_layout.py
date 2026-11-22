@@ -51,7 +51,42 @@ def test_detect_web_down(monkeypatch):
     status = Scene3DEngine().detect()
     assert not status.available
     assert "Connection refused" in status.detail
-    get.assert_called_once_with("http://localhost:4567", timeout=1.0, follow_redirects=True)
+    get.assert_called_once_with("http://localhost:4567/render/scene?probe=1", timeout=1.0, follow_redirects=True)
+
+
+def test_detect_requires_scene_route_200(monkeypatch):
+    monkeypatch.setattr(scene3d, "_chromium_installed", lambda: True)
+    seen = []
+
+    def get(url, **kwargs):
+        seen.append(url)
+        return httpx.Response(status, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(scene3d.httpx, "get", get)
+    for status in (204, 404):  # web app up, but /render/scene is not served as a page
+        assert not Scene3DEngine().detect().available
+    status = 200
+    assert Scene3DEngine().detect().available
+    assert all(url.endswith("/render/scene?probe=1") for url in seen)
+
+
+def test_long_specs_are_trimmed_to_fit_the_url():
+    from pipeline.engines.scene3d import MAX_URL_CHARS, fitted_scene_url
+
+    spec = {"version": 1, "space": "main", "tables": {"count": 40, "shape": "banquet"},
+            "extras": ["x" * 1500] * 4, "notes": "n" * 2000, "palette": ["gold"]}
+    venue = {"length_ft": 90, "width_ft": 60, "notes": "v" * 3000}
+    assert len(build_scene_url("http://localhost:3000", spec, venue)) > MAX_URL_CHARS
+    url = fitted_scene_url("http://localhost:3000", spec, venue)
+    assert len(url) <= MAX_URL_CHARS
+    query = parse_qs(urlparse(url).query)
+    sent, sent_venue = decode_json(query["spec"][0]), decode_json(query["venue"][0])
+    assert sent["tables"] == spec["tables"] and sent["extras"] == [] and "notes" not in sent
+    assert sent_venue == {"length_ft": 90, "width_ft": 60}
+    small = {"version": 1, "tables": {"count": 2}}
+    assert fitted_scene_url("http://localhost:3000", small) == build_scene_url("http://localhost:3000", small)
+    with pytest.raises(EngineError, match="too large"):
+        fitted_scene_url("http://localhost:3000", spec, venue, max_chars=50)
 
 
 @pytest.mark.asyncio

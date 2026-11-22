@@ -147,3 +147,65 @@ def test_is_public_ip():
         assert not fetch.is_public_ip(ip), ip
     for ip in ("93.184.215.14", "8.8.8.8", "2606:4700:4700::1111"):
         assert fetch.is_public_ip(ip), ip
+
+
+async def test_requests_identity_and_rejects_compressed_bodies(tmp_path: Path):
+    import gzip
+
+    seen: list[httpx.Request] = []
+    bomb = gzip.compress(b"\0" * 5_000_000)  # tiny on the wire, huge once decoded
+    routes = {"/bomb.png": httpx.Response(200, headers={"content-type": "image/png", "content-encoding": "gzip"},
+                                          content=bomb)}
+    with pytest.raises(FetchError, match="compressed"):
+        await download_image("https://photos.example.com/bomb.png", tmp_path, max_bytes=10_000,
+                             transport=_transport(routes, seen))
+    assert seen[0].headers["accept-encoding"] == "identity"
+    assert not any(tmp_path.iterdir())
+
+
+async def test_byte_cap_applies_to_raw_stream_without_content_length(tmp_path: Path):
+    async def body():
+        for _ in range(50):
+            yield b"x" * 1000
+
+    routes = {"/big.png": httpx.Response(200, headers={"content-type": "image/png"}, content=body())}
+    with pytest.raises(FetchError, match="too large"):
+        await download_image("https://photos.example.com/big.png", tmp_path, max_bytes=10_000,
+                             transport=_transport(routes))
+
+
+async def test_timed_out_save_leaves_no_orphan_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import asyncio
+    import time
+
+    real = fetch._clean_and_save
+    finished = []
+
+    def slow(data, dest_dir, prefix=""):
+        time.sleep(0.4)
+        out = real(data, dest_dir, prefix)
+        finished.append(out)
+        return out
+
+    monkeypatch.setattr(fetch, "_clean_and_save", slow)
+    monkeypatch.setattr(fetch, "TOTAL_TIMEOUT_S", 0.1)
+    routes = {"/room.png": httpx.Response(200, headers={"content-type": "image/png"}, content=_png_bytes())}
+    with pytest.raises(FetchError, match="exceeded"):
+        await download_image("https://photos.example.com/room.png", tmp_path, transport=_transport(routes))
+    for _ in range(50):
+        if finished:
+            break
+        await asyncio.sleep(0.05)
+    await asyncio.sleep(0.05)
+    assert finished and not finished[0].exists() and list(tmp_path.iterdir()) == []
+
+
+async def test_host_header_is_idna_and_brackets_ipv6(tmp_path: Path, public_dns: dict):
+    public_dns["xn--bcher-kva.example"] = public_dns["bücher.example"] = ["93.184.215.14"]
+    seen: list[httpx.Request] = []
+    routes = {"/a.png": httpx.Response(200, headers={"content-type": "image/png"}, content=_png_bytes())}
+    await download_image("https://bücher.example:8443/a.png", tmp_path, transport=_transport(routes, seen))
+    await download_image("http://[2606:4700:4700::1111]/a.png", tmp_path, transport=_transport(routes, seen))
+    assert seen[0].headers["host"] == "xn--bcher-kva.example:8443"
+    assert seen[0].extensions["sni_hostname"] == "xn--bcher-kva.example"
+    assert seen[1].headers["host"] == "[2606:4700:4700::1111]"
