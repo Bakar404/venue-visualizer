@@ -45,3 +45,15 @@ The original spec excluded taking venue photos from the web. The user now wants 
 used until the user confirms it. Web photos default to *reference only* (used to ground a generated base view), and are
 imported as editable base photos only when the user confirms they have the right to. Credits are kept. Published venue
 policies are suggestions until the user accepts them. Research runs through the user's own CLI web tools, not a scraper.
+
+## 2026-11-21: Output is always photoreal; 3D is a hidden layout guide
+The user wants results that look like real photographs, not 3D or illustrated scenes. So:
+- The user-facing engines are the photoreal ones only: copilot, codex and mflux. `scene3d` is never shown as an output and is
+  removed from the engine picker.
+- `scene3d` becomes an internal **layout guide**. When exact counts matter (e.g. "12 tables"), it renders a plain top-down or
+  eye-level layout image of the table positions. That image is passed to the photoreal engine as an extra reference ("place tables
+  where this guide shows"), together with the real photo. The guide image itself is never shown as a result.
+- The `mock` engine is for tests and `NEXT_PUBLIC_VV_MOCK` demos only. It is hidden from the picker unless `VV_DEV=1`.
+- Demo and mock-mode imagery uses real photoreal renders (generated with Copilot's image tool, credited in
+  `apps/web/public/samples/photoreal/CREDITS.md`), not SVG drawings.
+- Prompts always ask for "a real photograph by a professional event photographer, 24mm, eye level, realistic materials, no CGI look".

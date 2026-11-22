@@ -109,8 +109,9 @@ Engine notes (verified Nov 2026):
 - **codex**: `codex exec --skip-git-repo-check -C <tmp> "$imagegen ..."` (needs the `image_generation` feature
   enabled and a ChatGPT login). Find the produced image in the cwd/output dir. Uses ChatGPT plan quota.
 - **mflux**: subprocess `mflux-generate-*` (FLUX.2 Klein edit / Qwen-Image 2.1 edit, 4-bit). Free, slow on 16 GB Macs.
-- **scene3d**: renders the DesignSpec as a three.js scene (parametric room + low-poly decor) via the web app's
-  `/render/scene` route in headless Chromium (Playwright). It needs no AI and is stylized, not photoreal.
+- **scene3d** (internal, never a user-visible output): renders a plain layout-guide image of table positions from the
+  DesignSpec via the web app's `/render/scene` route in headless Chromium (Playwright). It is passed as an extra reference image to a
+  photoreal engine so table counts and placement come out right.
 - **mock**: tints the input and stamps the prompt; used in tests and CI.
 
 ## Brain interface (`services/pipeline/pipeline/brains/base.py`)
