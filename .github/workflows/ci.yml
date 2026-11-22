@@ -94,8 +94,10 @@ jobs:
           GITLEAKS_ENABLE_COMMENTS: 'false'
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
       # The action limits push and PR scans to the event's commit range.
-      - name: Scan full history with the installed Gitleaks CLI
-        run: gitleaks git --redact --log-opts='--all --full-history -m' .
+      - name: Scan full history with the Gitleaks CLI (pinned container)
+        run: >-
+          docker run --rm -v "$PWD:/repo" -w /repo ghcr.io/gitleaks/gitleaks:v8.28.0
+          git --redact --log-opts='--all --full-history -m' /repo
 
   versions:
     runs-on: ubuntu-latest
