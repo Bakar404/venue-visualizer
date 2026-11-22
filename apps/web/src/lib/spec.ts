@@ -228,7 +228,9 @@ const FIELD_LABELS: Record<string, string> = {
 export type TimeOfDay = NonNullable<NonNullable<DesignSpec["scene"]>["time_of_day"]>;
 export type WindowsView = NonNullable<NonNullable<DesignSpec["scene"]>["windows"]>;
 
-export const TIME_OF_DAY: { value: TimeOfDay; label: string }[] = [
+/** `null` keeps the time of day the photo was taken at (the default). */
+export const TIME_OF_DAY: { value: TimeOfDay | null; label: string }[] = [
+  { value: null, label: "As photo" },
   { value: "daylight", label: "Daylight" },
   { value: "golden_hour", label: "Golden hour" },
   { value: "evening", label: "Evening" },
@@ -243,6 +245,7 @@ export const WINDOWS_VIEW: { value: WindowsView; label: string }[] = [
 
 export function timeOfDayLabel(spec: DesignSpec): string | null {
   const t = spec.scene?.time_of_day;
+  if (!t) return null;
   return TIME_OF_DAY.find((o) => o.value === t)?.label ?? null;
 }
 

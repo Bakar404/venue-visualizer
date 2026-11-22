@@ -252,7 +252,8 @@ function StudioLoaded({ space }: { space: Space }) {
     },
   });
   const rendering = renderAll.isPending || lookRendering;
-  const renderDisabled = rendering || !engine;
+  const noBasePhoto = usablePhotos.length === 0;
+  const renderDisabled = rendering || !engine || noBasePhoto;
   const renderAllIfIdle = () => {
     if (renderStarting.current || rendering) toast.info("Already rendering this Look");
     else if (!engine) toast.info(backends.isPending ? "Still checking for image engines…" : "No image engine found");
@@ -572,6 +573,9 @@ function StudioLoaded({ space }: { space: Space }) {
               {lookRendering ? "Rendering…" : "Render all photos"}
               {usablePhotos.length > 0 && <span className="tabular opacity-75">({usablePhotos.length})</span>}
             </Button>
+            {noBasePhoto && (
+              <p className="text-center text-xs text-muted-foreground">Add or approve a base photo to render</p>
+            )}
             {backends.data?.internal?.layout_guide?.available && (
               <p className="text-center text-xs text-muted-foreground" title={backends.data.internal.layout_guide.detail ?? undefined}>
                 Exact table layout guide on

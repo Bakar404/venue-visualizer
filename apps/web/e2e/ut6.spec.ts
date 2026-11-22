@@ -85,3 +85,12 @@ test("UT6b: generate an empty base view from a reference, then approve it", asyn
   await approve.click();
   await expect(preview.getByRole("img", { name: "Generated view 1, original" })).toBeVisible();
 });
+
+test("UT6c: Render all is disabled until the space has an approved base photo", async ({ page }) => {
+  await page.goto("/spaces/space-wren-long-room");
+  const renderAll = page.getByRole("button", { name: /Render all photos/ });
+  await expect(renderAll).toBeVisible();
+  await expect(renderAll).toBeDisabled();
+  await expect(page.getByText("Add or approve a base photo to render")).toBeVisible();
+  await page.screenshot({ path: proof("UT6c-render-disabled-no-photos.png") });
+});

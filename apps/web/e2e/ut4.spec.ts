@@ -11,10 +11,12 @@ test("UT4: the plan has a Time & windows section; picking Night shows in the sum
 
   const time = page.getByRole("radiogroup", { name: "Time of day" });
   const radios = time.getByRole("radio");
-  await expect(radios).toHaveCount(4);
-  for (const [i, name] of ["Daylight", "Golden hour", "Evening", "Night"].entries()) {
+  await expect(radios).toHaveCount(5);
+  for (const [i, name] of ["As photo", "Daylight", "Golden hour", "Evening", "Night"].entries()) {
     await expect(radios.nth(i)).toHaveAccessibleName(name);
   }
+  // R4: with no time set, the plan keeps the photo's time of day.
+  await expect(time.getByRole("radio", { name: "As photo" })).toBeChecked();
   await time.getByRole("radio", { name: "Night" }).click();
   await expect(time.getByRole("radio", { name: "Night" })).toBeChecked();
 

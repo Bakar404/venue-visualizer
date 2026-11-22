@@ -1,0 +1,14 @@
+
+    Error Context: test-results/ut6-UT6c-Render-all-is-dis-55c1c--has-an-approved-base-photo-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6c-Render-all-is-dis-55c1c--has-an-approved-base-photo-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6c-Render-all-is-dis-55c1c--has-an-approved-base-photo-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/ut6.spec.ts:89:1 › UT6c: Render all is disabled until the space has an approved base photo 

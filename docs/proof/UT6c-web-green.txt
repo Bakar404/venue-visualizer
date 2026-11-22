@@ -1,0 +1,5 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/ut6.spec.ts:89:1 › UT6c: Render all is disabled until the space has an approved base photo
+  1 passed (3.9s)

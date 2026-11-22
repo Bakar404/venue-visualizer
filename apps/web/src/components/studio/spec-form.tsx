@@ -204,10 +204,10 @@ function TimeOfDayField({ form }: { form: Form }) {
       control={form.control}
       name="scene.time_of_day"
       render={({ field }) => (
-        <div role="radiogroup" aria-label="Time of day" className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
+        <div role="radiogroup" aria-label="Time of day" className="grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
           {TIME_OF_DAY.map((o) => (
             <label
-              key={o.value}
+              key={o.value ?? "as_photo"}
               className={cn(
                 "relative flex min-h-8 cursor-pointer items-center justify-center rounded-md px-1.5 text-center text-xs leading-tight font-medium text-muted-foreground select-none",
                 "transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.97]",
@@ -218,8 +218,8 @@ function TimeOfDayField({ form }: { form: Form }) {
               <input
                 type="radio"
                 name="spec-scene-time_of_day"
-                value={o.value}
-                checked={field.value === o.value}
+                value={o.value ?? ""}
+                checked={(field.value ?? null) === o.value}
                 onChange={() => field.onChange(o.value)}
                 onBlur={field.onBlur}
                 className="absolute inset-0 m-0 cursor-pointer appearance-none rounded-md opacity-0"
