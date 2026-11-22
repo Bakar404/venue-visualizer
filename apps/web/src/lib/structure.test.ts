@@ -6,26 +6,38 @@ import type { Render } from "@/lib/types";
 const qa = (q: unknown) => q as Render["qa"];
 
 describe("structureVerdict", () => {
-  it("prefers the backend's structure_message", () => {
-    expect(structureVerdict(qa({ structure_message: { level: "unverifiable", text: "Lighting changed a lot." } }))).toEqual({
-      level: "unverifiable",
+  it("uses the backend's “unverified” structure_message", () => {
+    const text = "Lighting changed a lot, so we couldn't confirm the room matches; compare with the slider.";
+    expect(structureVerdict(qa({ structure_message: { level: "unverified", text } }))).toEqual({
+      level: "unverified",
       label: "Couldn't verify",
-      text: "Lighting changed a lot.",
+      text,
     });
   });
 
-  it("maps old reasons to the two levels", () => {
-    const unverifiable = structureVerdict(qa({ structure: { method: "orb", reason: "no consistent match between photos" } }));
-    expect(unverifiable.level).toBe("unverifiable");
-    expect(unverifiable.label).toBe("Couldn't verify");
+  it("uses the backend's “changed” structure_message", () => {
+    const text = "This render may have changed the room's architecture.";
+    expect(structureVerdict(qa({ structure_message: { level: "changed", text } }))).toEqual({
+      level: "changed",
+      label: "May have changed the room",
+      text,
+    });
+  });
+
+  it("shows no badge when the backend says the room is ok", () => {
+    const message = { level: "ok", text: "The room's architecture appears unchanged." };
+    expect(structureVerdict(qa({ structure_message: message, structure: { method: "aligned", reason: null } }))).toBeNull();
+  });
+
+  it("maps old reasons (no structure_message) to the same levels", () => {
+    const unverified = structureVerdict(qa({ structure_message: null, structure: { method: "orb", reason: "no consistent match between photos" } }));
+    expect(unverified).toMatchObject({ level: "unverified", label: "Couldn't verify" });
+
+    const legacy = structureVerdict(qa({ structure: { method: "unverifiable", reason: null } }));
+    expect(legacy?.level).toBe("unverified");
 
     const partial = structureVerdict(qa({ structure: { method: "orb", reason: "render only shows 41% of the protected area" } }));
     expect(partial).toMatchObject({ level: "changed", label: "May have changed the room" });
-    expect(partial.text).toContain("41%");
-  });
-
-  it("uses a string message with the level mapped from the reason", () => {
-    const v = structureVerdict(qa({ structure_message: "Couldn't align the photos.", structure: { method: "unverifiable", reason: null } }));
-    expect(v).toEqual({ level: "unverifiable", label: "Couldn't verify", text: "Couldn't align the photos." });
+    expect(partial?.text).toContain("41%");
   });
 });

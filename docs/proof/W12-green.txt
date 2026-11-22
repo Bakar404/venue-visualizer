@@ -1,0 +1,7 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=chromium -g 'engine that takes reference photos|generate an empty base view from a reference, then approve it'
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut6.spec.ts:184:1 › UT6b: generating from a reference uses an engine that takes reference photos
+[2/2] [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it
+  2 passed (8.2s)

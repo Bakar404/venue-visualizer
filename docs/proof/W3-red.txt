@@ -1,0 +1,117 @@
+### pnpm --filter web exec vitest run src/lib/spec.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/spec.test.ts (2 tests | 1 failed) 5ms
+   ❯ specEquals (2)
+     × treats null and undefined keys as absent, at every depth (the API drops None fields) 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/spec.test.ts > specEquals > treats null and undefined keys as absent, at every depth (the API drops None fields)
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/lib/spec.test.ts:12:63
+     10|   it("treats null and undefined keys as absent, at every depth (the AP…
+     11|     const typedThenCleared: DesignSpec = { ...draft, linens: { ...draf…
+     12|     expect(specEquals(typedThenCleared, withoutNulls(draft))).toBe(tru…
+       |                                                               ^
+     13|     expect(specEquals({ ...draft, scene: { windows: "as_photographed",…
+     14|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  20:44:29
+   Duration  116ms (transform 53%, import 22%, tests 16%, worker 8%)
+
+
+### pnpm --filter web exec playwright test e2e/ut8.spec.ts
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look
+[2/2] [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render
+  1) [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('region', { name: 'Preview' }).getByText('Your plan changed since this render')
+    Expected: 0
+    Received: 1
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('region', { name: 'Preview' }).getByText('Your plan changed since this render') with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Preview' }).getByText('Your plan changed since this render')
+        24 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+       9 |   await expect(preview.getByRole("img", { name: /with the Blush, gold & ivory Look applied/ })).toBeVisible();
+      10 |   const banner = preview.getByText("Your plan changed since this render");
+    > 11 |   await expect(banner).toHaveCount(0);
+         |                        ^
+      12 |
+      13 |   await sendChat(page, "Make the linens sage green");
+      14 |   await expect(banner).toBeVisible();
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut8.spec.ts:11:24
+
+    Error Context: test-results/ut8-UT8-when-the-plan-chan-a86b4-ays-so-until-the-new-render-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut8-UT8-when-the-plan-chan-a86b4-ays-so-until-the-new-render-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut8-UT8-when-the-plan-chan-a86b4-ays-so-until-the-new-render-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look 
+
+    Error: expect(locator).toBeHidden() failed
+
+    Locator:  getByRole('region', { name: 'Preview' }).getByText('Your plan changed since this render')
+    Expected: hidden
+    Received: visible
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeHidden" getByRole('region', { name: 'Preview' }).getByText('Your plan changed since this render') with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Preview' }).getByText('Your plan changed since this render')
+        24 × locator resolved to <span class="min-w-0 truncate">Your plan changed since this render</span>
+           - unexpected value "visible"
+
+
+      37 |   // The cleared runner is saved as null; the Look's spec (from the API) has no runner key at all.
+      38 |   await expect.poll(async () => ((await savedSpec(page, "space-ballroom")) as { linens?: { runner?: unknown } })?.linens).toMatchObject({ runner: null });
+    > 39 |   await expect(banner).toBeHidden();
+         |                        ^
+      40 |
+      41 |   await page.getByRole("button", { name: "Render all photos" }).click();
+      42 |   await expect(preview.getByText(/^(Queued|Rendering)$/)).toBeVisible();
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut8.spec.ts:39:24
+
+    Error Context: test-results/ut8-UT8-a-field-typed-then-a49f8--Render-all-reuses-the-Look-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut8-UT8-a-field-typed-then-a49f8--Render-all-reuses-the-Look-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut8-UT8-a-field-typed-then-a49f8--Render-all-reuses-the-Look-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render 
+    [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look 

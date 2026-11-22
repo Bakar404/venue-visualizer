@@ -63,7 +63,8 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     if (!data) return null;
     const available = data.brains.filter((b) => b.available).map((b) => b.id);
     if (stored.brain && available.includes(stored.brain)) return stored.brain;
-    return available.includes(data.defaults.brain) ? data.defaults.brain : (available[0] ?? null);
+    const preferred = data.defaults.brain;
+    return preferred && available.includes(preferred) ? preferred : (available[0] ?? null);
   }, [data, stored.brain]);
 
   const setEngine = useCallback((id: string) => write({ ...read(), engine: id }), []);

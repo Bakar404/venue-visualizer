@@ -6,6 +6,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { PhotoCredit } from "@/components/photo-credit";
+import { BaseCandidate } from "@/components/studio/base-candidate";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import { api, errorMessage } from "@/lib/api";
@@ -158,15 +159,23 @@ export function PhotoStrip({
   selectedId,
   onSelect,
   look,
+  candidate,
 }: {
   spaceId: string;
   photos: Photo[];
   selectedId: string | undefined;
   onSelect: (id: string) => void;
   look: Look | undefined;
+  /** A generated base view still waiting for review (e.g. it finished after another photo became the base). */
+  candidate?: Photo;
 }) {
   return (
     <div className="flex flex-col gap-3">
+      {candidate && (
+        <section aria-label="Generated view to review">
+          <BaseCandidate key={candidate.id} photo={candidate} spaceId={spaceId} onApproved={(p) => onSelect(p.id)} compact />
+        </section>
+      )}
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-1" aria-label="Photos">
         {photos.map((photo, i) => {
           const render = latestRenderFor(look?.renders, photo.id);

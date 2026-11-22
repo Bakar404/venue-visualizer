@@ -20,7 +20,7 @@ export function userEngines(engines: BackendStatus[]): BackendStatus[] {
 }
 
 export function canBrowse(brain: BackendStatus): boolean {
-  return brain.caps?.web ?? WEB_BRAINS.has(brain.id);
+  return WEB_BRAINS.has(brain.id);
 }
 
 /** Applied to every `/api/system/backends` response before the UI sees it. */

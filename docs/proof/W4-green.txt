@@ -1,0 +1,8 @@
+### pnpm --filter web exec playwright test e2e/ut8.spec.ts
+
+Running 3 tests using 3 workers
+
+[1/3] [chromium] › e2e/ut8.spec.ts:48:1 › UT8: edits made while Render all is starting are kept, and the canvas says the plan changed
+[2/3] [chromium] › e2e/ut8.spec.ts:5:1 › UT8: when the plan changes, the canvas says so until the new render
+[3/3] [chromium] › e2e/ut8.spec.ts:25:1 › UT8: a field typed then cleared is not a plan change, and Render all reuses the Look
+  3 passed (14.0s)

@@ -17,6 +17,7 @@ const required = (what: string) => z.string().trim().min(1, `Add a ${what}`).max
 const count = (min: number, max: number) =>
   z.number({ error: "Enter a number" }).int("Use a whole number").min(min, `At least ${min}`).max(max, `At most ${max}`);
 
+/** Every field the API accepts as None (services/pipeline/models.py) is `.nullable()` here too. */
 export const specFormSchema = z.looseObject({
   version: z.literal(1),
   space: z.string(),
@@ -30,12 +31,12 @@ export const specFormSchema = z.looseObject({
     seats: count(SPEC_LIMITS["tables.seats"].min, SPEC_LIMITS["tables.seats"].max).nullable().optional(),
   }),
   linens: z.object({ color: required("linen color"), pattern: text, length: z.enum(["floor", "lap", "none"]).optional(), runner: text }),
-  napkins: z.object({ color: text, fold: text }).optional(),
+  napkins: z.object({ color: text, fold: text }).nullable().optional(),
   chairs: z.object({ style: required("chair style"), color: required("chair color"), cushion: text, sash: text }),
   centerpieces: z.object({
     height: z.enum(["none", "low", "medium", "tall", "mixed"]),
-    flowers: z.array(z.string()).optional(),
-    colors: z.array(z.string()).optional(),
+    flowers: z.array(z.string()).nullable().optional(),
+    colors: z.array(z.string()).nullable().optional(),
     greenery: text,
     container: text,
     candles: z.enum(["none", "flameless", "live"]).optional(),
@@ -53,9 +54,11 @@ export const specFormSchema = z.looseObject({
     .optional(),
   scene: z
     .object({
-      time_of_day: z.enum(["daylight", "golden_hour", "evening", "night"]).optional(),
+      // null = "As photo" (keep the photo's own time of day).
+      time_of_day: z.enum(["daylight", "golden_hour", "evening", "night"]).nullable().optional(),
       windows: z.enum(["as_photographed", "dark", "sheer_draped"]).optional(),
     })
+    .nullable()
     .optional(),
   notes: z.string().max(SPEC_LIMITS.notes, `Keep notes under ${SPEC_LIMITS.notes} characters`).nullable().optional(),
 });

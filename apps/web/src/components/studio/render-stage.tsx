@@ -184,12 +184,12 @@ export function RenderStage({
               data-level={verdict.level}
               className={cn(
                 "absolute bottom-3 left-3 z-30 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur transition-[background-color,transform] duration-150 ease-out active:scale-[0.97]",
-                verdict.level === "unverifiable"
+                verdict.level === "unverified"
                   ? "bg-background/90 text-foreground ring-1 ring-border hover:bg-background"
                   : "border border-warning-border bg-warning text-warning-foreground hover:brightness-[0.98]",
               )}
             >
-              {verdict.level === "unverifiable" ? <ScanSearchIcon aria-hidden className="size-3.5" /> : <TriangleAlertIcon aria-hidden className="size-3.5" />}
+              {verdict.level === "unverified" ? <ScanSearchIcon aria-hidden className="size-3.5" /> : <TriangleAlertIcon aria-hidden className="size-3.5" />}
               {verdict.label}
             </PopoverTrigger>
             <PopoverContent

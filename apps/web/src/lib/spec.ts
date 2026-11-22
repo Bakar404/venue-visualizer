@@ -1,4 +1,4 @@
-import { stableStringify } from "@/lib/stable-json";
+import { stableStringify, withoutNulls } from "@/lib/stable-json";
 import type { DesignSpec, RuleWarning, VenueRules } from "@/lib/types";
 
 export function defaultSpec(space = "ballroom"): DesignSpec {
@@ -180,8 +180,9 @@ export function suggestLookName(spec: DesignSpec): string {
   return titleCase(`${colors.slice(0, -1).join(", ")} & ${colors.at(-1)}`);
 }
 
+/** Null/undefined fields count as absent: the API returns specs with None fields dropped. */
 export function specEquals(a: DesignSpec | null | undefined, b: DesignSpec | null | undefined) {
-  return stableStringify(a) === stableStringify(b);
+  return stableStringify(withoutNulls(a)) === stableStringify(withoutNulls(b));
 }
 
 const FIELD_LABELS: Record<string, string> = {

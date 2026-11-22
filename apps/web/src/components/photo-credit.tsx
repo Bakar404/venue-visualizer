@@ -3,7 +3,8 @@ import { GlobeIcon } from "lucide-react";
 import { safeHttpUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
 
-type Credited = { credit?: string | null; source_url?: string | null };
+/** `source_page` is where the photo was found; `source_url` (the image itself) is the fallback. */
+type Credited = { credit?: string | null; source_url?: string | null; source_page?: string | null };
 
 export function hostOf(url: string): string {
   try {
@@ -18,13 +19,14 @@ export function hostOf(url: string): string {
  * Use `asLink={false}` inside another link (cards) so anchors aren't nested; the source is still named.
  */
 export function PhotoCredit({ photo, asLink = true, className }: { photo: Credited; asLink?: boolean; className?: string }) {
-  if (!photo.credit && !photo.source_url) return null;
-  const label = photo.credit ?? hostOf(photo.source_url!);
-  const href = safeHttpUrl(photo.source_url);
+  const source = photo.source_page || photo.source_url;
+  if (!photo.credit && !source) return null;
+  const label = photo.credit ?? hostOf(source!);
+  const href = safeHttpUrl(source);
   const chip = "inline-flex max-w-full items-center gap-1 truncate rounded-full bg-black/55 px-2 py-0.5 text-[11px] leading-4 text-white backdrop-blur-sm";
   if (!asLink || !href) {
     return (
-      <span className={cn(chip, className)} title={photo.source_url ? `Source: ${photo.source_url}` : undefined}>
+      <span className={cn(chip, className)} title={source ? `Source: ${source}` : undefined}>
         <GlobeIcon aria-hidden className="size-3 shrink-0" />
         <span className="truncate">
           <span className="sr-only">Photo credit: </span>

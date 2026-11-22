@@ -1,0 +1,4284 @@
+{
+  "components": {
+    "schemas": {
+      "Ambiguity": {
+        "properties": {
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "options"
+        ],
+        "title": "Ambiguity",
+        "type": "object"
+      },
+      "BackendCaps": {
+        "properties": {
+          "can_edit": {
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "can_generate": {
+            "title": "Can Generate",
+            "type": "boolean"
+          },
+          "cost_note": {
+            "title": "Cost Note",
+            "type": "string"
+          },
+          "max_refs": {
+            "default": 0,
+            "title": "Max Refs",
+            "type": "integer"
+          },
+          "photoreal": {
+            "title": "Photoreal",
+            "type": "boolean"
+          },
+          "typical_seconds": {
+            "title": "Typical Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "can_generate",
+          "can_edit",
+          "typical_seconds",
+          "cost_note",
+          "photoreal"
+        ],
+        "title": "BackendCaps",
+        "type": "object"
+      },
+      "BackendDefaults": {
+        "properties": {
+          "brain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brain"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine"
+          }
+        },
+        "required": [
+          "brain",
+          "engine"
+        ],
+        "title": "BackendDefaults",
+        "type": "object"
+      },
+      "BackendStatus": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "caps": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackendCaps"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "brain",
+              "engine"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "logged_in": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logged In"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "available",
+          "logged_in",
+          "version",
+          "detail"
+        ],
+        "title": "BackendStatus",
+        "type": "object"
+      },
+      "BackendThresholds": {
+        "properties": {
+          "structure_ok": {
+            "title": "Structure Ok",
+            "type": "number"
+          }
+        },
+        "required": [
+          "structure_ok"
+        ],
+        "title": "BackendThresholds",
+        "type": "object"
+      },
+      "BackendsOut": {
+        "properties": {
+          "brains": {
+            "items": {
+              "$ref": "#/components/schemas/BackendStatus"
+            },
+            "title": "Brains",
+            "type": "array"
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/BackendDefaults"
+          },
+          "engines": {
+            "items": {
+              "$ref": "#/components/schemas/BackendStatus"
+            },
+            "title": "Engines",
+            "type": "array"
+          },
+          "internal": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BackendStatus"
+            },
+            "default": {},
+            "title": "Internal",
+            "type": "object"
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/BackendThresholds"
+          }
+        },
+        "required": [
+          "brains",
+          "engines",
+          "defaults",
+          "thresholds"
+        ],
+        "title": "BackendsOut",
+        "type": "object"
+      },
+      "BaseResult": {
+        "properties": {
+          "photo_id": {
+            "title": "Photo Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "photo_id"
+        ],
+        "title": "BaseResult",
+        "type": "object"
+      },
+      "Body_upload_photos_api_spaces__space_id__photos_post": {
+        "properties": {
+          "files": {
+            "anyOf": [
+              {
+                "items": {
+                  "contentMediaType": "application/octet-stream",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files"
+          },
+          "files[]": {
+            "anyOf": [
+              {
+                "items": {
+                  "contentMediaType": "application/octet-stream",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files[]"
+          }
+        },
+        "title": "Body_upload_photos_api_spaces__space_id__photos_post",
+        "type": "object"
+      },
+      "Body_upload_video_api_venues__venue_id__video_post": {
+        "properties": {
+          "brain": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brain"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_video_api_venues__venue_id__video_post",
+        "type": "object"
+      },
+      "Centerpieces": {
+        "additionalProperties": false,
+        "properties": {
+          "candles": {
+            "default": "none",
+            "enum": [
+              "none",
+              "flameless",
+              "live"
+            ],
+            "title": "Candles",
+            "type": "string"
+          },
+          "colors": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Colors"
+          },
+          "container": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Container"
+          },
+          "flowers": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flowers"
+          },
+          "greenery": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Greenery"
+          },
+          "height": {
+            "enum": [
+              "none",
+              "low",
+              "medium",
+              "tall",
+              "mixed"
+            ],
+            "title": "Height",
+            "type": "string"
+          }
+        },
+        "required": [
+          "height"
+        ],
+        "title": "Centerpieces",
+        "type": "object"
+      },
+      "Chairs": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "cushion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cushion"
+          },
+          "sash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sash"
+          },
+          "style": {
+            "title": "Style",
+            "type": "string"
+          }
+        },
+        "required": [
+          "style",
+          "color"
+        ],
+        "title": "Chairs",
+        "type": "object"
+      },
+      "ChatIn": {
+        "additionalProperties": false,
+        "properties": {
+          "brain": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brain"
+          },
+          "message": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "spec": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesignSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "ChatIn",
+        "type": "object"
+      },
+      "ChatMessageOut": {
+        "properties": {
+          "ambiguities": {
+            "items": {
+              "$ref": "#/components/schemas/Ambiguity"
+            },
+            "title": "Ambiguities",
+            "type": "array"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "intent": {
+            "anyOf": [
+              {
+                "enum": [
+                  "edit",
+                  "render",
+                  "question",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intent"
+          },
+          "look_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Look Name"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "content",
+          "created_at"
+        ],
+        "title": "ChatMessageOut",
+        "type": "object"
+      },
+      "ChatOut": {
+        "properties": {
+          "ambiguities": {
+            "items": {
+              "$ref": "#/components/schemas/Ambiguity"
+            },
+            "title": "Ambiguities",
+            "type": "array"
+          },
+          "brain": {
+            "title": "Brain",
+            "type": "string"
+          },
+          "intent": {
+            "enum": [
+              "edit",
+              "render",
+              "question",
+              "none"
+            ],
+            "title": "Intent",
+            "type": "string"
+          },
+          "look_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Look Name"
+          },
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          },
+          "rule_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rule Notes",
+            "type": "array"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/DesignSpec"
+          },
+          "spec_changed": {
+            "title": "Spec Changed",
+            "type": "boolean"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/RuleWarning"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "spec",
+          "warnings",
+          "reply",
+          "rule_notes",
+          "intent",
+          "spec_changed",
+          "look_name",
+          "ambiguities",
+          "brain"
+        ],
+        "title": "ChatOut",
+        "type": "object"
+      },
+      "DesignSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "centerpieces": {
+            "$ref": "#/components/schemas/Centerpieces"
+          },
+          "chairs": {
+            "$ref": "#/components/schemas/Chairs"
+          },
+          "effects": {
+            "$ref": "#/components/schemas/Effects"
+          },
+          "event_type": {
+            "default": "wedding",
+            "enum": [
+              "wedding",
+              "corporate",
+              "birthday",
+              "gala",
+              "shower",
+              "other"
+            ],
+            "title": "Event Type",
+            "type": "string"
+          },
+          "extras": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Extras",
+            "type": "array"
+          },
+          "guest_count": {
+            "anyOf": [
+              {
+                "maximum": 2000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guest Count"
+          },
+          "install": {
+            "$ref": "#/components/schemas/Install"
+          },
+          "lighting": {
+            "$ref": "#/components/schemas/Lighting"
+          },
+          "linens": {
+            "$ref": "#/components/schemas/Linens"
+          },
+          "napkins": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Napkins"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "palette": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Palette",
+            "type": "array"
+          },
+          "scene": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Scene"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "space": {
+            "title": "Space",
+            "type": "string"
+          },
+          "tables": {
+            "$ref": "#/components/schemas/Tables"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "space",
+          "palette",
+          "tables",
+          "linens",
+          "chairs",
+          "centerpieces",
+          "lighting",
+          "extras"
+        ],
+        "title": "DesignSpec",
+        "type": "object"
+      },
+      "Effects": {
+        "additionalProperties": false,
+        "properties": {
+          "confetti": {
+            "default": false,
+            "title": "Confetti",
+            "type": "boolean"
+          },
+          "fog": {
+            "default": false,
+            "title": "Fog",
+            "type": "boolean"
+          },
+          "sparklers": {
+            "default": false,
+            "title": "Sparklers",
+            "type": "boolean"
+          }
+        },
+        "title": "Effects",
+        "type": "object"
+      },
+      "FrameOut": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "exposure_ok": {
+            "title": "Exposure Ok",
+            "type": "boolean"
+          },
+          "fixtures": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fixtures",
+            "type": "array"
+          },
+          "photo_id": {
+            "title": "Photo Id",
+            "type": "string"
+          },
+          "sharpness": {
+            "title": "Sharpness",
+            "type": "number"
+          },
+          "space_guess": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Guess"
+          },
+          "t": {
+            "title": "T",
+            "type": "number"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "usable": {
+            "title": "Usable",
+            "type": "boolean"
+          },
+          "view": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "View"
+          }
+        },
+        "required": [
+          "photo_id",
+          "url",
+          "t",
+          "sharpness",
+          "exposure_ok",
+          "usable"
+        ],
+        "title": "FrameOut",
+        "type": "object"
+      },
+      "GenerateBase": {
+        "additionalProperties": false,
+        "properties": {
+          "angle_hint": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Angle Hint"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine"
+          },
+          "reference_url": {
+            "anyOf": [
+              {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Url"
+          }
+        },
+        "title": "GenerateBase",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImportOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rules": {
+            "$ref": "#/components/schemas/VenueRules"
+          },
+          "skipped_photos": {
+            "items": {
+              "$ref": "#/components/schemas/SkippedPhoto"
+            },
+            "title": "Skipped Photos",
+            "type": "array"
+          },
+          "spaces": {
+            "items": {
+              "$ref": "#/components/schemas/SpaceOut"
+            },
+            "title": "Spaces",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "rules",
+          "created_at",
+          "spaces",
+          "skipped_photos"
+        ],
+        "title": "ImportOut",
+        "type": "object"
+      },
+      "Install": {
+        "additionalProperties": false,
+        "properties": {
+          "ceiling_draping": {
+            "default": false,
+            "title": "Ceiling Draping",
+            "type": "boolean"
+          },
+          "uses_adhesives": {
+            "default": false,
+            "title": "Uses Adhesives",
+            "type": "boolean"
+          },
+          "uses_nails": {
+            "default": false,
+            "title": "Uses Nails",
+            "type": "boolean"
+          }
+        },
+        "title": "Install",
+        "type": "object"
+      },
+      "JobOut": {
+        "properties": {
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "error_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Status"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "render",
+              "generate_base",
+              "venue_research",
+              "video_ingest"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RenderResult"
+              },
+              {
+                "$ref": "#/components/schemas/BaseResult"
+              },
+              {
+                "$ref": "#/components/schemas/ResearchResult"
+              },
+              {
+                "$ref": "#/components/schemas/VideoResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "progress",
+          "cancel_requested",
+          "error",
+          "error_status",
+          "result"
+        ],
+        "title": "JobOut",
+        "type": "object"
+      },
+      "Lighting": {
+        "additionalProperties": false,
+        "properties": {
+          "ambient": {
+            "default": "evening_warm",
+            "enum": [
+              "daylight",
+              "evening_warm",
+              "dim",
+              "colored"
+            ],
+            "title": "Ambient",
+            "type": "string"
+          },
+          "pin_spots": {
+            "default": false,
+            "title": "Pin Spots",
+            "type": "boolean"
+          },
+          "string_lights": {
+            "default": false,
+            "title": "String Lights",
+            "type": "boolean"
+          },
+          "uplighting": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uplighting"
+          }
+        },
+        "title": "Lighting",
+        "type": "object"
+      },
+      "Linens": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "length": {
+            "default": "floor",
+            "enum": [
+              "floor",
+              "lap",
+              "none"
+            ],
+            "title": "Length",
+            "type": "string"
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern"
+          },
+          "runner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runner"
+          }
+        },
+        "required": [
+          "color"
+        ],
+        "title": "Linens",
+        "type": "object"
+      },
+      "LookCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_look_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Look Id"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/DesignSpec"
+          }
+        },
+        "required": [
+          "name",
+          "spec"
+        ],
+        "title": "LookCreate",
+        "type": "object"
+      },
+      "LookOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_look_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Look Id"
+          },
+          "renders": {
+            "items": {
+              "$ref": "#/components/schemas/RenderOut"
+            },
+            "title": "Renders",
+            "type": "array"
+          },
+          "space_id": {
+            "title": "Space Id",
+            "type": "string"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/DesignSpec"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/RuleWarning"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "space_id",
+          "name",
+          "spec",
+          "parent_look_id",
+          "created_at",
+          "warnings",
+          "renders"
+        ],
+        "title": "LookOut",
+        "type": "object"
+      },
+      "Napkins": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "fold": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fold"
+          }
+        },
+        "title": "Napkins",
+        "type": "object"
+      },
+      "PhotoOut": {
+        "properties": {
+          "approved": {
+            "title": "Approved",
+            "type": "boolean"
+          },
+          "credit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit"
+          },
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "upload",
+              "generated_base",
+              "video_frame",
+              "web"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "source_page": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "space_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "space_id",
+          "url",
+          "kind",
+          "source_url",
+          "source_page",
+          "credit",
+          "approved",
+          "width",
+          "height"
+        ],
+        "title": "PhotoOut",
+        "type": "object"
+      },
+      "PhotoReference": {
+        "properties": {
+          "caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caption"
+          },
+          "credit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit"
+          },
+          "source_page": {
+            "maxLength": 8192,
+            "title": "Source Page",
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 8192,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "source_page"
+        ],
+        "title": "PhotoReference",
+        "type": "object"
+      },
+      "PhotoSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "default": "reference",
+            "enum": [
+              "reference",
+              "import"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "rights_confirmed": {
+            "default": false,
+            "title": "Rights Confirmed",
+            "type": "boolean"
+          },
+          "url": {
+            "maxLength": 8192,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "PhotoSelection",
+        "type": "object"
+      },
+      "ReferenceImport": {
+        "additionalProperties": false,
+        "properties": {
+          "rights_confirmed": {
+            "default": false,
+            "title": "Rights Confirmed",
+            "type": "boolean"
+          },
+          "url": {
+            "maxLength": 8192,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "ReferenceImport",
+        "type": "object"
+      },
+      "Regenerate": {
+        "additionalProperties": false,
+        "properties": {
+          "engine": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine"
+          }
+        },
+        "title": "Regenerate",
+        "type": "object"
+      },
+      "RenderBatch": {
+        "properties": {
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobOut"
+            },
+            "title": "Jobs",
+            "type": "array"
+          },
+          "renders": {
+            "items": {
+              "$ref": "#/components/schemas/RenderOut"
+            },
+            "title": "Renders",
+            "type": "array"
+          }
+        },
+        "required": [
+          "jobs",
+          "renders"
+        ],
+        "title": "RenderBatch",
+        "type": "object"
+      },
+      "RenderIn": {
+        "additionalProperties": false,
+        "properties": {
+          "brain": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brain"
+          },
+          "brain_qa": {
+            "default": false,
+            "title": "Brain Qa",
+            "type": "boolean"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine"
+          },
+          "photo_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 30,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Ids"
+          }
+        },
+        "title": "RenderIn",
+        "type": "object"
+      },
+      "RenderOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "look_id": {
+            "title": "Look Id",
+            "type": "string"
+          },
+          "photo_id": {
+            "title": "Photo Id",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "qa": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RenderQA"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "structure_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Score"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "id",
+          "look_id",
+          "photo_id",
+          "engine",
+          "status",
+          "url",
+          "prompt",
+          "structure_score",
+          "qa",
+          "error",
+          "created_at"
+        ],
+        "title": "RenderOut",
+        "type": "object"
+      },
+      "RenderQA": {
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "rule_warnings": {
+            "items": {
+              "$ref": "#/components/schemas/RuleWarning"
+            },
+            "title": "Rule Warnings",
+            "type": "array"
+          },
+          "structure": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StructureReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "structure_message": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StructureMessage"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "readOnly": true
+          },
+          "structure_warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Warning"
+          },
+          "tables_seen": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tables Seen"
+          }
+        },
+        "required": [
+          "structure_message"
+        ],
+        "title": "RenderQA",
+        "type": "object"
+      },
+      "RenderResult": {
+        "properties": {
+          "render_id": {
+            "title": "Render Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "render_id"
+        ],
+        "title": "RenderResult",
+        "type": "object"
+      },
+      "ResearchIn": {
+        "additionalProperties": false,
+        "properties": {
+          "brain": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brain"
+          },
+          "query": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "ResearchIn",
+        "type": "object"
+      },
+      "ResearchResult": {
+        "properties": {
+          "research": {
+            "additionalProperties": true,
+            "title": "Research",
+            "type": "object"
+          }
+        },
+        "required": [
+          "research"
+        ],
+        "title": "ResearchResult",
+        "type": "object"
+      },
+      "RuleWarning": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "fix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fix"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "rule": {
+            "title": "Rule",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "field",
+          "message"
+        ],
+        "title": "RuleWarning",
+        "type": "object"
+      },
+      "Scene": {
+        "additionalProperties": false,
+        "properties": {
+          "time_of_day": {
+            "anyOf": [
+              {
+                "enum": [
+                  "daylight",
+                  "golden_hour",
+                  "evening",
+                  "night"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Of Day"
+          },
+          "windows": {
+            "default": "as_photographed",
+            "enum": [
+              "as_photographed",
+              "dark",
+              "sheer_draped"
+            ],
+            "title": "Windows",
+            "type": "string"
+          }
+        },
+        "title": "Scene",
+        "type": "object"
+      },
+      "SkippedPhoto": {
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "reason"
+        ],
+        "title": "SkippedPhoto",
+        "type": "object"
+      },
+      "SpaceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "venue_spec": {
+            "$ref": "#/components/schemas/VenueSpec"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "SpaceCreate",
+        "type": "object"
+      },
+      "SpaceOut": {
+        "properties": {
+          "capacity_seated": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity Seated"
+          },
+          "capacity_standing": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity Standing"
+          },
+          "current_spec": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesignSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "photos": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoOut"
+            },
+            "title": "Photos",
+            "type": "array"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoReference"
+            },
+            "title": "References",
+            "type": "array"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "venue_id": {
+            "title": "Venue Id",
+            "type": "string"
+          },
+          "venue_spec": {
+            "$ref": "#/components/schemas/VenueSpec"
+          }
+        },
+        "required": [
+          "id",
+          "venue_id",
+          "name",
+          "venue_spec",
+          "photos",
+          "current_spec",
+          "references",
+          "capacity_seated",
+          "capacity_standing",
+          "source"
+        ],
+        "title": "SpaceOut",
+        "type": "object"
+      },
+      "SpacePatch": {
+        "additionalProperties": false,
+        "properties": {
+          "current_spec": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesignSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "venue_spec": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VenueSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "SpacePatch",
+        "type": "object"
+      },
+      "SpecCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "spec": {
+            "$ref": "#/components/schemas/DesignSpec"
+          },
+          "venue_id": {
+            "format": "uuid",
+            "title": "Venue Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "spec",
+          "venue_id"
+        ],
+        "title": "SpecCheck",
+        "type": "object"
+      },
+      "SpecCheckResult": {
+        "properties": {
+          "spec": {
+            "$ref": "#/components/schemas/DesignSpec"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/RuleWarning"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "spec",
+          "warnings"
+        ],
+        "title": "SpecCheckResult",
+        "type": "object"
+      },
+      "StructureMessage": {
+        "properties": {
+          "level": {
+            "enum": [
+              "ok",
+              "unverified",
+              "changed"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "level",
+          "text"
+        ],
+        "title": "StructureMessage",
+        "type": "object"
+      },
+      "StructureReport": {
+        "properties": {
+          "aligned": {
+            "title": "Aligned",
+            "type": "boolean"
+          },
+          "brightness_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brightness Delta"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "edge_density": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edge Density"
+          },
+          "flat": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flat"
+          },
+          "inliers": {
+            "title": "Inliers",
+            "type": "integer"
+          },
+          "method": {
+            "enum": [
+              "aligned",
+              "misaligned",
+              "unverifiable",
+              "edges",
+              "gray",
+              "flat"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "score",
+          "method",
+          "aligned",
+          "inliers",
+          "scale",
+          "rotation",
+          "coverage"
+        ],
+        "title": "StructureReport",
+        "type": "object"
+      },
+      "Tables": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "maximum": 300.0,
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "seats": {
+            "anyOf": [
+              {
+                "maximum": 24.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seats"
+          },
+          "shape": {
+            "enum": [
+              "round",
+              "banquet",
+              "square",
+              "oval",
+              "cocktail",
+              "mixed"
+            ],
+            "title": "Shape",
+            "type": "string"
+          },
+          "size_in": {
+            "anyOf": [
+              {
+                "maximum": 120.0,
+                "minimum": 24.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size In"
+          }
+        },
+        "required": [
+          "count",
+          "shape"
+        ],
+        "title": "Tables",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VenueCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "rules": {
+            "$ref": "#/components/schemas/VenueRules"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "VenueCreate",
+        "type": "object"
+      },
+      "VenueImport": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted_provided_items": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accepted Provided Items",
+            "type": "array"
+          },
+          "accepted_rules": {
+            "items": {
+              "enum": [
+                "live_candles",
+                "fog",
+                "confetti",
+                "sparklers",
+                "adhesives",
+                "nails",
+                "ceiling_draping"
+              ],
+              "type": "string"
+            },
+            "maxItems": 7,
+            "title": "Accepted Rules",
+            "type": "array"
+          },
+          "match_index": {
+            "minimum": 0.0,
+            "title": "Match Index",
+            "type": "integer"
+          },
+          "photos": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoSelection"
+            },
+            "maxItems": 1200,
+            "title": "Photos",
+            "type": "array"
+          },
+          "research_job_id": {
+            "format": "uuid",
+            "title": "Research Job Id",
+            "type": "string"
+          },
+          "space_names": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Space Names",
+            "type": "array"
+          }
+        },
+        "required": [
+          "research_job_id",
+          "match_index",
+          "space_names"
+        ],
+        "title": "VenueImport",
+        "type": "object"
+      },
+      "VenueOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rules": {
+            "$ref": "#/components/schemas/VenueRules"
+          },
+          "spaces": {
+            "items": {
+              "$ref": "#/components/schemas/SpaceOut"
+            },
+            "title": "Spaces",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "rules",
+          "created_at",
+          "spaces"
+        ],
+        "title": "VenueOut",
+        "type": "object"
+      },
+      "VenuePatch": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "rules": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VenueRules"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "VenuePatch",
+        "type": "object"
+      },
+      "VenueRules": {
+        "additionalProperties": false,
+        "properties": {
+          "adhesives": {
+            "default": true,
+            "title": "Adhesives",
+            "type": "boolean"
+          },
+          "ceiling_draping": {
+            "default": true,
+            "title": "Ceiling Draping",
+            "type": "boolean"
+          },
+          "confetti": {
+            "default": true,
+            "title": "Confetti",
+            "type": "boolean"
+          },
+          "fog": {
+            "default": true,
+            "title": "Fog",
+            "type": "boolean"
+          },
+          "live_candles": {
+            "default": true,
+            "title": "Live Candles",
+            "type": "boolean"
+          },
+          "nails": {
+            "default": true,
+            "title": "Nails",
+            "type": "boolean"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "provided_items": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provided Items"
+          },
+          "sparklers": {
+            "default": true,
+            "title": "Sparklers",
+            "type": "boolean"
+          }
+        },
+        "title": "VenueRules",
+        "type": "object"
+      },
+      "VenueSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "ceiling_ft": {
+            "anyOf": [
+              {
+                "maximum": 120.0,
+                "minimum": 6.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ceiling Ft"
+          },
+          "fixtures": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fixtures"
+          },
+          "floor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floor"
+          },
+          "length_ft": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 5.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Ft"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style"
+          },
+          "walls": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Walls"
+          },
+          "width_ft": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 5.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width Ft"
+          },
+          "windows": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Windows"
+          }
+        },
+        "title": "VenueSpec",
+        "type": "object"
+      },
+      "VideoApply": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "spaces": {
+            "items": {
+              "$ref": "#/components/schemas/VideoSpaceIn"
+            },
+            "maxItems": 12,
+            "title": "Spaces",
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id",
+          "spaces"
+        ],
+        "title": "VideoApply",
+        "type": "object"
+      },
+      "VideoResult": {
+        "properties": {
+          "applied": {
+            "default": false,
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "number"
+          },
+          "frames": {
+            "items": {
+              "$ref": "#/components/schemas/FrameOut"
+            },
+            "title": "Frames",
+            "type": "array"
+          },
+          "spaces_suggested": {
+            "items": {
+              "$ref": "#/components/schemas/VideoSpaceOut"
+            },
+            "title": "Spaces Suggested",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "frames",
+          "spaces_suggested",
+          "duration_s",
+          "warnings"
+        ],
+        "title": "VideoResult",
+        "type": "object"
+      },
+      "VideoSpaceIn": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Photo Ids",
+            "type": "array"
+          },
+          "venue_spec": {
+            "$ref": "#/components/schemas/VenueSpec"
+          }
+        },
+        "required": [
+          "name",
+          "photo_ids"
+        ],
+        "title": "VideoSpaceIn",
+        "type": "object"
+      },
+      "VideoSpaceOut": {
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Photo Ids",
+            "type": "array"
+          },
+          "venue_spec": {
+            "$ref": "#/components/schemas/VenueSpec"
+          }
+        },
+        "required": [
+          "name",
+          "venue_spec",
+          "photo_ids"
+        ],
+        "title": "VideoSpaceOut",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Venue Visualizer",
+    "version": "1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Health Api Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/jobs": {
+      "get": {
+        "operationId": "list_jobs_api_jobs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "space_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Space Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/JobOut"
+                  },
+                  "title": "Response List Jobs Api Jobs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Jobs",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_job_api_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/jobs/{job_id}/cancel": {
+      "post": {
+        "operationId": "cancel_api_jobs__job_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/looks/{look_id}": {
+      "delete": {
+        "operationId": "delete_look_api_looks__look_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "look_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Look Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Look",
+        "tags": [
+          "looks"
+        ]
+      },
+      "get": {
+        "operationId": "get_look_api_looks__look_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "look_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Look Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Look",
+        "tags": [
+          "looks"
+        ]
+      }
+    },
+    "/api/looks/{look_id}/export.pdf": {
+      "get": {
+        "operationId": "export_look_api_looks__look_id__export_pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "look_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Look Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Look",
+        "tags": [
+          "looks",
+          "export"
+        ]
+      }
+    },
+    "/api/looks/{look_id}/render": {
+      "post": {
+        "operationId": "render_look_api_looks__look_id__render_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "look_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Look Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RenderIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderBatch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Render Look",
+        "tags": [
+          "looks",
+          "jobs"
+        ]
+      }
+    },
+    "/api/photos/{photo_id}": {
+      "delete": {
+        "operationId": "delete_photo_api_photos__photo_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "photo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Photo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Photo",
+        "tags": [
+          "photos"
+        ]
+      }
+    },
+    "/api/photos/{photo_id}/approve": {
+      "post": {
+        "operationId": "approve_photo_api_photos__photo_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "photo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Photo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Photo",
+        "tags": [
+          "photos"
+        ]
+      }
+    },
+    "/api/renders/{render_id}/regenerate": {
+      "post": {
+        "operationId": "regenerate_api_renders__render_id__regenerate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "render_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Render Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Regenerate"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Regenerate",
+        "tags": [
+          "looks",
+          "jobs"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}": {
+      "get": {
+        "operationId": "get_space_api_spaces__space_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Space",
+        "tags": [
+          "spaces"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_space_api_spaces__space_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpacePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Space",
+        "tags": [
+          "spaces"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}/chat": {
+      "get": {
+        "operationId": "chat_history_api_spaces__space_id__chat_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChatMessageOut"
+                  },
+                  "title": "Response Chat History Api Spaces  Space Id  Chat Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat History",
+        "tags": [
+          "spaces",
+          "spec"
+        ]
+      },
+      "post": {
+        "operationId": "chat_api_spaces__space_id__chat_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat",
+        "tags": [
+          "spaces",
+          "spec"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}/generate-base": {
+      "post": {
+        "operationId": "generate_base_api_spaces__space_id__generate_base_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateBase"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Base",
+        "tags": [
+          "spaces",
+          "photos"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}/looks": {
+      "get": {
+        "operationId": "list_looks_api_spaces__space_id__looks_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LookOut"
+                  },
+                  "title": "Response List Looks Api Spaces  Space Id  Looks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Looks",
+        "tags": [
+          "looks"
+        ]
+      },
+      "post": {
+        "operationId": "create_look_api_spaces__space_id__looks_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LookCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Look",
+        "tags": [
+          "looks"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}/photos": {
+      "post": {
+        "operationId": "upload_photos_api_spaces__space_id__photos_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_photos_api_spaces__space_id__photos_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PhotoOut"
+                  },
+                  "title": "Response Upload Photos Api Spaces  Space Id  Photos Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Photos",
+        "tags": [
+          "spaces",
+          "photos"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}/references/import": {
+      "post": {
+        "operationId": "import_reference_api_spaces__space_id__references_import_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenceImport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Reference",
+        "tags": [
+          "spaces",
+          "photos"
+        ]
+      }
+    },
+    "/api/spec/check": {
+      "post": {
+        "operationId": "check_spec_api_spec_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpecCheck"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecCheckResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Spec",
+        "tags": [
+          "spec"
+        ]
+      }
+    },
+    "/api/spec/default": {
+      "get": {
+        "operationId": "get_default_spec_api_spec_default_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesignSpec"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Default Spec",
+        "tags": [
+          "spec"
+        ]
+      }
+    },
+    "/api/system/backends": {
+      "get": {
+        "operationId": "backends_api_system_backends_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackendsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Backends",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/venues": {
+      "get": {
+        "operationId": "list_venues_api_venues_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VenueOut"
+                  },
+                  "title": "Response List Venues Api Venues Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Venues",
+        "tags": [
+          "venues"
+        ]
+      },
+      "post": {
+        "operationId": "create_venue_api_venues_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VenueCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Venue",
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/api/venues/import": {
+      "post": {
+        "operationId": "import_venue_api_venues_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VenueImport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Venue",
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/api/venues/research": {
+      "post": {
+        "operationId": "research_venue_api_venues_research_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Research Venue",
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/api/venues/{venue_id}": {
+      "delete": {
+        "operationId": "delete_venue_api_venues__venue_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Venue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Venue",
+        "tags": [
+          "venues"
+        ]
+      },
+      "get": {
+        "operationId": "get_venue_api_venues__venue_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Venue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Venue",
+        "tags": [
+          "venues"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_venue_api_venues__venue_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Venue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VenuePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Venue",
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/api/venues/{venue_id}/spaces": {
+      "post": {
+        "operationId": "create_space_api_venues__venue_id__spaces_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Venue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Space",
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/api/venues/{venue_id}/video": {
+      "post": {
+        "operationId": "upload_video_api_venues__venue_id__video_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Venue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_video_api_venues__venue_id__video_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Video",
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/api/venues/{venue_id}/video/apply": {
+      "post": {
+        "operationId": "apply_video_api_venues__venue_id__video_apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Venue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoApply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Video",
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/files/{path}": {
+      "get": {
+        "operationId": "get_file_files__path__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "title": "Path",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get File",
+        "tags": [
+          "files"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "system"
+    },
+    {
+      "name": "venues"
+    },
+    {
+      "name": "spaces"
+    },
+    {
+      "name": "photos"
+    },
+    {
+      "name": "spec"
+    },
+    {
+      "name": "looks"
+    },
+    {
+      "name": "jobs"
+    },
+    {
+      "name": "export"
+    },
+    {
+      "name": "files"
+    }
+  ]
+}

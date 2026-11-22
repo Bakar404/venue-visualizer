@@ -4,11 +4,13 @@
  * matching decorated photo for the photo and the Look. Renders finish about 2 s after they start; venue
  * research and video tours take about 3 s. Everything lives in browser memory and resets on reload.
  */
+import { canBrowse } from "@/lib/backends";
 import { ApiError } from "@/lib/errors";
 import { venueSpecFromResearch } from "@/lib/import-payload";
 import { buildPrompt, mockBrain } from "@/lib/mock-brain";
 import { buildTextPdf } from "@/lib/mock-pdf";
 import { SAMPLE_SIZE, SAMPLES, type SampleLook, type SampleScene } from "@/lib/samples";
+import { withoutNulls } from "@/lib/stable-json";
 import { LOW_STRUCTURE_SCORE, applyRules, colorFor, defaultRules, defaultSpec, diffSpecs, specEquals } from "@/lib/spec";
 import type {
   Backends,
@@ -28,10 +30,12 @@ import type {
   VVApi,
 } from "@/lib/types";
 
-type PhotoRow = Photo & { sample: SampleScene | null; created_at: string };
-type SpaceRow = Omit<Space, "photos">;
+type PhotoRow = Omit<Photo, "source_url" | "source_page" | "credit"> &
+  Partial<Pick<Photo, "source_url" | "source_page" | "credit">> & { sample: SampleScene | null; created_at: string };
+type SpaceRow = Omit<Space, "photos" | "references" | "source" | "capacity_seated" | "capacity_standing"> &
+  Partial<Pick<Space, "references" | "source" | "capacity_seated" | "capacity_standing">>;
 type VenueRow = Omit<Venue, "spaces">;
-type LookRow = Omit<Look, "renders">;
+type LookRow = Omit<Look, "renders" | "warnings">;
 type RenderRow = Render & { attempt: number };
 type JobRow = {
   job: Job;
@@ -69,51 +73,49 @@ const BACKENDS: Backends = {
   brains: [
     {
       id: "claude", label: "Claude Code", kind: "brain", available: true, logged_in: true, version: "2.4.0", detail: null,
-      caps: { web: true, vision: true },
     },
     {
       id: "codex", label: "Codex", kind: "brain", available: false, logged_in: null, version: null, detail: "`codex` was not found on your PATH.",
-      caps: { web: true, vision: true },
     },
     {
       id: "copilot", label: "Copilot CLI", kind: "brain", available: true, logged_in: true, version: "1.0.115", detail: null,
-      caps: { web: true, vision: true },
     },
     {
       id: "kimi", label: "Kimi Code", kind: "brain", available: true, logged_in: false, version: "0.9.2", detail: "Installed but signed out. Run `kimi login`.",
-      caps: { web: true, vision: false },
     },
     {
       id: "mock", label: "Mock brain", kind: "brain", available: true, logged_in: null, version: null,
       detail: "Keyword parser for offline use. In demo mode it also returns a sample venue.",
-      caps: { web: true, vision: true },
     },
   ],
   engines: [
     {
       id: "copilot", label: "Copilot image", kind: "engine", available: true, logged_in: true, version: "1.0.115", detail: null,
-      caps: { can_generate: true, can_edit: true, typical_seconds: 30, cost_note: "Uses Copilot AI credits", photoreal: true },
+      caps: { can_generate: true, can_edit: true, typical_seconds: 30, cost_note: "Uses Copilot AI credits", photoreal: true, max_refs: 3 },
     },
     {
       id: "codex", label: "Codex image", kind: "engine", available: false, logged_in: null, version: null,
       detail: "Needs Codex with the image_generation feature enabled and a ChatGPT login.",
-      caps: { can_generate: true, can_edit: true, typical_seconds: 40, cost_note: "Uses your ChatGPT plan quota", photoreal: true },
+      caps: { can_generate: true, can_edit: true, typical_seconds: 40, cost_note: "Uses your ChatGPT plan quota", photoreal: true, max_refs: 3 },
     },
     {
       id: "mflux", label: "Local FLUX (mflux)", kind: "engine", available: false, logged_in: null, version: null,
       detail: "mflux is not installed. It runs on Apple Silicon: `uv tool install mflux`.",
-      caps: { can_generate: true, can_edit: true, typical_seconds: 180, cost_note: "Free, runs on your Mac", photoreal: true },
+      caps: { can_generate: true, can_edit: true, typical_seconds: 180, cost_note: "Free, runs on your Mac", photoreal: true, max_refs: 2 },
     },
     {
       id: "mock", label: "Mock (dev)", kind: "engine", available: true, logged_in: null, version: null,
       detail: "Returns the matching demo photograph. Nothing is generated.",
-      caps: { can_generate: true, can_edit: true, typical_seconds: 2, cost_note: "Free, for testing", photoreal: true },
+      caps: { can_generate: true, can_edit: true, typical_seconds: 2, cost_note: "Free, for testing", photoreal: true, max_refs: 0 },
     },
   ],
   defaults: { brain: "claude", engine: "mock" },
   thresholds: { structure_ok: LOW_STRUCTURE_SCORE },
   internal: {
-    layout_guide: { available: true, detail: "Places each table exactly before the photo edit." },
+    layout_guide: {
+      id: "scene3d", label: "Layout guide", kind: "engine", available: true, logged_in: null, version: null,
+      detail: "Places each table exactly before the photo edit.",
+    },
   },
 };
 
@@ -383,12 +385,12 @@ function seed(): DB {
     "render-look-cocktail-photo-terrace": {
       structure: {
         score: 0.42, method: "misaligned", aligned: false, inliers: 9, scale: null, rotation: null, coverage: null,
-        reason: "no consistent match with the photo",
+        brightness_delta: 0.46, reason: "no consistent match with the photo",
       },
       structure_warning: "This render may have altered the room or changed the framing.",
       structure_message: {
-        level: "unverifiable",
-        text: "Lighting changed a lot, so we couldn't confirm the room matches. Compare with the slider.",
+        level: "unverified",
+        text: "Lighting changed a lot, so we couldn't confirm the room matches; compare with the slider.",
       },
     },
     "render-look-string-lights-photo-hayloft": {
@@ -397,10 +399,11 @@ function seed(): DB {
         reason: "the render lost the room's structure",
       },
       structure_warning: "This render may have altered the room or changed the framing.",
+      structure_message: { level: "changed", text: "This render may have changed the room's architecture." },
     },
   };
   for (const [look, targets] of looks) {
-    db.looks.set(look.id, look);
+    db.looks.set(look.id, { ...look, spec: withoutNulls(look.spec) });
     for (const [photoId, score] of targets) {
       const p = db.photos.get(photoId)!;
       const out = sampleRender(p.sample!, look.spec);
@@ -414,7 +417,12 @@ function seed(): DB {
         url: out.url,
         prompt: buildPrompt(look.spec),
         structure_score: seededQa[id]?.structure?.score ?? score,
-        qa: { tables_seen: look.spec.tables.count, notes: out.note ?? "Demo photograph; counts come from the plan.", ...seededQa[id] },
+        qa: {
+          tables_seen: look.spec.tables.count,
+          notes: out.note ?? "Demo photograph; counts come from the plan.",
+          structure_message: null,
+          ...seededQa[id],
+        },
         error: null,
         created_at: look.created_at,
         attempt: 1,
@@ -434,13 +442,49 @@ function db(): DB {
   return state;
 }
 
-/** Read-only peek at the mock database for end-to-end tests (`window.__vvMock`). Mock mode only. */
+type GateName = "chat" | "renderLook" | "deletePhoto" | "getJob";
+const gates = new Map<GateName, { promise: Promise<void>; release: () => void; waiting: number }>();
+const failNext = new Map<GateName, string>();
+
+/** Lets an end-to-end test hold a request mid-flight (`hold`/`release`) or make the next one fail. A no-op otherwise. */
+async function gate(name: GateName) {
+  const held = gates.get(name);
+  if (held) {
+    held.waiting++;
+    try {
+      await held.promise;
+    } finally {
+      held.waiting--;
+    }
+  }
+  const message = failNext.get(name);
+  if (message !== undefined) {
+    failNext.delete(name);
+    throw new ApiError(500, message);
+  }
+}
+
+/** Peek at the mock database and steer requests, for end-to-end tests (`window.__vvMock`). Mock mode only. */
 if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_VV_MOCK === "1") {
   Object.assign(window, {
     __vvMock: {
       looks: () => clone([...db().looks.values()]),
       renders: () => [...db().renders.values()].map((r) => clone(publicRender(r))),
       chat: (spaceId: string) => clone(db().chat.get(spaceId) ?? []),
+      space: (spaceId: string) => clone(db().spaces.get(spaceId) ?? null),
+      photos: (spaceId: string) => photosFor(spaceId),
+      hold: (name: GateName) => {
+        if (gates.has(name)) return;
+        let release = () => {};
+        const promise = new Promise<void>((resolve) => (release = resolve));
+        gates.set(name, { promise, release, waiting: 0 });
+      },
+      release: (name: GateName) => {
+        gates.get(name)?.release();
+        gates.delete(name);
+      },
+      waiting: (name: GateName) => gates.get(name)?.waiting ?? 0,
+      failNext: (name: GateName, message: string) => failNext.set(name, message),
     },
   });
 }
@@ -449,15 +493,18 @@ function photosFor(spaceId: string): Photo[] {
   return [...db().photos.values()]
     .filter((p) => p.space_id === spaceId)
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .map(({ id, space_id, url, kind, approved, width, height, source_url, credit }) => ({
+    .map(({ id, space_id, url, kind, approved, width, height, source_url, source_page, credit }) => ({
       id, space_id, url, kind, approved, width, height,
-      ...(source_url ? { source_url } : {}),
-      ...(credit ? { credit } : {}),
+      source_url: source_url ?? null,
+      source_page: source_page ?? null,
+      credit: credit ?? null,
     }));
 }
 
 function spaceOut(row: SpaceRow): Space {
-  return clone({ ...row, photos: photosFor(row.id) });
+  return clone({
+    source: null, capacity_seated: null, capacity_standing: null, references: [], ...row, photos: photosFor(row.id),
+  });
 }
 
 function venueOut(row: VenueRow): Venue {
@@ -475,7 +522,9 @@ function lookOut(row: LookRow): Look {
   const renders = [...db().renders.values()]
     .filter((r) => r.look_id === row.id)
     .map(publicRender);
-  return clone({ ...row, renders });
+  const space = db().spaces.get(row.space_id);
+  const venue = space && db().venues.get(space.venue_id);
+  return clone({ ...row, renders, warnings: venue ? applyRules(row.spec, venue.rules).warnings : [] });
 }
 
 async function loadImage(url: string): Promise<HTMLImageElement> {
@@ -565,6 +614,7 @@ async function finalize(row: JobRow) {
     render.qa = {
       tables_seen: look.spec.tables.count,
       notes: sample?.note ?? (sample ? "Demo photograph; counts come from the plan." : "Mock engine output; counts come from the plan."),
+      structure_message: null,
     };
     row.job = { ...row.job, status: "done", progress: 1, result: { render_id: render.id } };
   } else if (row.spaceId) {
@@ -613,7 +663,10 @@ function newJob(
   engine: string,
   target: Pick<JobRow, "renderId" | "spaceId" | "referenceUrl" | "messages" | "complete"> & { durationMs?: number } = {},
 ): Job {
-  const job: Job = { id: uid(), kind, status: "queued", progress: 0, error: null, message: null, created_at: now(), result: null };
+  const job: Job = {
+    id: uid(), kind, status: "queued", progress: 0, cancel_requested: false, error: null, error_status: null,
+    message: null, created_at: now(), result: null,
+  };
   const { durationMs = DONE_MS, ...rest } = target;
   db().jobs.set(job.id, { job, startedAt: Date.now(), durationMs, finalized: false, engine, ...rest });
   return clone(job);
@@ -862,6 +915,7 @@ export const mockApi: VVApi = {
   },
   async deletePhoto(id) {
     await latency();
+    await gate("deletePhoto");
     db().photos.delete(id);
     for (const [rid, r] of db().renders) if (r.photo_id === id) db().renders.delete(rid);
   },
@@ -871,7 +925,13 @@ export const mockApi: VVApi = {
     if (reference_url && !(space.references ?? []).some((r) => r.url === reference_url)) {
       throw new ApiError(422, "That photo isn't one of this space's references.");
     }
-    return newJob("generate_base", engineAvailable(engine), { spaceId, referenceUrl: reference_url });
+    const engineId = engineAvailable(engine);
+    const info = BACKENDS.engines.find((e) => e.id === engineId);
+    // Same check as the API: only engines that take reference images can work from a reference photo.
+    if (reference_url && (info?.caps?.max_refs ?? 0) < 1) {
+      throw new ApiError(422, `${info?.label ?? engineId} can't use a reference photo; pick Copilot, Codex or mflux.`);
+    }
+    return newJob("generate_base", engineId, { spaceId, referenceUrl: reference_url });
   },
   async importReference(spaceId, { url, rights_confirmed }) {
     await sleep(500);
@@ -883,7 +943,7 @@ export const mockApi: VVApi = {
     const id = uid();
     db().photos.set(id, {
       id, space_id: space.id, url, kind: "web", approved: true, sample, created_at: now(),
-      ...(ref.source_page ? { source_url: ref.source_page } : {}), credit: ref.credit ?? null, ...SAMPLE_SIZE,
+      source_url: url, source_page: ref.source_page, credit: ref.credit ?? null, ...SAMPLE_SIZE,
     });
     return photosFor(space.id).find((p) => p.id === id)!;
   },
@@ -891,10 +951,11 @@ export const mockApi: VVApi = {
     await latency();
     const row = db().photos.get(id) ?? notFound("Photo");
     row.approved = true;
-    return photosFor(row.space_id).find((p) => p.id === id)!;
+    return photosFor(row.space_id ?? "").find((p) => p.id === id)!;
   },
   async chat(spaceId, { message, spec, brain }) {
     await sleep(700 + Math.random() * 500);
+    await gate("chat");
     const space = requireSpace(spaceId);
     const venue = requireVenue(space.venue_id);
     const base = spec ?? defaultSpec(space.name);
@@ -948,7 +1009,8 @@ export const mockApi: VVApi = {
       id: uid(),
       space_id: spaceId,
       name: name.trim() || "Untitled look",
-      spec: applyRules(spec, venue.rules).spec,
+      // The API stores `spec.to_dict()`, which drops None fields.
+      spec: withoutNulls(applyRules(spec, venue.rules).spec),
       parent_look_id: parent_look_id ?? null,
       created_at: now(),
     };
@@ -966,6 +1028,7 @@ export const mockApi: VVApi = {
   },
   async renderLook(id, { photo_ids, engine }) {
     await latency();
+    await gate("renderLook");
     const look = requireLook(id);
     const engineId = engineAvailable(engine);
     const targets = photosFor(look.space_id).filter((p) => p.approved && (!photo_ids || photo_ids.includes(p.id)));
@@ -1010,7 +1073,7 @@ export const mockApi: VVApi = {
     const b = BACKENDS.brains.find((x) => x.id === (brain ?? BACKENDS.defaults.brain));
     if (!b) throw new ApiError(400, `Unknown brain “${brain}”.`);
     if (!b.available || b.logged_in === false) throw new ApiError(409, `${b.label} isn't ready: ${b.detail ?? "not detected"}`);
-    if (!b.caps?.web) throw new ApiError(409, `${b.label} can't search the web.`);
+    if (!canBrowse(b)) throw new ApiError(409, `${b.label} can't search the web.`);
     return newJob("venue_research", b.id, {
       durationMs: AGENT_MS,
       messages: RESEARCH_STEPS,
@@ -1062,7 +1125,7 @@ export const mockApi: VVApi = {
         db().photos.set(id, {
           id,
           space_id: space.id, url: p.url, kind: "web", approved: true, sample, created_at: now(),
-          source_url: p.source_page, credit: p.credit ?? null, ...SAMPLE_SIZE,
+          source_url: p.url, source_page: p.source_page, credit: p.credit ?? null, ...SAMPLE_SIZE,
         });
       }
       // Reference photos stay on the space; the studio offers to import one or draw a base view from it.
@@ -1137,6 +1200,7 @@ export const mockApi: VVApi = {
   },
   async getJob(id) {
     await sleep(60);
+    await gate("getJob");
     await tick();
     const row = db().jobs.get(id) ?? notFound("Job");
     return clone(row.job);

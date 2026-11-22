@@ -371,6 +371,7 @@ class BackendCaps(BaseModel):
     typical_seconds: int
     cost_note: str
     photoreal: bool
+    max_refs: int = 0
 
 
 class BackendStatus(BaseModel):

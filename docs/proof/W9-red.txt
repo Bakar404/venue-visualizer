@@ -1,0 +1,72 @@
+### pnpm --filter web exec playwright test e2e/ut1.spec.ts --project=chromium -g 'first reply|gets shorter'   (chat-panel.tsx as committed)
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut1.spec.ts:105:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up
+[2/2] [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter
+  1) [chromium] › e2e/ut1.spec.ts:105:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: /New message/ })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: /New message/ }) with timeout 10000ms
+      - waiting for getByRole('button', { name: /New message/ })
+
+
+      109 |   // One long first message, so the history scrolls before any reply exists.
+      110 |   await replyWhileScrolledTo(page, Array.from({ length: 10 }, (_, i) => LONG(i)).join("\n\n"), 0);
+    > 111 |   await expect(pill(page)).toBeVisible();
+          |                            ^
+      112 |   expect(await conversation(page).evaluate((el) => el.scrollTop)).toBe(0);
+      113 | });
+      114 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut1.spec.ts:111:28
+
+    Error Context: test-results/ut1-UT1-the-first-reply-in-e4142-l-if-the-reader-scrolled-up-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut1-UT1-the-first-reply-in-e4142-l-if-the-reader-scrolled-up-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut1-UT1-the-first-reply-in-e4142-l-if-the-reader-scrolled-up-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter 
+
+    Error: still pinned after the log viewport shrank
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1
+    Received:    206
+
+      123 |   // ResizeObserver callbacks run before the next paint, so two frames later the log must already be pinned.
+      124 |   await settledFrames(page);
+    > 125 |   expect(await fromBottom(page), "still pinned after the log viewport shrank").toBeLessThanOrEqual(1);
+          |                                                                                ^
+      126 | });
+      127 |
+      128 | test("UT1: the New message pill moves focus to the newest message", async ({ page }) => {
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut1.spec.ts:125:80
+
+    Error Context: test-results/ut1-UT1-a-reader-pinned-to-3798a-when-the-panel-gets-shorter-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut1-UT1-a-reader-pinned-to-3798a-when-the-panel-gets-shorter-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut1-UT1-a-reader-pinned-to-3798a-when-the-panel-gets-shorter-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut1.spec.ts:105:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up 
+    [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter 

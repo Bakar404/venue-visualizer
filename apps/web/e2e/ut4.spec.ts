@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { openStudio, proof, sendChat } from "./helpers";
+import { openStudio, proof, savedSpec, sendChat } from "./helpers";
 
 const planSummary = (page: import("@playwright/test").Page) => page.getByRole("button", { name: /Plan details/ });
 
@@ -34,4 +34,25 @@ test("UT4: “make it 7pm so it's dark out” sets night in one turn", async ({ 
   await sendChat(page, "Make it 7pm so it's dark out");
   await expect(planSummary(page)).toContainText("Night");
   await page.screenshot({ path: proof("UT4-chat-night-summary.png") });
+});
+
+test("UT4: going back to “As photo” clears the time and keeps every later edit", async ({ page }) => {
+  await openStudio(page, "space-ballroom");
+  await planSummary(page).click();
+  await page.getByRole("button", { name: "Time & windows" }).click();
+  const time = page.getByRole("radiogroup", { name: "Time of day" });
+  await time.getByRole("radio", { name: "Night" }).click();
+  await expect.poll(async () => (await savedSpec(page, "space-ballroom"))?.scene).toMatchObject({ time_of_day: "night" });
+
+  await time.getByRole("radio", { name: "As photo" }).click();
+  await expect(time.getByRole("radio", { name: "As photo" })).toBeChecked();
+  await page.getByLabel("Linen color").fill("sage green");
+
+  await expect
+    .poll(async () => {
+      const spec = (await savedSpec(page, "space-ballroom")) as { scene?: { time_of_day?: unknown }; linens: { color: string } } | null;
+      return { time_of_day: spec?.scene?.time_of_day, linens: spec?.linens.color };
+    })
+    .toEqual({ time_of_day: null, linens: "sage green" });
+  await expect(planSummary(page)).not.toContainText("Night");
 });

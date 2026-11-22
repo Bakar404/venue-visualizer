@@ -9,7 +9,33 @@ type MockPeek = {
   looks: () => Array<{ id: string; space_id: string; name: string; spec: { linens: { color: string } } }>;
   renders: () => Array<{ id: string; look_id: string; photo_id: string; status: string }>;
   chat: (spaceId: string) => Array<{ role: "user" | "assistant"; content: string }>;
+  /** The space's saved row; `current_spec` is the autosaved draft, exactly as the app sent it. */
+  space: (spaceId: string) => { current_spec: Record<string, unknown> | null } | null;
+  photos: (spaceId: string) => Array<{ id: string; kind: string; approved: boolean }>;
+  /** Holds every later request of this kind until `release`; `waiting` counts the requests parked there. */
+  hold: (name: MockGate) => void;
+  release: (name: MockGate) => void;
+  waiting: (name: MockGate) => number;
+  /** The next request of this kind fails with a 500 and this message. */
+  failNext: (name: MockGate, message: string) => void;
 };
+
+type MockGate = "chat" | "renderLook" | "deletePhoto" | "getJob";
+
+/** Holds `name` requests in the mock; returns a release function. */
+export async function holdMock(page: Page, name: MockGate) {
+  await page.evaluate((n) => window.__vvMock.hold(n), name);
+  return {
+    /** Resolves once a request has reached the hold. */
+    reached: () => expect.poll(() => page.evaluate((n) => window.__vvMock.waiting(n), name)).toBeGreaterThan(0),
+    release: () => page.evaluate((n) => window.__vvMock.release(n), name),
+  };
+}
+
+/** The space's autosaved plan in the mock database. */
+export function savedSpec(page: Page, spaceId: string) {
+  return page.evaluate((id) => window.__vvMock.space(id)?.current_spec ?? null, spaceId);
+}
 
 declare global {
   interface Window {

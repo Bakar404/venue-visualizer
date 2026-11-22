@@ -10,7 +10,7 @@ from pipeline.brains.base import BrainError
 from pipeline.engines.base import EditRequest, EngineError, GenerateRequest
 from pipeline.models import DesignSpec, VenueRules, load_schema
 
-from .contracts import FrameOut, PhotoReference, VideoResult, VideoSpaceOut
+from .contracts import FrameOut, VideoResult, VideoSpaceOut
 from .deps import Runtime
 from .integrations import (
     IntegrationError,
@@ -176,27 +176,10 @@ async def _generate_base(runtime: Runtime, job: Job, work: Path) -> Outcome:
         prompt = f"{prompts.build_base_prompt(space.venue_spec_json)}\n{_PHOTO_REAL}"
         if angle := job.payload_json.get("angle_hint"):
             prompt += f"\nApproximate alternative camera angle: {angle}."
-        if space.references_json:
-            if not engine.capabilities().can_edit:
-                raise IntegrationError(422, "This engine cannot use venue photos as references")
-            refs = []
-            for index, data in enumerate(space.references_json[: 1 + engine.capabilities().max_refs]):
-                reference = PhotoReference.model_validate(data)
-                folder = work / f"ref-{index}"
-                folder.mkdir()
-                refs.append((await download_reference(reference.url, folder)).path)
-            progress(runtime, job, 0.45)
-            generated = await engine.edit(EditRequest(
-                prompt=f"{prompt}\nUse the input only as a reference for the room. Make a new, empty base view.",
-                input_image=refs[0],
-                ref_images=refs[1:],
-                out_path=dest,
-                venue_spec=space.venue_spec_json,
-            ))
-        else:
-            generated = await engine.generate(GenerateRequest(
-                prompt=prompt, out_path=dest, venue_spec=space.venue_spec_json,
-            ))
+        # Stored references are only used when the user picks one (`reference_url`); see docs/api.md.
+        generated = await engine.generate(GenerateRequest(
+            prompt=prompt, out_path=dest, venue_spec=space.venue_spec_json,
+        ))
     image = await invoke(clean_image, pipeline_output(generated.path, work), work / "clean", None)
     key = new_id()
     photo = Photo(

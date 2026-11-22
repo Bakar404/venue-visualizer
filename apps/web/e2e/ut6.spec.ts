@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { proof } from "./helpers";
+import { holdMock, proof } from "./helpers";
 
 async function findLarkspur(page: Page, query: string) {
   await page.goto("/venues/new?tab=find");
@@ -93,4 +93,100 @@ test("UT6c: Render all is disabled until the space has an approved base photo", 
   await expect(renderAll).toBeDisabled();
   await expect(page.getByText("Add or approve a base photo to render")).toBeVisible();
   await page.screenshot({ path: proof("UT6c-render-disabled-no-photos.png") });
+});
+
+test("UT6b @mobile: a references-only space opens on its reference photos and actions", async ({ page }) => {
+  await page.goto("/spaces/space-wren-long-room");
+  const refs = page.getByRole("list", { name: "Reference photos" }).getByRole("listitem");
+  await expect(refs.first()).toBeVisible();
+  await expect(refs.first().getByRole("button", { name: "Use as my base photo" })).toBeVisible();
+  await expect(refs.first().getByRole("button", { name: "Generate an empty base view from this" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Preview" })).toHaveAttribute("aria-selected", "true");
+  await page.screenshot({ path: proof("UT6b-mobile-references.png") });
+});
+
+async function generateFromReference(page: Page) {
+  await page.goto("/spaces/space-wren-long-room");
+  const preview = page.getByRole("region", { name: "Preview" });
+  const refs = preview.getByRole("list", { name: "Reference photos" }).getByRole("listitem");
+  await refs.nth(1).getByRole("button", { name: "Generate an empty base view from this" }).click();
+  await expect(preview.getByRole("button", { name: "Use this view" })).toBeVisible({ timeout: 15_000 });
+  return { preview, refs };
+}
+
+test("UT6b: while a view is generating from a reference, Use as my base photo waits", async ({ page }) => {
+  await page.goto("/spaces/space-wren-long-room");
+  const preview = page.getByRole("region", { name: "Preview" });
+  const refs = preview.getByRole("list", { name: "Reference photos" }).getByRole("listitem");
+  await expect(refs).toHaveCount(2);
+
+  // Job polls are held, so the job stays queued until released.
+  const jobs = await holdMock(page, "getJob");
+  await refs.nth(1).getByRole("button", { name: "Generate an empty base view from this" }).click();
+  await expect(preview.getByText(/Generating the room|Waiting for the engine/)).toBeVisible();
+  await jobs.reached();
+  await expect(refs.nth(0).getByRole("button", { name: "Use as my base photo" })).toBeDisabled();
+  await expect(refs.nth(1).getByRole("button", { name: "Use as my base photo" })).toBeDisabled();
+
+  await jobs.release();
+  await expect(preview.getByRole("button", { name: "Use this view" })).toBeVisible({ timeout: 15_000 });
+  await expect(refs.nth(0).getByRole("button", { name: "Use as my base photo" })).toBeEnabled();
+});
+
+test("UT6b: a generated view stays reviewable after another photo becomes the base", async ({ page }) => {
+  const { preview, refs } = await generateFromReference(page);
+
+  await refs.first().getByRole("button", { name: "Use as my base photo" }).click();
+  await refs.first().getByRole("checkbox", { name: /I'm using this for personal planning/ }).click();
+  await refs.first().getByRole("button", { name: "Use this photo" }).click();
+  await expect(preview.getByRole("img", { name: "Photo 1, original" })).toBeVisible();
+
+  // The finished candidate moved to the photo strip, still with its Approve/Discard.
+  const strip = page.getByRole("complementary", { name: "Photos" });
+  await expect(strip.getByRole("img", { name: "Generated empty base view" })).toBeVisible();
+  await expect(strip.getByRole("button", { name: "Discard" })).toBeVisible();
+  await page.screenshot({ path: proof("UT6b-candidate-in-strip.png") });
+  await strip.getByRole("button", { name: "Use this view" }).click();
+  // Photos are ordered by when they were added, so the earlier generated view comes first and is now selected.
+  await expect(preview.getByRole("img", { name: "Generated view 1, original" })).toBeVisible();
+  await expect(strip.getByRole("button", { name: "Generated view 1", pressed: true })).toBeVisible();
+  await expect(strip.getByRole("img", { name: "Generated empty base view" })).toBeHidden();
+});
+
+test("UT6b: Discard shows an error and keeps the generated view when deleting fails", async ({ page }) => {
+  const { preview } = await generateFromReference(page);
+  await page.evaluate(() => window.__vvMock.failNext("deletePhoto", "The disk is read-only"));
+  await preview.getByRole("button", { name: "Discard" }).click();
+  await expect(page.getByText("Couldn't discard the view")).toBeVisible();
+  await expect(page.getByText("The disk is read-only")).toBeVisible();
+  await expect(preview.getByRole("img", { name: "Generated empty base view" })).toBeVisible();
+});
+
+test("UT6b: Discard is disabled while the delete is in flight", async ({ page }) => {
+  const { preview } = await generateFromReference(page);
+  const discard = preview.getByRole("button", { name: "Discard" });
+  const del = await holdMock(page, "deletePhoto");
+  await discard.click();
+  await del.reached();
+  await expect(discard).toBeDisabled();
+  await expect(preview.getByRole("button", { name: "Use this view" })).toBeDisabled();
+  await del.release();
+  await expect(preview.getByRole("img", { name: "Generated empty base view" })).toBeHidden();
+});
+
+test("UT6b: reference photos from the web are loaded without a referrer", async ({ page }) => {
+  await page.goto("/spaces/space-wren-long-room");
+  const images = page.getByRole("list", { name: "Reference photos" }).getByRole("img");
+  await expect(images).toHaveCount(2);
+  for (const img of await images.all()) await expect(img).toHaveAttribute("referrerpolicy", "no-referrer");
+});
+
+test("UT6b: generating from a reference uses an engine that takes reference photos", async ({ page }) => {
+  // The default engine (Mock) can't take references (max_refs 0); the API would reject it.
+  await page.goto("/spaces/space-wren-long-room");
+  const preview = page.getByRole("region", { name: "Preview" });
+  await preview.getByRole("button", { name: "Generate an empty base view from this" }).first().click();
+  const outcome = page.getByText(/Generating the room|Waiting for the engine|can't use a reference photo/).first();
+  await expect(outcome).toBeVisible();
+  await expect(outcome).not.toHaveText(/can't use a reference photo/);
 });

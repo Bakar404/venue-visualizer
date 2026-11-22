@@ -11,6 +11,15 @@ const eslintConfig = defineConfig([
       "@next/next/no-img-element": "off",
     },
   },
+  {
+    files: ["e2e/**/*.ts"],
+    rules: {
+      "no-restricted-properties": [
+        "error",
+        { property: "waitForTimeout", message: "Wait for a condition (expect, expect.poll, a held mock request) instead of a fixed sleep." },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

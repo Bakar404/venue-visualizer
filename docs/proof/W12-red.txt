@@ -1,0 +1,79 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=chromium -g 'engine that takes reference photos|generate an empty base view from a reference, then approve it'
+### (the mock now rejects a reference with an engine whose max_refs is 0, like services/api/studio.py)
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut6.spec.ts:182:1 › UT6b: generating from a reference uses an engine that takes reference photos
+[2/2] [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it
+  1) [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('region', { name: 'Preview' }).getByText(/Generating the room|Waiting for the engine/)
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('region', { name: 'Preview' }).getByText(/Generating the room|Waiting for the engine/) with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Preview' }).getByText(/Generating the room|Waiting for the engine/)
+
+
+      78 |   const refs = preview.getByRole("list", { name: "Reference photos" }).getByRole("listitem");
+      79 |   await refs.nth(1).getByRole("button", { name: "Generate an empty base view from this" }).click();
+    > 80 |   await expect(preview.getByText(/Generating the room|Waiting for the engine/)).toBeVisible();
+         |                                                                                 ^
+      81 |   await page.screenshot({ path: proof("UT6b-generating-from-reference.png") });
+      82 |
+      83 |   const approve = preview.getByRole("button", { name: "Use this view" });
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut6.spec.ts:80:81
+
+    Error Context: test-results/ut6-UT6b-generate-an-empty-ee231-a-reference-then-approve-it-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6b-generate-an-empty-ee231-a-reference-then-approve-it-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6b-generate-an-empty-ee231-a-reference-then-approve-it-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/ut6.spec.ts:182:1 › UT6b: generating from a reference uses an engine that takes reference photos 
+
+    Error: expect(locator).not.toHaveText(expected) failed
+
+    Locator: getByText(/Generating the room|Waiting for the engine|can't use a reference photo/).first()
+    Expected pattern: not /can't use a reference photo/
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "not toHaveText" getByText(/Generating the room|Waiting for the engine|can't use a reference photo/).first() with timeout 10000ms
+      - waiting for getByText(/Generating the room|Waiting for the engine|can't use a reference photo/).first()
+        12 × locator resolved to <div class="" data-description="">Mock (dev) can't use a reference photo; pick Copi…</div>
+           - unexpected value "Mock (dev) can't use a reference photo; pick Copilot, Codex or mflux."
+
+
+      187 |   const outcome = page.getByText(/Generating the room|Waiting for the engine|can't use a reference photo/).first();
+      188 |   await expect(outcome).toBeVisible();
+    > 189 |   await expect(outcome).not.toHaveText(/can't use a reference photo/);
+          |                             ^
+      190 | });
+      191 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut6.spec.ts:189:29
+
+    Error Context: test-results/ut6-UT6b-generating-from-a-a0fc0-that-takes-reference-photos-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6b-generating-from-a-a0fc0-that-takes-reference-photos-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6b-generating-from-a-a0fc0-that-takes-reference-photos-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/ut6.spec.ts:75:1 › UT6b: generate an empty base view from a reference, then approve it 
+    [chromium] › e2e/ut6.spec.ts:182:1 › UT6b: generating from a reference uses an engine that takes reference photos 

@@ -137,3 +137,35 @@ async def test_cli_generators_attach_reference_as_an_image(module, engine, room,
     request = GenerateRequest(prompt="Recreate the empty room", out_path=tmp_path / "base.png",
                               ref_images=[room])
     assert (await engine().generate(request)).path.is_file()
+
+
+def test_generate_base_without_reference_url_sends_no_references(client, reference_space, monkeypatch):
+    """W13: only an explicit `reference_url` sends a stored reference; otherwise the base comes from the description."""
+    from dataclasses import replace
+
+    caps = MockEngine.capabilities
+    monkeypatch.setattr(MockEngine, "capabilities", lambda self: replace(caps(self), max_refs=3))
+    seen: list[GenerateRequest] = []
+
+    async def generate(self, request):
+        seen.append(request)
+        make_room(request.out_path)
+        return ImageResult(request.out_path, 768, 512, "mock", 0)
+
+    async def edit(self, request):
+        raise AssertionError(f"Unexpected edit with references {[request.input_image, *request.ref_images]}")
+
+    monkeypatch.setattr(MockEngine, "generate", generate)
+    monkeypatch.setattr(MockEngine, "edit", edit)
+    job = _json(client.post(f"{reference_space}/generate-base", json={"engine": "mock"}), 202)
+    assert job["status"] == "done", job
+    [request] = seen
+    assert request.ref_images == []
+    [photo] = _json(client.get(reference_space))["photos"]
+    assert photo["id"] == job["result"]["photo_id"] and photo["approved"] is False
+
+
+def test_backends_report_how_many_references_each_engine_accepts(client):
+    """W12: the web only offers generate-from-reference when the engine accepts reference photos."""
+    engines = {e["id"]: e for e in _json(client.get("/api/system/backends"))["engines"]}
+    assert engines["mock"]["caps"]["max_refs"] == 0

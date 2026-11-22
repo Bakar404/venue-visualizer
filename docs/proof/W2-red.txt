@@ -1,0 +1,132 @@
+### pnpm --filter web exec vitest run src/lib/structure.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/structure.test.ts (4 tests | 3 failed) 7ms
+   ❯ structureVerdict (4)
+     × uses the backend's “unverified” structure_message 4ms
+     × shows no badge when the backend says the room is ok 1ms
+     × maps old reasons (no structure_message) to the same levels 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/structure.test.ts > structureVerdict > uses the backend's “unverified” structure_message
+AssertionError: expected { level: 'changed', …(2) } to deeply equal { level: 'unverified', …(2) }
+
+- Expected
++ Received
+
+  {
+-   "label": "Couldn't verify",
+-   "level": "unverified",
++   "label": "May have changed the room",
++   "level": "changed",
+    "text": "Lighting changed a lot, so we couldn't confirm the room matches; compare with the slider.",
+  }
+
+ ❯ src/lib/structure.test.ts:11:88
+      9|   it("uses the backend's “unverified” structure_message", () => {
+     10|     const text = "Lighting changed a lot, so we couldn't confirm the r…
+     11|     expect(structureVerdict(qa({ structure_message: { level: "unverifi…
+       |                                                                                        ^
+     12|       level: "unverified",
+     13|       label: "Couldn't verify",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/lib/structure.test.ts > structureVerdict > shows no badge when the backend says the room is ok
+AssertionError: expected { level: 'changed', …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "label": "May have changed the room",
+  "level": "changed",
+  "text": "The room's architecture appears unchanged.",
+}
+
+ ❯ src/lib/structure.test.ts:29:114
+     27|   it("shows no badge when the backend says the room is ok", () => {
+     28|     const message = { level: "ok", text: "The room's architecture appe…
+     29|     expect(structureVerdict(qa({ structure_message: message, structure…
+       |                                                                                                                  ^
+     30|   });
+     31|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/lib/structure.test.ts > structureVerdict > maps old reasons (no structure_message) to the same levels
+AssertionError: expected { level: 'unverifiable', …(2) } to match object { level: 'unverified', …(1) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "label": "Couldn't verify",
+-   "level": "unverified",
++   "level": "unverifiable",
+  }
+
+ ❯ src/lib/structure.test.ts:34:24
+     32|   it("maps old reasons (no structure_message) to the same levels", () …
+     33|     const unverified = structureVerdict(qa({ structure_message: null, …
+     34|     expect(unverified).toMatchObject({ level: "unverified", label: "Co…
+       |                        ^
+     35|
+     36|     const legacy = structureVerdict(qa({ structure: { method: "unverif…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
+   Start at  20:41:14
+   Duration  114ms (transform 45%, tests 26%, import 22%, worker 8%)
+
+
+### pnpm --filter web exec playwright test e2e/ut7.spec.ts
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider
+[2/2] [chromium] › e2e/ut7.spec.ts:20:1 › UT7: a changed room says “May have changed the room” with the backend's message
+  1) [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: /Couldn't verify/ })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: /Couldn't verify/ }) with timeout 10000ms
+      - waiting for getByRole('button', { name: /Couldn't verify/ })
+
+
+       6 |   await openStudio(page, "space-terrace");
+       7 |   const badge = page.getByRole("button", { name: /Couldn't verify/ });
+    >  8 |   await expect(badge).toBeVisible();
+         |                       ^
+       9 |   await expect(badge).toHaveAttribute("data-level", "unverified");
+      10 |   await badge.click();
+      11 |   const detail = page.getByRole("dialog");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut7.spec.ts:8:23
+
+    Error Context: test-results/ut7-UT7-an-unverifiable-ch-d8300-hy-and-points-to-the-slider-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut7-UT7-an-unverifiable-ch-d8300-hy-and-points-to-the-slider-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut7-UT7-an-unverifiable-ch-d8300-hy-and-points-to-the-slider-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/ut7.spec.ts:5:1 › UT7: an unverifiable check says “Couldn't verify”, explains why, and points to the slider 
+  1 passed (15.4s)

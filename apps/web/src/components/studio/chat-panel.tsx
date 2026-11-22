@@ -129,7 +129,8 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
   const messages = history.data ?? [];
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
 
-  // Whenever the history grows (a message, the thinking dots, chips), follow it only if the reader is at the end.
+  // Whenever the history grows (a message, the thinking dots, chips) or the log itself gets shorter (a smaller
+  // window, a growing panel below), stay at the end only if the reader was already there.
   useEffect(() => {
     const log = logRef.current;
     const content = contentRef.current;
@@ -138,18 +139,25 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
       if (stickRef.current) log.scrollTop = log.scrollHeight;
     });
     follow.observe(content);
+    follow.observe(log);
     return () => follow.disconnect();
   }, []);
 
-  // A reply that arrives while the reader is scrolled up gets a pill instead of a jump.
-  const seenReply = useRef<string | undefined>(undefined);
+  // A reply that arrives while the reader is scrolled up gets a pill instead of a jump. The reply already in the
+  // loaded history is the baseline (undefined until it loads; null when the conversation is new), so even the
+  // very first reply of a conversation gets the pill.
+  const seenReply = useRef<string | null | undefined>(undefined);
+  const lastAssistantId = lastAssistant?.id ?? null;
   useEffect(() => {
-    const id = lastAssistant?.id;
-    if (id === seenReply.current) return;
-    const first = seenReply.current === undefined;
-    seenReply.current = id;
-    if (!first && !stickRef.current) setUnseen(true);
-  }, [lastAssistant?.id]);
+    if (!history.isSuccess) return;
+    if (seenReply.current === undefined) {
+      seenReply.current = lastAssistantId;
+      return;
+    }
+    if (lastAssistantId === seenReply.current) return;
+    seenReply.current = lastAssistantId;
+    if (lastAssistantId && !stickRef.current) setUnseen(true);
+  }, [history.isSuccess, lastAssistantId]);
 
   const onLogScroll = () => {
     const log = logRef.current;
@@ -164,6 +172,12 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
     stickRef.current = true;
     setUnseen(false);
     log.scrollTo({ top: log.scrollHeight, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
+  };
+
+  /** The pill: bring the reader to the newest message and put keyboard focus there (the pill itself unmounts). */
+  const showNewest = () => {
+    scrollToEnd(true);
+    logRef.current?.querySelector<HTMLElement>("ol > li:last-of-type")?.focus({ preventScroll: true });
   };
 
   const submit = (text: string) => {
@@ -227,7 +241,14 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
               const info = meta[m.id];
               const isLast = m.id === lastAssistant?.id;
               return (
-                <li key={m.id} className={cn("flex flex-col gap-2", m.role === "user" ? "items-end" : "items-start")}>
+                <li
+                  key={m.id}
+                  tabIndex={-1}
+                  className={cn(
+                    "flex flex-col gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    m.role === "user" ? "items-end" : "items-start",
+                  )}
+                >
                   <p
                     className={cn(
                       "max-w-[88%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap",
@@ -312,7 +333,7 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
             <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
               <motion.button
                 type="button"
-                onClick={() => scrollToEnd(true)}
+                onClick={showNewest}
                 initial={{ opacity: 0, y: reduceMotion ? 0 : 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: reduceMotion ? 0 : 6, transition: { duration: 0.12 } }}

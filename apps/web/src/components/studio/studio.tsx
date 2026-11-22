@@ -74,7 +74,8 @@ function StudioLoaded({ space }: { space: Space }) {
   const usablePhotos = space.photos.filter((p) => p.kind === "upload" || p.approved);
   const [localSpec, setLocalSpec] = useState<DesignSpec | null>(null);
   const [pickedPhoto, setPickedPhoto] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>(() => (usablePhotos.length ? "canvas" : "photos"));
+  // A references-only space shows its reference photos (and the ways to get a base photo) in the Preview pane.
+  const [tab, setTab] = useState<Tab>(() => (usablePhotos.length || space.references?.length ? "canvas" : "photos"));
   const [check, setCheck] = useState<{ warnings: RuleWarning[]; fixed: DesignSpec } | null>(null);
   const [specOpen, setSpecOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -208,15 +209,20 @@ function StudioLoaded({ space }: { space: Space }) {
     window.history.replaceState(null, "", url);
   };
 
-  /** Makes a Look this screen just created the active one; its spec becomes the room's draft. */
-  const adoptLook = (look: Look) => {
+  /**
+   * Makes a Look this screen just created the active one. Its spec becomes the room's draft only if the draft is still
+   * the plan that was `submitted`; edits made while the request was in flight are kept (the canvas then says the plan
+   * changed since this render).
+   */
+  const adoptLook = (look: Look, submitted: DesignSpec) => {
     qc.setQueryData<Look[]>(qk.looks(space.id), (old) => (old?.some((l) => l.id === look.id) ? old : [look, ...(old ?? [])]));
     void qc.invalidateQueries({ queryKey: qk.looks(space.id) });
     void qc.invalidateQueries({ queryKey: qk.look(look.id) });
     setAppliedLookParam(look.id);
     selectLook(look.id);
     setCopyOf(null);
-    if (!specEquals(look.spec, draftRef.current)) updateSpec(look.spec, { check: false });
+    const current = draftRef.current;
+    if (specEquals(current, submitted) && !specEquals(look.spec, current)) updateSpec(look.spec, { check: false });
   };
 
   const photoIds = usablePhotos.map((p) => p.id);
@@ -232,11 +238,12 @@ function StudioLoaded({ space }: { space: Space }) {
     mutationFn: async () => {
       if (!photoIds.length) throw new Error("Add a photo first, or describe the venue and approve a base image.");
       if (!engine) throw new Error("No image engine found — install/log in to Copilot CLI, Codex CLI, or mflux.");
-      const look = reusableLook ?? (await api.createLook(space.id, { name: suggestLookName(draft), spec: draft, parent_look_id: null }));
+      const submitted = draft;
+      const look = reusableLook ?? (await api.createLook(space.id, { name: suggestLookName(submitted), spec: submitted, parent_look_id: null }));
       const res = await api.renderLook(look.id, { engine, photo_ids: photoIds });
-      return { look, res };
+      return { look, res, submitted };
     },
-    onSuccess: ({ look, res }) => {
+    onSuccess: ({ look, res, submitted }) => {
       trackJobs(qc, renderJobs(res), {
         pending: renderingLabel(res.jobs.length),
         done: `${look.name} is ready`,
@@ -244,7 +251,7 @@ function StudioLoaded({ space }: { space: Space }) {
         spaceId: space.id,
         lookId: look.id,
       });
-      adoptLook(look);
+      adoptLook(look, submitted);
     },
     onError: (e) => toast.error("Couldn't start rendering", { description: errorMessage(e) }),
     onSettled: () => {
@@ -271,10 +278,13 @@ function StudioLoaded({ space }: { space: Space }) {
   const timeLabel = timeOfDayLabel(draft);
 
   const saveLook = useMutation({
-    mutationFn: (name: string) => api.createLook(space.id, { name, spec: draft, parent_look_id: null }),
-    onSuccess: (look) => {
+    mutationFn: async (name: string) => {
+      const submitted = draft;
+      return { look: await api.createLook(space.id, { name, spec: submitted, parent_look_id: null }), submitted };
+    },
+    onSuccess: ({ look, submitted }) => {
       setSaveOpen(false);
-      adoptLook(look);
+      adoptLook(look, submitted);
       toast.success("Look saved", { description: look.name });
     },
     onError: (e) => toast.error("Couldn't save the Look", { description: errorMessage(e) }),
@@ -283,17 +293,18 @@ function StudioLoaded({ space }: { space: Space }) {
   const variation = useMutation({
     mutationFn: async (prompt: string) => {
       if (!activeLook) throw new Error("Save or render a Look first, then make variations of it.");
+      const submitted = draft;
       const chat = await api.chat(space.id, { message: prompt, spec: activeLook.spec, brain: brain ?? undefined });
       const suggested = suggestLookName(chat.spec);
       const name = suggested !== activeLook.name ? suggested : `${activeLook.name}, variation`;
       const look = await api.createLook(space.id, { name, spec: chat.spec, parent_look_id: activeLook.id });
       const res = photoIds.length && engine ? await api.renderLook(look.id, { engine, photo_ids: photoIds }) : null;
-      return { look, res, chat };
+      return { look, res, chat, submitted };
     },
-    onSuccess: ({ look, res, chat }) => {
+    onSuccess: ({ look, res, chat, submitted }) => {
       setVariationOpen(false);
       void qc.invalidateQueries({ queryKey: qk.chat(space.id) });
-      adoptLook(look);
+      adoptLook(look, submitted);
       if (res) {
         trackJobs(qc, renderJobs(res), {
           pending: `Rendering ${look.name}`,
@@ -446,6 +457,7 @@ function StudioLoaded({ space }: { space: Space }) {
                 setTab("canvas");
               }}
               look={activeLook}
+              candidate={space.photos.find((p) => p.kind === "generated_base" && !p.approved)}
             />
           ) : (
             <DescribeVenue

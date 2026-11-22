@@ -45,13 +45,26 @@ def backend_report(settings: Settings) -> dict:
     from pipeline.registry import backend_report as report
 
     results = report()
-    engines = [item for item in results["engines"] if _visible(item["id"], settings)]
+    engines = [_with_max_refs(item) for item in results["engines"] if _visible(item["id"], settings)]
     available = {item["id"] for item in engines if item["available"]}
     preferred = results["defaults"]["engine"]
     default = (
         preferred if preferred in available else next((key for key in ENGINE_ORDER if key in available), None)
     )
     return {**results, "engines": engines, "defaults": {**results["defaults"], "engine": default}}
+
+
+def _with_max_refs(item: dict) -> dict:
+    """Adds `caps.max_refs` (how many reference photos the engine accepts) to a registry status entry."""
+    from pipeline.engines.registry import engines
+
+    if item.get("caps") is None or (engine := engines(include_internal=True).get(item["id"])) is None:
+        return item
+    try:
+        max_refs = int(engine.capabilities().max_refs)
+    except Exception:  # noqa: BLE001 - caps are optional in the API payload
+        return item
+    return {**item, "caps": {**item["caps"], "max_refs": max_refs}}
 
 
 def pick_engine(settings: Settings, preference: str | None, capability: str):

@@ -192,10 +192,8 @@ def generate_base(space_id: UUID, body: GenerateBase, runtime: RuntimeDep) -> Jo
         raise HTTPException(422, f"{engine.label} can't use a reference photo; pick Copilot, Codex or mflux.")
     with write_session(runtime.engine) as session:
         space = require(session, Space, str(space_id))
-        if space.references_json:
+        if body.reference_url is not None:
             pipeline_module("fetch", "download_image", "FetchError")
-            if body.reference_url is None and not engine.capabilities().can_edit:
-                raise HTTPException(422, "This engine cannot use venue photos as references")
         _check_photo_capacity(session, space.id)
         job = Job(
             kind="generate_base",

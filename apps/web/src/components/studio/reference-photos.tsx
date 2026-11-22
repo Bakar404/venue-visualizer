@@ -2,7 +2,7 @@
 
 import NumberFlow from "@number-flow/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckIcon, FilmIcon, ImagePlusIcon, PencilLineIcon, RotateCcwIcon, SparklesIcon } from "lucide-react";
+import { FilmIcon, ImagePlusIcon, PencilLineIcon, SparklesIcon } from "lucide-react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useId, useRef, useState } from "react";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { JobOverdueNotice } from "@/components/job-overdue";
 import { PhotoCredit } from "@/components/photo-credit";
+import { BaseCandidate } from "@/components/studio/base-candidate";
 import { ACCEPT, filterFiles, useUploadPhotos } from "@/components/studio/photo-strip";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,7 +23,8 @@ import { progressFraction } from "@/lib/spec";
 import type { BackendStatus, Photo, Space, SpaceReference } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const canGenerate = (b: BackendStatus) => b.caps?.can_generate !== false;
+/** Generating from a reference photo needs an engine that can generate and takes reference images. */
+const canGenerateFromReference = (b: BackendStatus) => b.caps?.can_generate !== false && (b.caps?.max_refs ?? 0) > 0;
 const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 /**
@@ -48,9 +50,9 @@ export function ReferencePhotos({ space, onReady, onDescribe }: { space: Space; 
   const engines = backends.data?.engines ?? [];
   const preferredEngine = engines.find((e) => e.id === preferred);
   const engine =
-    preferredEngine && preferredEngine.available && canGenerate(preferredEngine)
+    preferredEngine && preferredEngine.available && canGenerateFromReference(preferredEngine)
       ? preferred
-      : (engines.find((e) => e.available && canGenerate(e))?.id ?? null);
+      : (engines.find((e) => e.available && canGenerateFromReference(e))?.id ?? null);
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: qk.space(space.id) });
@@ -88,16 +90,6 @@ export function ReferencePhotos({ space, onReady, onDescribe }: { space: Space; 
     onError: (e) => toast.error("Couldn't start generating", { description: errorMessage(e) }),
   });
 
-  const approve = useMutation({
-    mutationFn: (id: string) => api.approvePhoto(id),
-    onSuccess: (photo) => {
-      refresh();
-      toast.success("Base view approved", { description: "You can now design on it like a photo." });
-      onReady(photo);
-    },
-    onError: (e) => toast.error("Couldn't approve the view", { description: errorMessage(e) }),
-  });
-
   const references = space.references ?? [];
   const busy = generating || generate.isPending;
 
@@ -124,22 +116,7 @@ export function ReferencePhotos({ space, onReady, onDescribe }: { space: Space; 
             {overdue && job.data && <JobOverdueNotice job={job.data} className="mt-3" />}
           </div>
         ) : candidate ? (
-          <figure className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_16rem] sm:items-end">
-            <img src={candidate.url} alt="Generated empty base view" className="aspect-[3/2] w-full rounded-lg bg-muted object-cover" />
-            <div className="grid gap-3">
-              <figcaption className="text-sm text-pretty text-muted-foreground">
-                Does this match the room? Use it as your base view, or try again.
-              </figcaption>
-              <Button onClick={() => approve.mutate(candidate.id)} disabled={approve.isPending}>
-                <CheckIcon />
-                Use this view
-              </Button>
-              <Button variant="outline" onClick={() => approve.isPending || void api.deletePhoto(candidate.id).then(refresh)}>
-                <RotateCcwIcon />
-                Discard
-              </Button>
-            </div>
-          </figure>
+          <BaseCandidate key={candidate.id} photo={candidate} spaceId={space.id} onApproved={onReady} />
         ) : job.data?.status === "failed" ? (
           <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             {job.data.error ?? "Generation failed."} Try another photo or engine.
@@ -154,8 +131,13 @@ export function ReferencePhotos({ space, onReady, onDescribe }: { space: Space; 
           return (
             <li key={ref.url} className="flex flex-col overflow-hidden rounded-xl bg-card ring-1 ring-border">
               <div className="relative">
-                <img src={ref.url} alt={ref.caption ?? `Reference photo ${i + 1}`} className="aspect-[3/2] w-full bg-muted object-cover" />
-                <PhotoCredit photo={{ credit: ref.credit ?? null, source_url: ref.source_page ?? null }} className="absolute bottom-2 left-2" />
+                <img
+                  src={ref.url}
+                  alt={ref.caption ?? `Reference photo ${i + 1}`}
+                  referrerPolicy="no-referrer"
+                  className="aspect-[3/2] w-full bg-muted object-cover"
+                />
+                <PhotoCredit photo={{ credit: ref.credit ?? null, source_page: ref.source_page }} className="absolute bottom-2 left-2" />
               </div>
               <div className="flex flex-1 flex-col gap-2 p-3">
                 {ref.caption && <p className="line-clamp-2 text-sm text-muted-foreground">{ref.caption}</p>}
@@ -168,7 +150,8 @@ export function ReferencePhotos({ space, onReady, onDescribe }: { space: Space; 
                       setConfirming(open ? null : ref.url);
                       setPersonal(false);
                     }}
-                    disabled={useAsBase.isPending}
+                    // A base photo would hide this screen mid-generation; wait for the generated view first.
+                    disabled={useAsBase.isPending || busy}
                   >
                     <ImagePlusIcon />
                     Use as my base photo
@@ -194,7 +177,7 @@ export function ReferencePhotos({ space, onReady, onDescribe }: { space: Space; 
                           I&apos;m using this for personal planning and will keep the credit
                         </Label>
                       </div>
-                      <Button size="sm" className="justify-self-start" disabled={!personal || useAsBase.isPending} onClick={() => useAsBase.mutate(ref.url)}>
+                      <Button size="sm" className="justify-self-start" disabled={!personal || useAsBase.isPending || busy} onClick={() => useAsBase.mutate(ref.url)}>
                         {useAsBase.isPending ? "Adding…" : "Use this photo"}
                       </Button>
                     </motion.div>

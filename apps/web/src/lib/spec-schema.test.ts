@@ -27,6 +27,21 @@ describe("specFormSchema", () => {
     expect(issuePaths(withTables({ size_in: 121 }))).toEqual(["tables.size_in"]);
     expect(issuePaths({ ...defaultSpec(), guest_count: 2001 })).toEqual(["guest_count"]);
   });
+
+  it("accepts null wherever the API accepts None", () => {
+    const spec = defaultSpec();
+    // "As photo" clears the time of day.
+    expect(issuePaths({ ...spec, scene: { windows: "as_photographed", time_of_day: null } })).toEqual([]);
+    expect(issuePaths({ ...spec, scene: null, napkins: null, guest_count: null, notes: null })).toEqual([]);
+    expect(issuePaths({ ...spec, napkins: { color: null, fold: null } })).toEqual([]);
+    expect(issuePaths({ ...spec, tables: { ...spec.tables, size_in: null, seats: null } })).toEqual([]);
+    expect(issuePaths({ ...spec, linens: { ...spec.linens, pattern: null, runner: null } })).toEqual([]);
+    expect(issuePaths({ ...spec, chairs: { ...spec.chairs, cushion: null, sash: null } })).toEqual([]);
+    expect(
+      issuePaths({ ...spec, centerpieces: { ...spec.centerpieces, flowers: null, colors: null, greenery: null, container: null } }),
+    ).toEqual([]);
+    expect(issuePaths({ ...spec, lighting: { ...spec.lighting, uplighting: null } })).toEqual([]);
+  });
 });
 
 describe("suggestLookName", () => {

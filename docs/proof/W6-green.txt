@@ -1,0 +1,7 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=chromium -g 'generating from a reference, Use as my base|stays reviewable'
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/ut6.spec.ts:117:1 › UT6b: while a view is generating from a reference, Use as my base photo waits
+[2/2] [chromium] › e2e/ut6.spec.ts:136:1 › UT6b: a generated view stays reviewable after another photo becomes the base
+  2 passed (10.4s)

@@ -1,5 +1,7 @@
-// API types, mirroring docs/api.md. Schema-backed types come from @vv/schema.
+// API types, mirroring docs/api.md. Schema-backed types come from @vv/schema; response shapes come from (or are
+// checked against, at the bottom of this file) the OpenAPI document in @vv/schema/openapi.
 import type { DesignSpec, RuleWarning, VenueResearch, VenueRules, VenueSpec } from "@vv/schema";
+import type { components } from "@vv/schema/openapi";
 
 export type { DesignSpec, RuleWarning, VenueResearch, VenueRules, VenueSpec };
 
@@ -11,63 +13,22 @@ export type RuleKey = NonNullable<ResearchRule["maps_to"]>;
 
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 
-export type BackendCaps = {
-  can_generate?: boolean;
-  can_edit?: boolean;
-  typical_seconds?: number;
-  cost_note?: string;
-  photoreal?: boolean;
-  /** Brains: can search and fetch the public web (needed by the venue finder). */
-  web?: boolean;
-  /** Brains: accepts image input (needed for video tours and render QA). */
-  vision?: boolean;
-};
+/** Response schemas from the API's OpenAPI document (packages/schema/openapi.json, checked by a pytest). */
+type Schemas = components["schemas"];
 
-export type BackendStatus = {
-  id: string;
-  label: string;
-  kind: "brain" | "engine";
-  available: boolean;
-  logged_in: boolean | null;
-  version: string | null;
-  detail: string | null;
-  caps?: BackendCaps;
-};
+export type BackendCaps = Schemas["BackendCaps"];
+export type BackendStatus = Schemas["BackendStatus"];
+/**
+ * `engines`: user-facing photoreal engines, plus "mock" in dev. `internal`: helpers the pipeline uses on its own,
+ * never offered as an output choice. `defaults.engine` is null when no public image engine is available.
+ */
+export type Backends = Schemas["BackendsOut"];
 
-export type Backends = {
-  brains: BackendStatus[];
-  /** User-facing photoreal engines, plus "mock" in dev. Internal helpers are never listed here. */
-  engines: BackendStatus[];
-  /** `engine` is null when no public image engine is available (see docs/api.md). */
-  defaults: { brain: string; engine: string | null };
-  thresholds?: { structure_ok: number };
-  /** Internal helpers the pipeline uses on its own; never offered as an output choice. */
-  internal?: {
-    layout_guide?: { available: boolean; detail?: string | null };
-  };
-};
-
-export type Photo = {
-  id: string;
-  space_id: string;
-  url: string;
-  kind: "upload" | "generated_base" | "video_frame" | "web";
-  approved: boolean;
-  width: number;
-  height: number;
-  /** Web photos: the page the image was found on. */
-  source_url?: string | null;
-  /** Web photos: photographer or site credit, printed on exports. */
-  credit?: string | null;
-};
+/** Web photos carry `source_url` (the image), `source_page` (where it was found) and `credit` (printed on exports). */
+export type Photo = Schemas["PhotoOut"];
 
 /** A web photo kept as a reference only (nothing downloaded). See docs/api.md, "Reference photos → base photo". */
-export type SpaceReference = {
-  url: string;
-  source_page?: string | null;
-  caption?: string | null;
-  credit?: string | null;
-};
+export type SpaceReference = Schemas["PhotoReference"];
 
 export type Space = {
   id: string;
@@ -76,8 +37,11 @@ export type Space = {
   venue_spec: VenueSpec;
   photos: Photo[];
   current_spec: DesignSpec | null;
-  /** Web photos imported in reference mode; older APIs omit this. */
-  references?: SpaceReference[];
+  capacity_seated: number | null;
+  capacity_standing: number | null;
+  source: string | null;
+  /** Web photos imported in reference mode. */
+  references: SpaceReference[];
 };
 
 export type Venue = {
@@ -90,22 +54,12 @@ export type Venue = {
 
 export type VenueImportResult = Venue & { skipped_photos: { url: string; reason: string }[] };
 
-export type StructureReport = {
-  score: number;
-  method: string;
-  aligned: boolean;
-  inliers: number;
-  scale: number | null;
-  rotation: number | null;
-  coverage: number | null;
-  edge_density?: number | null;
-  flat?: boolean | null;
-  /** Why the check failed or couldn't run, in the pipeline's words (e.g. "the render lost the room's structure"). */
-  reason?: string | null;
-};
+export type StructureReport = Schemas["StructureReport"];
 
-/** Plain-language verdict for the structure badge. `unverifiable`: we couldn't check; `changed`: the room likely differs. */
-export type StructureMessage = { level: "unverifiable" | "changed" | (string & {}); text: string };
+/** Plain-language verdict for the structure badge: `ok`, `unverified` (we couldn't check) or `changed` (the room likely differs). */
+export type StructureMessage = Schemas["StructureMessage"];
+
+export type RenderQA = Schemas["RenderQA"];
 
 export type Render = {
   id: string;
@@ -116,13 +70,7 @@ export type Render = {
   url: string | null;
   prompt: string;
   structure_score: number | null;
-  qa: {
-    tables_seen?: number | null;
-    notes?: string | null;
-    structure?: StructureReport | null;
-    structure_warning?: string | null;
-    structure_message?: StructureMessage | string | null;
-  } | null;
+  qa: RenderQA | null;
   error: string | null;
   created_at: string;
 };
@@ -135,6 +83,7 @@ export type Look = {
   parent_look_id: string | null;
   created_at: string;
   renders: Render[];
+  warnings: RuleWarning[];
 };
 
 export type FrameView = "wide" | "corner" | "detail";
@@ -163,7 +112,9 @@ export type Job = {
   kind: JobKind;
   status: JobStatus;
   progress: number;
+  cancel_requested: boolean;
   error: string | null;
+  error_status: number | null;
   /** Short human status from the worker, e.g. "Collecting photos of each space". */
   message?: string | null;
   created_at?: string;
@@ -287,3 +238,23 @@ export interface VVApi {
   /** Returns a URL that opens the Look's PDF export. */
   exportUrl(lookId: string): Promise<string>;
 }
+
+// Compile-time contract: every response the API can send (per its OpenAPI schema) must fit the web's type. Plans,
+// venue specs and rules are typed from their own JSON Schemas (@vv/schema), so those fields are swapped in.
+type Check<T extends true> = T;
+type Accepts<Web, Api> = [Api] extends [Web] ? true : false;
+type With<T, U> = Omit<T, keyof U> & U;
+type ApiSpace = With<Schemas["SpaceOut"], { current_spec: DesignSpec | null; venue_spec: VenueSpec }>;
+type ApiVenue = With<Schemas["VenueOut"], { rules: VenueRules; spaces: ApiSpace[] }>;
+export type ApiContract = [
+  Check<Accepts<Backends, Schemas["BackendsOut"]>>,
+  Check<Accepts<Look, With<Schemas["LookOut"], { spec: DesignSpec }>>>,
+  Check<Accepts<Space, ApiSpace>>,
+  Check<Accepts<Venue, ApiVenue>>,
+  Check<Accepts<VenueImportResult, With<Schemas["ImportOut"], { rules: VenueRules; spaces: ApiSpace[] }>>>,
+  Check<Accepts<ChatResponse, With<Schemas["ChatOut"], { spec: DesignSpec }>>>,
+  Check<Accepts<ChatMessage, Schemas["ChatMessageOut"]>>,
+  Check<Accepts<Omit<Job, "result">, Omit<Schemas["JobOut"], "result">>>,
+  Check<Accepts<SpecCheckResponse, With<Schemas["SpecCheckResult"], { spec: DesignSpec }>>>,
+  Check<Accepts<StructureMessage["level"], "ok" | "unverified" | "changed">>,
+];

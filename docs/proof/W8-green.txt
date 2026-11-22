@@ -1,0 +1,14 @@
+### pnpm --filter web exec eslint e2e
+exit: 0
+
+### pnpm --filter web exec playwright test e2e/ut1.spec.ts
+
+Running 6 tests using 4 workers
+
+[1/6] [chromium] › e2e/ut1.spec.ts:89:1 › UT1: a reader at the bottom keeps following a new reply
+[2/6] [chromium] › e2e/ut1.spec.ts:64:1 › UT1: studio fills the viewport; chat scrolls inside a pinned layout
+[3/6] [chromium] › e2e/ut1.spec.ts:115:1 › UT1: a reader pinned to the end stays there when the panel gets shorter
+[4/6] [chromium] › e2e/ut1.spec.ts:105:1 › UT1: the first reply in a new conversation shows the pill if the reader scrolled up
+[5/6] [chromium] › e2e/ut1.spec.ts:128:1 › UT1: the New message pill moves focus to the newest message
+[6/6] [mobile] › e2e/ut1.spec.ts:80:1 › UT1: phone tabs use the same internal scroll @mobile
+  6 passed (46.3s)

@@ -23,7 +23,7 @@ export const LOST_JOB_ERROR = "This job no longer exists. The API may have resta
 
 /** What a 404 from `GET /api/jobs/{id}` turns into, so every caller settles and offers a retry. */
 export function lostJob(id: string, kind: JobKind = "render"): Job {
-  return { id, kind, status: "failed", progress: 0, error: LOST_JOB_ERROR, message: null, result: null };
+  return { id, kind, status: "failed", progress: 0, cancel_requested: false, error: LOST_JOB_ERROR, error_status: 404, message: null, result: null };
 }
 
 export type GroupOutcome =

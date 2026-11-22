@@ -1,0 +1,41 @@
+### pnpm --filter web exec playwright test e2e/ut6.spec.ts --project=mobile
+
+Running 1 test using 1 worker
+
+[1/1] [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions
+  1) [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('list', { name: 'Reference photos' }).getByRole('listitem').first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('list', { name: 'Reference photos' }).getByRole('listitem').first() with timeout 10000ms
+      - waiting for getByRole('list', { name: 'Reference photos' }).getByRole('listitem').first()
+
+
+       99 |   await page.goto("/spaces/space-wren-long-room");
+      100 |   const refs = page.getByRole("list", { name: "Reference photos" }).getByRole("listitem");
+    > 101 |   await expect(refs.first()).toBeVisible();
+          |                              ^
+      102 |   await expect(refs.first().getByRole("button", { name: "Use as my base photo" })).toBeVisible();
+      103 |   await expect(refs.first().getByRole("button", { name: "Generate an empty base view from this" })).toBeVisible();
+      104 |   await expect(page.getByRole("tab", { name: "Preview" })).toHaveAttribute("aria-selected", "true");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut6.spec.ts:101:30
+
+    Error Context: test-results/ut6-UT6b-mobile-a-referenc-5188a-eference-photos-and-actions-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ut6-UT6b-mobile-a-referenc-5188a-eference-photos-and-actions-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ut6-UT6b-mobile-a-referenc-5188a-eference-photos-and-actions-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [mobile] › e2e/ut6.spec.ts:98:1 › UT6b @mobile: a references-only space opens on its reference photos and actions 

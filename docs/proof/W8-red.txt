@@ -1,0 +1,9 @@
+### git show HEAD:apps/web/e2e/ut1.spec.ts > e2e/ut1-committed.spec.ts && pnpm --filter web exec eslint e2e/ut1-committed.spec.ts
+
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/ut1-committed.spec.ts
+  32:9  error  'waitForTimeout' is restricted from being used. Wait for a condition (expect, expect.poll, a held mock request) instead of a fixed sleep  no-restricted-properties
+  36:9  error  'waitForTimeout' is restricted from being used. Wait for a condition (expect, expect.poll, a held mock request) instead of a fixed sleep  no-restricted-properties
+
+✖ 2 problems (2 errors, 0 warnings)
+
+exit: 1
