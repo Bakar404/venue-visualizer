@@ -118,8 +118,15 @@ _CLEAN_ENV_KEYS = (
 )
 
 
+def _is_api_credential(key: str) -> bool:
+    k = key.upper()
+    return k.endswith("_API_KEY") or k in {"ANTHROPIC_AUTH_TOKEN", "OPENAI_ORG_ID", "OPENAI_PROJECT"}
+
+
 def _child_env(extra: dict[str, str] | None = None, clean: bool = False) -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if k in _CLEAN_ENV_KEYS} if clean else dict(os.environ)
+    # Subscription-only: drop per-token API credentials so every CLI uses the user's logged-in plan.
+    env = {k: v for k, v in env.items() if not _is_api_credential(k)}
     env.setdefault("NO_COLOR", "1")
     env.setdefault("TERM", "dumb")
     if extra:

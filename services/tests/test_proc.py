@@ -101,3 +101,14 @@ def test_clean_env_never_forwards_api_keys(monkeypatch):
         monkeypatch.setenv(key, "sk-test")
     env = _child_env(clean=True)
     assert not any(k.endswith("API_KEY") for k in env)
+
+
+def test_full_env_also_drops_api_credentials(monkeypatch):
+    from pipeline._proc import _child_env
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tok")
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", "/tmp/cfg")
+    env = _child_env(clean=False)
+    assert "ANTHROPIC_API_KEY" not in env and "ANTHROPIC_AUTH_TOKEN" not in env
+    assert env["CLAUDE_CONFIG_DIR"] == "/tmp/cfg"
