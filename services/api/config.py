@@ -14,6 +14,10 @@ class Settings:
     inline_jobs: bool = False
     engine_limits: dict[str, int] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        # Resolve symlinks (e.g. macOS /var -> /private/var) so storage path checks hold.
+        object.__setattr__(self, "data_dir", Path(self.data_dir).expanduser().resolve())
+
     @classmethod
     def from_env(cls) -> "Settings":
         prefix = "VV_ENGINE_CONCURRENCY_"

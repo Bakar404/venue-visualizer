@@ -106,3 +106,13 @@ async def test_failed_attempt_retries_once_and_running_cancel_wins(runtime, monk
     await run_claimed(runtime, claim_job(runtime))
     with Session(runtime.engine) as session:
         assert session.get_one(Job, cancelled.id).status == "cancelled"
+
+
+def test_settings_resolves_symlinked_data_dir(tmp_path):
+    from api.config import Settings
+
+    real = tmp_path / "real"
+    real.mkdir()
+    link = tmp_path / "link"
+    link.symlink_to(real)
+    assert Settings(link).data_dir == real.resolve()
