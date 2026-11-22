@@ -63,3 +63,12 @@ A walkthrough video is turned into a curated set of sharp, diverse keyframes (ff
 labels and clusters them by space and drafts a VenueSpec per space. This keeps the output photoreal and reuses the photo
 pipeline. Gaussian-splat reconstruction stays a later option. Web photos found by the venue finder may be used as base
 photos after a one-time personal-use confirmation; this supersedes the earlier "reference only" default.
+
+## 2026-11-21: Subprocesses never receive API credentials
+Every CLI is spawned with `*_API_KEY`, `ANTHROPIC_AUTH_TOKEN` and similar variables removed from its environment. Some CLIs
+(Claude Code, Codex) silently switch to per-token API billing when such a variable is present. Stripping them keeps
+every call on the user's subscription login. Codex additionally runs with a minimal allow-listed environment.
+
+## 2026-11-21: Local API hardening
+The API only answers to localhost hosts (DNS-rebinding guard). It rejects cross-origin writes and requires JSON or multipart
+bodies on writes, so a random website can't trigger research or render jobs that spend the user's quota.
