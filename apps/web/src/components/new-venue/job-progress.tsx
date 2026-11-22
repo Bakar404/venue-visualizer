@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+import { JobOverdueNotice } from "@/components/job-overdue";
 import { Button } from "@/components/ui/button";
+import { useJobOverdue } from "@/lib/jobs";
 import type { Job } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +46,7 @@ export function JobProgress({ title, job, startedAt, steps, expectation, onCance
   const elapsed = now - startedAt;
   const line = job?.message || (job?.status === "queued" ? "Waiting for the brain to start…" : steps[Math.floor(elapsed / 8000) % steps.length]);
   const progress = job && job.progress > 0 ? job.progress : null;
+  const overdue = useJobOverdue(job, startedAt);
 
   return (
     <div className={cn("rounded-2xl border bg-card p-6 sm:p-8", className)} aria-busy={running}>
@@ -75,6 +78,7 @@ export function JobProgress({ title, job, startedAt, steps, expectation, onCance
         {line}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">{expectation} You can keep this tab open and come back.</p>
+      {overdue && job && <JobOverdueNotice job={job} className="mt-4" />}
       {onCancel && (
         <Button variant="ghost" size="sm" className="mt-4 -ml-2.5" onClick={onCancel}>
           Start over

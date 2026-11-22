@@ -26,10 +26,8 @@ export function canBrowse(brain: BackendStatus): boolean {
 /** Applied to every `/api/system/backends` response before the UI sees it. */
 export function normalizeBackends(data: Backends): Backends {
   const engines = userEngines(data.engines);
-  const fallback = engines.find((e) => e.available)?.id ?? engines[0]?.id ?? data.defaults.engine;
-  return {
-    ...data,
-    engines,
-    defaults: { ...data.defaults, engine: engines.some((e) => e.id === data.defaults.engine) ? data.defaults.engine : fallback },
-  };
+  // Never invent a default: no usable engine means `null`, and the UI shows how to install one.
+  const usable = engines.filter((e) => e.available);
+  const engine = usable.some((e) => e.id === data.defaults.engine) ? data.defaults.engine : (usable[0]?.id ?? null);
+  return { ...data, engines, defaults: { ...data.defaults, engine } };
 }

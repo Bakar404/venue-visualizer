@@ -3,7 +3,7 @@
 import { ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState, type PointerEvent } from "react";
 
 import { CompareSlider } from "@/components/compare-slider";
 import { Swatches } from "@/components/looks/looks-gallery";
@@ -16,10 +16,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLook, useSpace } from "@/lib/queries";
 import { diffSpecs, formatDate, latestRenderFor } from "@/lib/spec";
 import type { Look, Photo } from "@/lib/types";
+import { type Zoom, zoomAt, zoomForKey } from "@/lib/zoom";
 import { cn } from "@/lib/utils";
 
 type Mode = "side" | "slider";
-type Focus = { x: number; y: number } | null;
 
 export function CompareLooks() {
   const params = useSearchParams();
@@ -164,7 +164,7 @@ function Comparison({ a, b, photos, spaceId, spaceName }: { a: Look; b: Look; ph
 }
 
 function PhotoComparison({ index, photo, a, b, mode }: { index: number; photo: Photo; a: Look; b: Look; mode: Mode }) {
-  const [focus, setFocus] = useState<Focus>(null);
+  const [focus, setFocus] = useState<Zoom>(null);
   const ra = latestRenderFor(a.renders, photo.id);
   const rb = latestRenderFor(b.renders, photo.id);
   const urlA = ra?.status === "done" ? ra.url : null;
@@ -196,7 +196,10 @@ function PhotoComparison({ index, photo, a, b, mode }: { index: number; photo: P
   );
 }
 
-/** Hovering either image zooms both to the same point, so details line up across Looks. */
+/**
+ * Hovering (mouse), tapping/dragging (touch, pen) or the keyboard (+/-, arrows, 0/Esc) zooms both
+ * images to the same point, so details line up across Looks.
+ */
 function SyncedImage({
   url,
   fallback,
@@ -209,24 +212,65 @@ function SyncedImage({
   fallback: string;
   alt: string;
   name: string;
-  focus: Focus;
-  onFocus: (f: Focus) => void;
+  focus: Zoom;
+  onFocus: (f: Zoom) => void;
 }) {
+  const press = useRef<{ x: number; y: number; moved: boolean; wasZoomed: boolean } | null>(null);
+  const point = (e: PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 };
+  };
+
   return (
     <div
-      className="relative aspect-[3/2] cursor-zoom-in overflow-hidden rounded-xl bg-muted ring-1 ring-border"
-      onPointerMove={(e) => {
-        if (e.pointerType !== "mouse") return;
-        const r = e.currentTarget.getBoundingClientRect();
-        onFocus({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
+      role="group"
+      tabIndex={0}
+      aria-label={`${alt}. Zoom with plus and minus, move with the arrow keys, reset with 0.`}
+      className="relative aspect-[3/2] cursor-zoom-in overflow-hidden rounded-xl bg-muted ring-1 ring-border outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      style={focus ? { touchAction: "none" } : undefined}
+      onKeyDown={(e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const next = zoomForKey(focus, e.key);
+        if (next === undefined) return;
+        e.preventDefault();
+        onFocus(next);
       }}
-      onPointerLeave={() => onFocus(null)}
+      onPointerDown={(e) => {
+        if (e.pointerType === "mouse") return;
+        const p = point(e);
+        press.current = { ...p, moved: false, wasZoomed: focus !== null };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        if (!focus) onFocus(zoomAt(p.x, p.y));
+      }}
+      onPointerMove={(e) => {
+        const p = point(e);
+        if (e.pointerType === "mouse") {
+          onFocus(zoomAt(p.x, p.y, focus?.scale));
+          return;
+        }
+        const start = press.current;
+        if (!start) return;
+        if (Math.hypot(p.x - start.x, p.y - start.y) > 2) start.moved = true;
+        onFocus(zoomAt(p.x, p.y, focus?.scale));
+      }}
+      onPointerUp={() => {
+        const start = press.current;
+        press.current = null;
+        // A tap on an already-zoomed image zooms back out; a drag just pans.
+        if (start && start.wasZoomed && !start.moved) onFocus(null);
+      }}
+      onPointerCancel={() => {
+        press.current = null;
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") onFocus(null);
+      }}
     >
       <img
         src={url ?? fallback}
         alt={url ? alt : `${alt} (not rendered yet, showing the original)`}
         className={cn("size-full object-cover transition-transform duration-200 ease-out motion-reduce:transition-none", !url && "opacity-50 grayscale")}
-        style={focus ? { transform: "scale(2)", transformOrigin: `${focus.x}% ${focus.y}%` } : undefined}
+        style={focus ? { transform: `scale(${focus.scale})`, transformOrigin: `${focus.x}% ${focus.y}%` } : undefined}
         draggable={false}
       />
       <span className="absolute top-3 left-3 rounded-full bg-background/85 px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur">{name}</span>

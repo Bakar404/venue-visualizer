@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { OrbitControls, PointerLockControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera, Vector3 } from "three";
+import { layoutBounds } from "../layout";
 import type { Layout, SceneCamera as CameraAngle, SceneMode } from "../types";
 
 function Walk({ room }: { room: Layout["room"] }) {
@@ -46,35 +47,42 @@ function Walk({ room }: { room: Layout["room"] }) {
   return <PointerLockControls />;
 }
 
-export function SceneCamera({ room, mode, angle }: { room: Layout["room"]; mode: SceneMode; angle: CameraAngle }) {
+/** Frames the room plus every placed table, chair, dance floor and head table (overflow included). */
+export function SceneCamera({ layout, mode, angle }: { layout: Layout; mode: SceneMode; angle: CameraAngle }) {
   const { camera, size } = useThree();
+  const { room } = layout;
+  const bounds = layoutBounds(layout);
+  const cx = (bounds.minX + bounds.maxX) / 2;
+  const cz = (bounds.minZ + bounds.maxZ) / 2;
+  const spanX = bounds.maxX - bounds.minX;
+  const spanZ = bounds.maxZ - bounds.minZ;
   useLayoutEffect(() => {
     if (!(camera instanceof PerspectiveCamera)) return;
     camera.up.set(0, 1, 0);
     camera.fov = 48;
     const aspect = size.width / Math.max(1, size.height);
-    const distance = Math.max(room.lengthFt, room.widthFt / aspect) * 1.3;
+    const distance = Math.max(spanZ, spanX / aspect) * 1.3;
     camera.far = Math.max(2000, distance * 10);
     if (mode === "walk") {
       camera.position.set(0, Math.min(5.5, room.ceilingFt - 0.5), room.lengthFt / 2 - 3);
       camera.lookAt(0, camera.position.y, 0);
     } else if (angle === "top") {
-      camera.position.set(0, distance, 0);
+      camera.position.set(cx, distance, cz);
       camera.up.set(0, 0, -1);
-      camera.lookAt(0, 0, 0);
+      camera.lookAt(cx, 0, cz);
     } else {
       camera.position.set(
-        distance * (angle === "corner" ? 0.65 : 0.28),
+        cx + distance * (angle === "corner" ? 0.65 : 0.28),
         distance * 0.7 + room.ceilingFt * 0.25,
-        distance * (angle === "corner" ? 0.65 : 0.9),
+        cz + distance * (angle === "corner" ? 0.65 : 0.9),
       );
-      camera.lookAt(0, 1.5, 0);
+      camera.lookAt(cx, 1.5, cz);
     }
     camera.updateProjectionMatrix();
-  }, [camera, room, mode, angle, size.width, size.height]);
+  }, [camera, room, cx, cz, spanX, spanZ, mode, angle, size.width, size.height]);
   if (mode === "walk") return <Walk room={room} />;
   if (mode === "orbit") {
-    return <OrbitControls makeDefault target={[0, 1.5, 0]} maxPolarAngle={Math.PI / 2 - 0.04} minDistance={5} maxDistance={Math.max(room.widthFt, room.lengthFt) * 4} />;
+    return <OrbitControls makeDefault target={[cx, 1.5, cz]} maxPolarAngle={Math.PI / 2 - 0.04} minDistance={5} maxDistance={Math.max(spanX, spanZ) * 4} />;
   }
   return null;
 }

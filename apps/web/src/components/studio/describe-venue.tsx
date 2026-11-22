@@ -7,13 +7,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { BackendPicker } from "@/components/backend-picker";
+import { JobOverdueNotice } from "@/components/job-overdue";
+import { NoEngineNotice } from "@/components/no-engine-notice";
 import { PhotoDropzone } from "@/components/studio/photo-strip";
 import { VenueSpecFields } from "@/components/venue-spec-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, errorMessage } from "@/lib/api";
-import { isActive, trackJobs, useBaseJobId, useJob } from "@/lib/jobs";
+import { isActive, trackJobs, useBaseJobId, useJob, useJobOverdue } from "@/lib/jobs";
 import { usePreferences } from "@/lib/preferences";
 import { qk, useBackends } from "@/lib/queries";
 import { progressFraction } from "@/lib/spec";
@@ -34,18 +36,22 @@ export function DescribeVenue({ space, onApproved }: { space: Space; onApproved:
   const jobId = useBaseJobId(space.id);
   const job = useJob(jobId);
   const generating = isActive(job.data?.status);
+  const overdue = useJobOverdue(job.data);
   const candidate = space.photos.find((p) => p.kind === "generated_base" && !p.approved);
 
   const engines = backends.data?.engines ?? [];
   const preferredEngine = engines.find((e) => e.id === preferred);
+  // Never fall back to a made-up engine: null disables Generate and shows how to install one.
   const engine =
     preferredEngine && preferredEngine.available && canGenerate(preferredEngine)
       ? preferred
-      : (engines.find((e) => e.available && canGenerate(e))?.id ?? preferred);
+      : (engines.find((e) => e.available && canGenerate(e))?.id ?? null);
+  const noEngine = backends.isSuccess && !engine;
 
   const generate = useMutation({
     mutationFn: async () => {
       if (candidate) await api.deletePhoto(candidate.id);
+      if (!engine) throw new Error("No image engine found — install/log in to Copilot CLI, Codex CLI, or mflux.");
       await api.updateSpace(space.id, { venue_spec: spec });
       return api.generateBase(space.id, { engine, angle_hint: angle.trim() || undefined });
     },
@@ -94,6 +100,7 @@ export function DescribeVenue({ space, onApproved }: { space: Space; onApproved:
                 </div>
                 <NumberFlow value={percent} format={{ style: "percent" }} className="text-sm tabular text-muted-foreground" />
               </div>
+              {overdue && job.data && <JobOverdueNotice job={job.data} className="mt-3" />}
             </div>
           ) : candidate ? (
             <figure className="space-y-3">
@@ -104,7 +111,7 @@ export function DescribeVenue({ space, onApproved }: { space: Space; onApproved:
                   <CheckIcon />
                   Approve
                 </Button>
-                <Button variant="outline" onClick={() => generate.mutate()} disabled={generate.isPending} className="flex-1">
+                <Button variant="outline" onClick={() => generate.mutate()} disabled={generate.isPending || !engine} className="flex-1">
                   <RotateCcwIcon />
                   Try again
                 </Button>
@@ -114,6 +121,8 @@ export function DescribeVenue({ space, onApproved }: { space: Space; onApproved:
             <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
               {job.data.error ?? "Generation failed."} Adjust the description or pick another engine, then try again.
             </p>
+          ) : job.data?.status === "cancelled" ? (
+            <p role="status" className="rounded-lg bg-muted p-3 text-sm">Generation cancelled. Generate again when you&apos;re ready.</p>
           ) : null}
         </div>
 
@@ -130,6 +139,7 @@ export function DescribeVenue({ space, onApproved }: { space: Space; onApproved:
               <Label htmlFor="describe-angle">Camera angle</Label>
               <Input id="describe-angle" value={angle} onChange={(e) => setAngle(e.target.value)} placeholder="from the entrance, looking at the windows" />
             </div>
+            {noEngine && <NoEngineNotice />}
             <div className="flex flex-wrap items-center gap-2">
               <BackendPicker
                 kind="engine"
@@ -139,7 +149,7 @@ export function DescribeVenue({ space, onApproved }: { space: Space; onApproved:
                 usable={canGenerate}
                 unusableReason="This engine edits photos but can't create a room from scratch."
               />
-              <Button type="submit" disabled={generate.isPending} className="ml-auto">
+              <Button type="submit" disabled={generate.isPending || !engine} className="ml-auto">
                 <SparklesIcon />
                 Generate base image
               </Button>

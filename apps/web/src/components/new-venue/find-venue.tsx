@@ -17,6 +17,7 @@ import { canBrowse } from "@/lib/backends";
 import { useJob } from "@/lib/jobs";
 import { useBackends } from "@/lib/queries";
 import type { ResearchMatch } from "@/lib/types";
+import { safeHttpUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -105,11 +106,16 @@ export function FindVenue() {
     );
   }
 
-  if (run && job?.status === "failed") {
+  const stopped = job?.status === "failed" || job?.status === "cancelled" || (job?.status === "done" && !research);
+  if (run && job && stopped) {
     return (
       <div role="alert" className="rounded-2xl border border-destructive/40 bg-card p-6 sm:p-8">
-        <h2 className="font-display text-3xl">The search stopped</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{job.error ?? "The brain couldn't finish researching this venue."}</p>
+        <h2 className="font-display text-3xl">{job.status === "cancelled" ? "Search cancelled" : "The search stopped"}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {job.status === "cancelled"
+            ? "Nothing was saved. Start a new search whenever you're ready."
+            : (job.error ?? "The brain couldn't finish researching this venue.")}
+        </p>
         <Button className="mt-4" onClick={reset}>
           Try again
         </Button>
@@ -190,10 +196,12 @@ export function FindVenue() {
 function MatchCard({ match, onChoose }: { match: ResearchMatch; onChoose: () => void }) {
   const pct = Math.round(match.confidence * 100);
   const photos = (match.spaces ?? []).flatMap((s) => s.photos ?? []);
+  const cover = photos.map((p) => safeHttpUrl(p.url)).find(Boolean);
+  const website = safeHttpUrl(match.website);
   return (
     <article className="flex flex-col gap-4 rounded-2xl border bg-card p-4 sm:flex-row sm:p-5">
-      {photos[0] && (
-        <img src={photos[0].url} alt="" className="aspect-[3/2] w-full shrink-0 rounded-lg bg-muted object-cover sm:w-48" loading="lazy" />
+      {cover && (
+        <img src={cover} alt="" className="aspect-[3/2] w-full shrink-0 rounded-lg bg-muted object-cover sm:w-48" loading="lazy" />
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -220,17 +228,19 @@ function MatchCard({ match, onChoose }: { match: ResearchMatch; onChoose: () => 
         </p>
         <div className="mt-auto flex flex-wrap items-center gap-3 pt-1">
           <Button onClick={onChoose}>This is my venue</Button>
-          {match.website && (
+          {website ? (
             <a
-              href={match.website}
+              href={website}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
-              {hostOf(match.website)}
+              {hostOf(website)}
               <ArrowUpRightIcon aria-hidden className="size-3.5" />
               <span className="sr-only">(opens in a new tab)</span>
             </a>
+          ) : (
+            match.website && <span className="text-sm break-all text-muted-foreground">{match.website}</span>
           )}
         </div>
       </div>

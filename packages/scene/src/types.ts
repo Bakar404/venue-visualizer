@@ -88,6 +88,8 @@ export interface Layout {
   headTable: RectangularPlacement | null;
   room: { lengthFt: number; widthFt: number; ceilingFt: number };
   warnings: string[];
+  /** True when tables or reserved decor had to be placed outside the room. */
+  overflow: boolean;
 }
 
 export type SceneMode = "orbit" | "walk" | "still";

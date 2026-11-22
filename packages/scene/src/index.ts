@@ -1,5 +1,6 @@
 export { VenueScene } from "./VenueScene";
-export { layoutTables } from "./layout";
+export { layoutBounds, layoutTables } from "./layout";
+export type { Bounds } from "./layout";
 export { colorFor } from "./colors";
 export type {
   DesignSpec, VenueSpec, ChairPlacement, RoundPlacement, RectangularPlacement,

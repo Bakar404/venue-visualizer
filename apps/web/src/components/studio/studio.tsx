@@ -2,13 +2,14 @@
 
 import NumberFlow from "@number-flow/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDownIcon, DownloadIcon, GitBranchIcon, ImageIcon, LayoutGridIcon, SaveIcon, SparklesIcon } from "lucide-react";
+import { ChevronDownIcon, CopyIcon, DownloadIcon, GitBranchIcon, ImageIcon, LayoutGridIcon, SaveIcon, SparklesIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { BackendPicker } from "@/components/backend-picker";
+import { NoEngineNotice } from "@/components/no-engine-notice";
 import { QueryError } from "@/components/query-error";
 import { ChatPanel, WarningCallout } from "@/components/studio/chat-panel";
 import { DescribeVenue } from "@/components/studio/describe-venue";
@@ -24,7 +25,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { api, errorMessage } from "@/lib/api";
-import { trackJobs } from "@/lib/jobs";
+import { isActive, trackJobs, useLookHasActiveJobs } from "@/lib/jobs";
 import { usePreferences } from "@/lib/preferences";
 import { qk, useBackends, useLook, useLooks, useSpace, useVenue } from "@/lib/queries";
 import { defaultSpec, formatDate, latestRenderFor, specEquals, suggestLookName } from "@/lib/spec";
@@ -77,9 +78,18 @@ function StudioLoaded({ space }: { space: Space }) {
   const [specOpen, setSpecOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [variationOpen, setVariationOpen] = useState(false);
+  /** Set while the draft is a copy of a saved Look; `roomDraft` is what the room had before, for restoring. */
+  const [copyOf, setCopyOf] = useState<{ id: string; name: string; roomDraft: DesignSpec } | null>(null);
+  /** The `?look=` value whose spec has already been loaded into the draft. */
+  const [appliedLookParam, setAppliedLookParam] = useState<string | null>(null);
   const checkSeq = useRef(0);
 
   const draft = localSpec ?? space.current_spec ?? defaultSpec(space.name.toLowerCase());
+  // Async results (rule checks, chat replies) compare against the latest draft, not the one they closed over.
+  const draftRef = useRef(draft);
+  useEffect(() => {
+    draftRef.current = draft;
+  });
   const selectedPhoto = usablePhotos.find((p) => p.id === pickedPhoto) ?? usablePhotos[0];
   const photoLabel = (id: string | undefined) => {
     const i = usablePhotos.findIndex((p) => p.id === id);
@@ -94,34 +104,97 @@ function StudioLoaded({ space }: { space: Space }) {
   const activeLook: Look | undefined = lookQuery.data ?? sortedLooks.find((l) => l.id === activeLookId);
   const activeRender = selectedPhoto ? latestRenderFor(activeLook?.renders, selectedPhoto.id) : undefined;
 
-  const persist = useDebouncedCallback((spec: DesignSpec) => {
-    api
-      .updateSpace(space.id, { current_spec: spec })
-      .then((saved) => qc.setQueryData(qk.space(space.id), saved))
-      .catch((e) => toast.error("Couldn't save the plan", { description: errorMessage(e) }));
-  }, 600);
+  // Opening a saved Look (`?look=…&open=1` from the Looks page, or the picker) edits a copy of its spec, so Render
+  // renders what's on screen. The room's own draft is kept so it can be restored. A bare `?look=` (written after
+  // Render all / Save) only selects the Look, so reloading never replaces the saved room draft.
+  const openParam = searchParams.get("open") === "1";
+  const paramLook = lookParam ? (lookQuery.data?.id === lookParam ? lookQuery.data : sortedLooks.find((l) => l.id === lookParam)) : undefined;
+  if (lookParam && openParam && paramLook && appliedLookParam !== lookParam) {
+    setAppliedLookParam(lookParam);
+    if (!specEquals(paramLook.spec, draft)) {
+      setCopyOf({ id: paramLook.id, name: paramLook.name, roomDraft: copyOf?.roomDraft ?? draft });
+      setLocalSpec(paramLook.spec);
+      setCheck(null);
+    }
+  }
+
+  // `open=1` is a one-shot request: drop it once applied so a reload keeps editing the room draft.
+  useEffect(() => {
+    if (!openParam || appliedLookParam !== lookParam) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("open");
+    window.history.replaceState(null, "", url);
+  }, [openParam, appliedLookParam, lookParam]);
+
+  // Flushed (not dropped) on unmount and when the tab is hidden, so the last edit is always saved.
+  const persist = useDebouncedCallback(
+    (spec: DesignSpec) => {
+      api
+        .updateSpace(space.id, { current_spec: spec })
+        .then((saved) => qc.setQueryData(qk.space(space.id), saved))
+        .catch((e) => toast.error("Couldn't save the plan", { description: errorMessage(e) }));
+    },
+    600,
+    { flushOnUnmount: true },
+  );
 
   const runCheck = useDebouncedCallback((spec: DesignSpec) => {
     const seq = ++checkSeq.current;
     api
       .checkSpec({ spec, venue_id: space.venue_id })
       .then((res) => {
-        if (seq === checkSeq.current) setCheck(res.warnings.length ? { warnings: res.warnings, fixed: res.spec } : null);
+        // Drop results for a spec that is no longer the draft (a chat reply or fix may have replaced it).
+        if (seq !== checkSeq.current || !specEquals(spec, draftRef.current)) return;
+        setCheck(res.warnings.length ? { warnings: res.warnings, fixed: res.spec } : null);
       })
       .catch(() => {
         // Rule checks are advisory here; the API enforces rules again when a Look is saved.
       });
   }, 400);
 
+  /** `check: false` marks a non-form source (chat reply, applied fix, Look switch): the spec is already checked. */
   const updateSpec = (next: DesignSpec, opts: { check?: boolean } = {}) => {
+    draftRef.current = next;
     setLocalSpec(next);
     persist(next);
     if (opts.check === false) {
+      runCheck.cancel();
       checkSeq.current++;
       setCheck(null);
     } else {
       runCheck(next);
     }
+  };
+
+  /** A chat reply always wins, but edits made while it was in flight can be brought back. */
+  const applyChatSpec = (spec: DesignSpec, sent: DesignSpec) => {
+    const before = draftRef.current;
+    updateSpec(spec, { check: false });
+    if (!specEquals(before, sent)) {
+      toast("Updated from chat — your edits during the reply were replaced", {
+        action: { label: "Undo", onClick: () => updateSpec(before) },
+      });
+    }
+  };
+
+  /** Shows a saved Look's spec as an editable copy. */
+  const openLook = (look: Look) => {
+    setAppliedLookParam(look.id);
+    selectLook(look.id);
+    if (specEquals(look.spec, draft)) return;
+    setCopyOf({ id: look.id, name: look.name, roomDraft: copyOf?.roomDraft ?? draft });
+    runCheck.cancel();
+    checkSeq.current++;
+    draftRef.current = look.spec;
+    setLocalSpec(look.spec);
+    setCheck(null);
+  };
+
+  const restoreRoomDraft = () => {
+    if (!copyOf) return;
+    const room = copyOf.roomDraft;
+    setCopyOf(null);
+    updateSpec(room);
   };
 
   const selectLook = (lookId: string) => {
@@ -130,22 +203,31 @@ function StudioLoaded({ space }: { space: Space }) {
     window.history.replaceState(null, "", url);
   };
 
+  /** Makes a Look this screen just created the active one; its spec becomes the room's draft. */
   const adoptLook = (look: Look) => {
     qc.setQueryData<Look[]>(qk.looks(space.id), (old) => (old?.some((l) => l.id === look.id) ? old : [look, ...(old ?? [])]));
     void qc.invalidateQueries({ queryKey: qk.looks(space.id) });
     void qc.invalidateQueries({ queryKey: qk.look(look.id) });
+    setAppliedLookParam(look.id);
     selectLook(look.id);
-    if (!specEquals(look.spec, draft)) updateSpec(look.spec, { check: false });
+    setCopyOf(null);
+    if (!specEquals(look.spec, draftRef.current)) updateSpec(look.spec, { check: false });
   };
 
   const photoIds = usablePhotos.map((p) => p.id);
+  // Render all reuses the active Look when the draft matches it; block a second run while that one is in flight.
+  const reusableLook = activeLook && specEquals(activeLook.spec, draft) ? activeLook : undefined;
+  const trackerBusy = useLookHasActiveJobs(reusableLook?.id);
+  const lookRendering =
+    trackerBusy || Boolean(reusableLook?.renders?.some((r) => photoIds.includes(r.photo_id) && isActive(r.status)));
+  const noEngine = backends.isSuccess && !engine;
   const renderingLabel = (n: number) => (n === 1 ? "Rendering 1 photo" : `Rendering ${n} photos`);
 
   const renderAll = useMutation({
     mutationFn: async () => {
       if (!photoIds.length) throw new Error("Add a photo first, or describe the venue and approve a base image.");
-      const reuse = activeLook && specEquals(activeLook.spec, draft) ? activeLook : null;
-      const look = reuse ?? (await api.createLook(space.id, { name: suggestLookName(draft), spec: draft, parent_look_id: null }));
+      if (!engine) throw new Error("No image engine found — install/log in to Copilot CLI, Codex CLI, or mflux.");
+      const look = reusableLook ?? (await api.createLook(space.id, { name: suggestLookName(draft), spec: draft, parent_look_id: null }));
       const res = await api.renderLook(look.id, { engine, photo_ids: photoIds });
       return { look, res };
     },
@@ -161,6 +243,12 @@ function StudioLoaded({ space }: { space: Space }) {
     },
     onError: (e) => toast.error("Couldn't start rendering", { description: errorMessage(e) }),
   });
+  const renderDisabled = renderAll.isPending || lookRendering || !engine;
+  const renderAllIfIdle = () => {
+    if (renderAll.isPending || lookRendering) toast.info("Already rendering this Look");
+    else if (!engine) toast.info(backends.isPending ? "Still checking for image engines…" : "No image engine found");
+    else renderAll.mutate();
+  };
 
   const saveLook = useMutation({
     mutationFn: (name: string) => api.createLook(space.id, { name, spec: draft, parent_look_id: null }),
@@ -175,11 +263,11 @@ function StudioLoaded({ space }: { space: Space }) {
   const variation = useMutation({
     mutationFn: async (prompt: string) => {
       if (!activeLook) throw new Error("Save or render a Look first, then make variations of it.");
-      const chat = await api.chat(space.id, { message: prompt, spec: activeLook.spec, brain });
+      const chat = await api.chat(space.id, { message: prompt, spec: activeLook.spec, brain: brain ?? undefined });
       const suggested = suggestLookName(chat.spec);
       const name = suggested !== activeLook.name ? suggested : `${activeLook.name}, variation`;
       const look = await api.createLook(space.id, { name, spec: chat.spec, parent_look_id: activeLook.id });
-      const res = photoIds.length ? await api.renderLook(look.id, { engine, photo_ids: photoIds }) : null;
+      const res = photoIds.length && engine ? await api.renderLook(look.id, { engine, photo_ids: photoIds }) : null;
       return { look, res, chat };
     },
     onSuccess: ({ look, res, chat }) => {
@@ -197,7 +285,8 @@ function StudioLoaded({ space }: { space: Space }) {
       } else {
         toast.success("Variation saved", { description: look.name });
       }
-      for (const w of chat.warnings) toast.warning(w.message, { description: w.fix ?? undefined });
+      if (chat.rule_notes?.length) for (const n of chat.rule_notes) toast.warning(n);
+      else for (const w of chat.warnings) toast.warning(w.message, { description: w.fix ?? undefined });
     },
     onError: (e) => toast.error("Couldn't make the variation", { description: errorMessage(e) }),
   });
@@ -205,6 +294,7 @@ function StudioLoaded({ space }: { space: Space }) {
   const regenerate = useMutation({
     mutationFn: async () => {
       if (!activeLook || !selectedPhoto) throw new Error("Pick a photo and a Look first.");
+      if (!engine) throw new Error("No image engine found — install/log in to Copilot CLI, Codex CLI, or mflux.");
       const render = latestRenderFor(activeLook.renders, selectedPhoto.id);
       if (render) {
         const job = await api.regenerateRender(render.id, { engine });
@@ -243,7 +333,7 @@ function StudioLoaded({ space }: { space: Space }) {
   const handlers = useRef({ renderAll: () => {}, saveLook: () => {}, makeVariation: () => {}, exportLook: () => {} });
   useEffect(() => {
     handlers.current = {
-      renderAll: () => renderAll.mutate(),
+      renderAll: renderAllIfIdle,
       saveLook: () => setSaveOpen(true),
       makeVariation: () => (activeLook ? setVariationOpen(true) : toast.info("Save or render a Look first, then make variations of it.")),
       exportLook: () => void exportLook(),
@@ -284,7 +374,7 @@ function StudioLoaded({ space }: { space: Space }) {
                 value={activeLookId}
                 onValueChange={(v) => {
                   const look = sortedLooks.find((l) => l.id === v);
-                  if (look) adoptLook(look);
+                  if (look) openLook(look);
                 }}
               >
                 <SelectTrigger size="sm" aria-label="Active Look" className="max-w-60">
@@ -357,6 +447,7 @@ function StudioLoaded({ space }: { space: Space }) {
                 render={activeRender}
                 onRegenerate={() => regenerate.mutate()}
                 regenerating={regenerate.isPending}
+                regenerateDisabled={!engine}
                 toolbar={<BackendPicker kind="engine" options={backends.data?.engines} value={engine} onChange={setEngine} />}
               />
             </div>
@@ -375,13 +466,18 @@ function StudioLoaded({ space }: { space: Space }) {
         </section>
 
         <aside aria-label="Plan" className={cn("flex min-h-[75dvh] flex-col lg:min-h-0 lg:border-l", tab !== "plan" && "hidden lg:flex")}>
-          <ChatPanel
-            spaceId={space.id}
-            spec={draft}
-            brain={brain}
-            onBrain={setBrain}
-            onSpec={(spec) => updateSpec(spec, { check: false })}
-          />
+          {copyOf && (
+            <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-sm" role="status">
+              <CopyIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+              <p className="min-w-0 flex-1 truncate">
+                Editing a copy of <span className="font-medium">{copyOf.name}</span>
+              </p>
+              <Button size="sm" variant="ghost" onClick={restoreRoomDraft}>
+                Restore room draft
+              </Button>
+            </div>
+          )}
+          <ChatPanel spaceId={space.id} spec={draft} brain={brain} onBrain={setBrain} onSpec={applyChatSpec} />
           <Collapsible open={specOpen} onOpenChange={setSpecOpen} className="border-t">
             <CollapsibleTrigger className="group flex w-full items-center gap-3 px-4 py-3 text-left">
               <span className="text-sm font-medium">Plan details</span>
@@ -410,9 +506,16 @@ function StudioLoaded({ space }: { space: Space }) {
             </CollapsibleContent>
           </Collapsible>
           <div className="grid gap-2 border-t p-3">
-            <Button size="lg" className="h-10 bg-brand text-brand-foreground hover:bg-brand/90" onClick={() => renderAll.mutate()} disabled={renderAll.isPending}>
+            {noEngine && <NoEngineNotice />}
+            <Button
+              size="lg"
+              className="h-10 bg-brand text-brand-foreground hover:bg-brand/90"
+              onClick={renderAllIfIdle}
+              disabled={renderDisabled}
+              aria-busy={backends.isPending || lookRendering || undefined}
+            >
               <SparklesIcon />
-              Render all photos
+              {lookRendering ? "Rendering…" : "Render all photos"}
               {usablePhotos.length > 0 && <span className="tabular opacity-75">({usablePhotos.length})</span>}
             </Button>
             {backends.data?.internal?.layout_guide?.available && (

@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronDownIcon, FilmIcon, XIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { FrameReview } from "@/components/new-venue/frame-review";
@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { RulesFields } from "@/components/venues/rules-fields";
 import { api, errorMessage } from "@/lib/api";
 import { useJob } from "@/lib/jobs";
+import { usePreferences } from "@/lib/preferences";
 import { qk } from "@/lib/queries";
 import { defaultRules } from "@/lib/spec";
 import type { VenueRules } from "@/lib/types";
@@ -60,13 +61,31 @@ export function VideoTour() {
   const [run, setRun] = useState<{ venueId: string; jobId: string; startedAt: number } | null>(null);
   const abort = useRef<AbortController | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const { brain } = usePreferences();
+  // Every preview URL this screen created, so none outlive it.
+  const objectUrls = useRef(new Set<string>());
+
+  useEffect(() => {
+    const urls = objectUrls.current;
+    return () => {
+      abort.current?.abort();
+      for (const url of urls) URL.revokeObjectURL(url);
+      urls.clear();
+    };
+  }, []);
+
+  const revoke = (url: string) => {
+    URL.revokeObjectURL(url);
+    objectUrls.current.delete(url);
+  };
 
   const job = useJob(run?.jobId).data;
 
   const pick = (file: File | undefined) => {
     if (!file) return;
-    if (video) URL.revokeObjectURL(video.url);
+    if (video) revoke(video.url);
     const url = URL.createObjectURL(file);
+    objectUrls.current.add(url);
     setVideo({ file, url, duration: null, probing: true });
     // Read duration client-side from the metadata; HEVC may not decode in every browser, which is fine.
     const probe = document.createElement("video");
@@ -78,7 +97,7 @@ export function VideoTour() {
   };
 
   const clear = () => {
-    if (video) URL.revokeObjectURL(video.url);
+    if (video) revoke(video.url);
     setVideo(null);
   };
 
@@ -91,16 +110,23 @@ export function VideoTour() {
     mutationFn: async () => {
       const ctrl = new AbortController();
       abort.current = ctrl;
+      const { signal } = ctrl;
       setProgress(0);
+      signal.throwIfAborted();
       // Reuse the venue on retry so a failed upload doesn't leave duplicates behind.
       const id = venueId ?? (await api.createVenue({ name: name.trim(), rules })).id;
       setVenueId(id);
-      const j = await api.uploadVideo(id, video!.file, setProgress, ctrl.signal);
+      // Cancelling while the venue was being created must not start the upload.
+      signal.throwIfAborted();
+      const j = await api.uploadVideo(id, video!.file, { brain, onProgress: setProgress, signal });
       return { venueId: id, job: j };
     },
     onSuccess: ({ venueId: id, job: j }) => {
       void qc.invalidateQueries({ queryKey: qk.venues });
       setRun({ venueId: id, jobId: j.id, startedAt: Date.now() });
+      // The preview is no longer shown; the server has the file now.
+      if (video) revoke(video.url);
+      setVideo(null);
     },
     onError: (e) => {
       if (e instanceof DOMException && e.name === "AbortError") {
@@ -132,11 +158,13 @@ export function VideoTour() {
     );
   }
 
-  if (run && job?.status === "failed") {
+  if (run && job && (job.status === "failed" || job.status === "cancelled" || job.status === "done")) {
     return (
       <div role="alert" className="rounded-2xl border border-destructive/40 bg-card p-6 sm:p-8">
-        <h2 className="font-display text-3xl">We couldn&apos;t read that video</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{job.error ?? "Frame extraction stopped."}</p>
+        <h2 className="font-display text-3xl">{job.status === "cancelled" ? "Video processing cancelled" : "We couldn\u2019t read that video"}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {job.status === "cancelled" ? "No frames were added." : (job.error ?? "Frame extraction stopped.")}
+        </p>
         <Button className="mt-4" onClick={restart}>
           Try another video
         </Button>

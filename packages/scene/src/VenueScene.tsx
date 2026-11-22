@@ -13,6 +13,8 @@ import type { DesignSpec, Layout, SceneCamera as CameraAngle, SceneMode, VenueSc
 declare global {
   interface Window {
     __VV_SCENE_READY?: boolean;
+    /** Set when the scene can't be a faithful layout guide (e.g. tables overflow the room). */
+    __VV_SCENE_ERROR?: string;
   }
 }
 
@@ -24,7 +26,7 @@ const AMBIENTS = {
 };
 
 function Lighting({ spec, room }: { spec: DesignSpec; room: Layout["room"] }) {
-  const preset = AMBIENTS[spec.lighting.ambient ?? "evening_warm"];
+  const preset = AMBIENTS[spec.lighting?.ambient ?? "evening_warm"] ?? AMBIENTS.evening_warm;
   const span = Math.max(room.widthFt, room.lengthFt);
   return (
     <>
@@ -55,13 +57,16 @@ function ReadyFrame({ mode, onReady, layout, angle }: {
   callback.current = onReady;
   useLayoutEffect(() => {
     window.__VV_SCENE_READY = false;
+    // A guide with tables outside the room would mislead the image model: report it instead of "ready".
+    if (layout.overflow) window.__VV_SCENE_ERROR = layout.warnings.join(" ");
+    else delete window.__VV_SCENE_ERROR;
     return () => { window.__VV_SCENE_READY = false; };
   }, [layout, mode, angle, size.width, size.height]);
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       // Signal only after a completed draw, not merely after Canvas mounts.
       gl.render(scene, camera);
-      if (mode === "still") window.__VV_SCENE_READY = true;
+      if (mode === "still" && !layout.overflow) window.__VV_SCENE_READY = true;
       callback.current?.();
     });
     return () => cancelAnimationFrame(frame);
@@ -85,7 +90,7 @@ export function VenueScene({ spec, venueSpec, mode = "orbit", camera = "wide", o
         <Lighting spec={spec} room={layout.room} />
         <Room room={layout.room} venue={venueSpec} />
         <SceneDecor spec={spec} layout={layout} />
-        <SceneCamera room={layout.room} mode={mode} angle={camera} />
+        <SceneCamera layout={layout} mode={mode} angle={camera} />
         <ReadyFrame mode={mode} onReady={onReady} layout={layout} angle={camera} />
       </Canvas>
       {mode === "walk" && (

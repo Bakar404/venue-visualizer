@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 type Props = {
   kind: "engine" | "brain";
   options: BackendStatus[] | undefined;
-  value: string;
+  /** Null while loading or when nothing is available. */
+  value: string | null;
   onChange: (id: string) => void;
   className?: string;
   /** Extra availability filter, e.g. engines that can generate a base image. */
@@ -20,7 +21,7 @@ type Props = {
 /** Engine or brain choice. Unavailable backends stay listed, disabled, with the API's `detail` as a tooltip. */
 export function BackendPicker({ kind, options, value, onChange, className, usable, unusableReason }: Props) {
   const items = (options ?? []).map((b) => ({ value: b.id, label: b.label }));
-  if (!items.some((i) => i.value === value)) items.push({ value, label: value });
+  if (value !== null && !items.some((i) => i.value === value)) items.push({ value, label: value });
   const label = kind === "engine" ? "Engine" : "Brain";
 
   return (
