@@ -51,3 +51,23 @@ type Job = { id: string; kind: "render" | "generate_base"; status: JobStatus; pr
 | GET | `/files/{path}` | | image bytes from `data/` (path traversal blocked) |
 
 Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or running (no websockets in v1).
+
+## Venue research, import, and video
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| POST | `/api/venues/research` | `{query, brain?}` | 202 `Job` (`kind: "venue_research"`); `result: {research: VenueResearch}` when done |
+| POST | `/api/venues/import` | `{research_job_id, match_index, space_names: string[], accepted_rules?: string[], photos?: {url, mode?: "reference" \| "import", rights_confirmed?: boolean}[]}` | 201 `Venue` |
+| POST | `/api/venues/{id}/video` | Multipart `file`, optional `brain`; MP4, MOV, WebM, M4V, or HEVC, up to 1 GB and five minutes | 202 `Job` (`kind: "video_ingest"`) |
+| POST | `/api/venues/{id}/video/apply` | `{job_id, spaces: {name, photo_ids: string[], venue_spec?: VenueSpec}[]}` | Updated `Venue` |
+| POST | `/api/jobs/{id}/cancel` | No body | Updated `Job` |
+
+- **Research and import:** The search result follows `venue-research.schema.json`. Imports use a completed job and a zero-based `match_index`. Only the named suggested spaces, explicitly selected rules, and listed photos are imported. A selected rule must have a single unambiguous supported value. Provided items are informational. Reference mode (the default) stores the URL, source page, and caption/credit on `Space.references`; it does not fetch at import time or create a `Photo`. Explicit base generation may fetch these temporarily through the pipeline downloader. Import mode requires `rights_confirmed: true`; downloaded photos are sanitized, approved, and stored as `kind: "web"` with `source_url`, `source_page`, and `credit`. At most 12 web photos/references can be selected per space.
+- **Video review:** A completed job has `result: {frames, spaces_suggested, duration_s, warnings, applied}`. Each frame has `{photo_id, url, t, sharpness, exposure_ok, space_guess, view, description, fixtures, usable}`. Suggestions contain `{name, venue_spec, photo_ids}`. Frames are saved as unassigned, unapproved `Photo` records (`kind: "video_frame"`) until apply. Each kept frame can be assigned only once, to a new space or an existing space with the same name. Applying approves the selected frames and deletes the rest; a video job can be applied only once.
+- **Jobs:** `progress` is in `[0, 1]`; `error_status` is nullable and can carry an HTTP-style code for an asynchronous failure. If a parallel pipeline function is not yet installed, the corresponding endpoint returns 501 before enqueuing when possible. A queued job cancels immediately; running jobs stop at the next cancellation checkpoint and won't publish new outputs. The worker recovers expired running leases and retries execution failures once. Engine concurrency defaults to one per engine across workers sharing the database; override it with `VV_ENGINE_CONCURRENCY_<ENGINE_ID>` (e.g. `VV_ENGINE_CONCURRENCY_MOCK=2`) consistently for all workers. With `VV_INLINE_JOBS=1`, job-creating requests wait for their jobs to finish in the API process.
+
+Uploads accept `files[]` (or `files`) and are re-encoded to strip metadata; HEIC is stored as JPEG. An upload or video assignment that would take a space past 30 photos is rejected. Venue and look deletes return the deleted resource snapshot; deleting a photo removes its dependent renders. Deletions that would remove active jobs are rejected until those jobs are finished or cancelled.
+
+Rendering defaults to all approved photos in the look's space. `brain_qa: true` enables optional vision QA; `brain` may select the QA brain. Layout guides are internal and never served. The mock image engine is enabled only with `VV_DEV=1`; `defaults.engine` is `null` if no public engine is available. Look responses include `warnings` from rule and capacity checks. PDF export reads saved renders and their original photos, includes warnings and web credits, and never starts a render.
+
+State-changing requests that create records or enqueue work do not deduplicate retries. Use job polling instead of re-submitting an accepted render, generation, research, or video request.
