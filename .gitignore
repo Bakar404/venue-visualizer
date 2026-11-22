@@ -28,3 +28,4 @@ dist/
 ruvector.db
 agentdb.rvf
 agentdb.rvf.lock
+probe/
