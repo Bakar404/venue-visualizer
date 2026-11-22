@@ -79,7 +79,7 @@ function SpaceForm({ venueId, onDone }: { venueId: string; onDone: () => void })
         )}
       </div>
       <Collapsible>
-        <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-md py-1 text-left text-sm font-medium">
+        <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-md py-1 pointer-coarse:min-h-11 text-left text-sm font-medium">
           <span>
             Describe the room <span className="font-normal text-muted-foreground">(optional)</span>
           </span>

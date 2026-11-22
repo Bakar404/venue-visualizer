@@ -1,0 +1,10 @@
+$ cd apps/web && pnpm exec vitest run src/lib/mock-contract.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  19 passed (19)
+   Start at  00:46:30
+   Duration  25.12s (tests 100%)
+

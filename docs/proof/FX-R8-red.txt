@@ -1,0 +1,203 @@
+$ cd services && uv run pytest -q tests/test_fx_r8.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_______________ test_backends_split_login_into_command_and_note ________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25....UTF-8', 'NO_COLOR': '1', 'TERM': 'dumb'})], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10ad8a140>)
+
+    def test_backends_split_login_into_command_and_note(setup_machine):  # noqa: F811
+        setup_machine.installed.update({"claude", "codex", "copilot"})
+        with desktop() as api:
+            report = api.get("/api/system/backends").json()
+        logins = {(item["kind"], item["id"]): item["login"] for item in report["brains"] + report["engines"]}
+>       assert logins[("brain", "claude")] == {"command": "claude", "note": "then follow the sign-in prompt"}
+E       AssertionError: assert 'claude (follow the sign-in prompt)' == {'command': 'claude', 'note': 'then follow the sign-in prompt'}
+
+tests/test_fx_r8.py:13: AssertionError
+_____________________ test_doctor_prints_command_then_note _____________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10ae82610>)
+capsys = <_pytest.capture.CaptureFixture object at 0x10adb70e0>
+
+    def test_doctor_prints_command_then_note(setup_machine, capsys):  # noqa: F811
+        doctor = import_module("api.doctor")
+        doctor.main([])
+        lines = capsys.readouterr().out.splitlines()
+>       assert "      Sign in: claude  (then follow the sign-in prompt)" in lines
+E       AssertionError: assert '      Sign in: claude  (then follow the sign-in prompt)' in ['Venue Visualizer doctor', '', 'Prerequisites', '  ✗ Node: Runs the web app and npm-based AI CLIs', '    Install: brew install node', '  ✗ pnpm: Installs and runs the web app', ...]
+
+tests/test_fx_r8.py:28: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_fx_r8.py::test_backends_split_login_into_command_and_note
+FAILED tests/test_fx_r8.py::test_doctor_prints_command_then_note - AssertionE...
+2 failed, 1 warning in 0.07s
+
+$ cd apps/web && pnpm exec vitest run src/lib/clipboard.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/clipboard.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/clipboard.test.ts [ src/lib/clipboard.test.ts ]
+Error: Failed to resolve import "@/lib/clipboard" from "src/lib/clipboard.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/src/lib/clipboard.test.ts:5:25
+  2  |  // FX-R8: copying works without `navigator.clipboard` (plain-HTTP LAN pages), and reports failure honestly.
+  3  |  import { afterEach, describe, expect, it, vi } from "vitest";
+  4  |  import { copyText } from "@/lib/clipboard";
+     |                            ^
+  5  |  afterEach(() => {
+  6  |  	vi.unstubAllGlobals();
+ ❯ TransformPluginContext._formatLog ../../node_modules/.pnpm/vite@8.3.8_@types+node@20.19.43_esbuild@0.28.2_jiti@2.7.0/node_modules/vite/dist/node/chunks/node.js:8865:39
+ ❯ TransformPluginContext.error ../../node_modules/.pnpm/vite@8.3.8_@types+node@20.19.43_esbuild@0.28.2_jiti@2.7.0/node_modules/vite/dist/node/chunks/node.js:8862:14
+ ❯ resolveId ../../node_modules/.pnpm/vite@8.3.8_@types+node@20.19.43_esbuild@0.28.2_jiti@2.7.0/node_modules/vite/dist/node/chunks/node.js:26552:18
+ ❯ ../../node_modules/.pnpm/vite@8.3.8_@types+node@20.19.43_esbuild@0.28.2_jiti@2.7.0/node_modules/vite/dist/node/chunks/node.js:26651:23
+ ❯ TransformPluginContext.transform ../../node_modules/.pnpm/vite@8.3.8_@types+node@20.19.43_esbuild@0.28.2_jiti@2.7.0/node_modules/vite/dist/node/chunks/node.js:26624:4
+ ❯ EnvironmentPluginContainer.transform ../../node_modules/.pnpm/vite@8.3.8_@types+node@20.19.43_esbuild@0.28.2_jiti@2.7.0/node_modules/vite/dist/node/chunks/node.js:8636:14
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@8.3.8_@types+node@20.19.43_esbuild@0.28.2_jiti@2.7.0/node_modules/vite/dist/node/chunks/node.js:20112:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  00:05:15
+   Duration  326ms (environment 99%, worker 1%)
+
+
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r8.spec.ts
+
+Running 3 tests using 3 workers
+
+(node:21295) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21294) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21293) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/3] [chromium] › e2e/fx-r8.spec.ts:43:1 › FX-R8: sign-in is a command to copy plus a plain-text next step
+[2/3] [chromium] › e2e/fx-r8.spec.ts:24:1 › FX-R8: copy falls back to execCommand and says Copied
+[3/3] [chromium] › e2e/fx-r8.spec.ts:34:1 › FX-R8: when copying is impossible the button says so
+  1) [chromium] › e2e/fx-r8.spec.ts:43:1 › FX-R8: sign-in is a command to copy plus a plain-text next step 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  getByRole('region', { name: 'Claude Code', exact: true }).getByTestId('sign-in-command')
+    Expected: "claude"
+    Received: "claude, then follow the sign-in prompt"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveText" getByRole('region', { name: 'Claude Code', exact: true }).getByTestId('sign-in-command') with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Claude Code', exact: true }).getByTestId('sign-in-command')
+        21 × locator resolved to <code data-testid="sign-in-command" class="min-w-0 flex-1 self-center py-1 font-mono text-sm break-words whitespace-pre-wrap">claude, then follow the sign-in prompt</code>
+           - unexpected value "claude, then follow the sign-in prompt"
+
+
+      44 |   await page.goto("/setup?vvScenario=fresh");
+      45 |   const claude = card(page, "Claude Code");
+    > 46 |   await expect(claude.getByTestId("sign-in-command")).toHaveText("claude");
+         |                                                       ^
+      47 |   await expect(claude.getByTestId("sign-in-note")).toHaveText("then follow the sign-in prompt");
+      48 |   const copilot = card(page, "GitHub Copilot");
+      49 |   await expect(copilot.getByTestId("sign-in-command")).toHaveText("copilot");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r8.spec.ts:46:55
+
+    Error Context: test-results/fx-r8-FX-R8-sign-in-is-a-c-42f1e-plus-a-plain-text-next-step-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r8-FX-R8-sign-in-is-a-c-42f1e-plus-a-plain-text-next-step-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r8-FX-R8-sign-in-is-a-c-42f1e-plus-a-plain-text-next-step-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/fx-r8.spec.ts:34:1 › FX-R8: when copying is impossible the button says so ────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('region', { name: 'Claude Code', exact: true }).getByRole('button', { name: 'Couldn\'t copy install command' })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('region', { name: 'Claude Code', exact: true }).getByRole('button', { name: 'Couldn\'t copy install command' }) with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Claude Code', exact: true }).getByRole('button', { name: 'Couldn\'t copy install command' })
+
+
+      37 |   const claude = card(page, "Claude Code");
+      38 |   await claude.getByRole("button", { name: "Copy install command" }).click();
+    > 39 |   await expect(claude.getByRole("button", { name: "Couldn't copy install command" })).toBeVisible();
+         |                                                                                       ^
+      40 |   await expect(claude.getByRole("status")).toContainText("Couldn't copy. Select the command and copy it yourself.");
+      41 | });
+      42 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r8.spec.ts:39:87
+
+    Error Context: test-results/fx-r8-FX-R8-when-copying-is-impossible-the-button-says-so-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r8-FX-R8-when-copying-is-impossible-the-button-says-so-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r8-FX-R8-when-copying-is-impossible-the-button-says-so-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  3) [chromium] › e2e/fx-r8.spec.ts:24:1 › FX-R8: copy falls back to execCommand and says Copied ───
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('region', { name: 'Claude Code', exact: true }).getByRole('button', { name: 'Copied install command' })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('region', { name: 'Claude Code', exact: true }).getByRole('button', { name: 'Copied install command' }) with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Claude Code', exact: true }).getByRole('button', { name: 'Copied install command' })
+
+
+      27 |   const claude = card(page, "Claude Code");
+      28 |   await claude.getByRole("button", { name: "Copy install command" }).click();
+    > 29 |   await expect(claude.getByRole("button", { name: "Copied install command" })).toBeVisible();
+         |                                                                                ^
+      30 |   const install = (await claude.getByTestId("install-command").textContent())?.trim();
+      31 |   expect(await page.evaluate(() => (window as unknown as { __copied: string[] }).__copied)).toEqual([install]);
+      32 | });
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r8.spec.ts:29:80
+
+    Error Context: test-results/fx-r8-FX-R8-copy-falls-back-to-execCommand-and-says-Copied-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r8-FX-R8-copy-falls-back-to-execCommand-and-says-Copied-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r8-FX-R8-copy-falls-back-to-execCommand-and-says-Copied-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  3 failed
+    [chromium] › e2e/fx-r8.spec.ts:24:1 › FX-R8: copy falls back to execCommand and says Copied ────
+    [chromium] › e2e/fx-r8.spec.ts:34:1 › FX-R8: when copying is impossible the button says so ─────
+    [chromium] › e2e/fx-r8.spec.ts:43:1 › FX-R8: sign-in is a command to copy plus a plain-text next step 

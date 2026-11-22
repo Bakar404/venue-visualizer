@@ -8,6 +8,10 @@ import { cn } from "@/lib/utils";
 
 export type StudioTab = "photos" | "canvas" | "chat" | "plan";
 
+/** Ids that tie each tab to its panel. Chat and Plan share the right-hand pane, which shows the chat or the plan. */
+export const studioTabId = (tab: StudioTab) => `studio-tab-${tab}`;
+export const studioPanelId = (tab: StudioTab) => `studio-panel-${tab === "chat" ? "plan" : tab}`;
+
 const TABS: { value: StudioTab; label: string; icon: typeof ImageIcon }[] = [
   { value: "photos", label: "Photos", icon: PanelsTopLeftIcon },
   { value: "canvas", label: "Preview", icon: ImageIcon },
@@ -30,8 +34,9 @@ type Props = {
 export function StudioTabBar({ tab, onTab, onRender, renderDisabled, rendering, busy, photoCount, className }: Props) {
   return (
     <div
+      data-testid="studio-tab-bar"
       className={cn(
-        "flex items-stretch gap-1 border-t bg-background/95 px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] pr-[max(0.5rem,env(safe-area-inset-right))] pl-[max(0.5rem,env(safe-area-inset-left))] backdrop-blur supports-backdrop-filter:bg-background/80",
+        "flex items-stretch gap-1 border-t bg-background/95 px-2 pt-1.5 pb-1.5 pr-[max(0.5rem,env(safe-area-inset-right))] pl-[max(0.5rem,env(safe-area-inset-left))] backdrop-blur supports-backdrop-filter:bg-background/80",
         className,
       )}
     >
@@ -41,6 +46,8 @@ export function StudioTabBar({ tab, onTab, onRender, renderDisabled, rendering, 
             <TabsPrimitive.Tab
               key={value}
               value={value}
+              id={studioTabId(value)}
+              aria-controls={studioPanelId(value)}
               className="group flex min-h-12 min-w-11 flex-col items-center justify-center gap-0.5 rounded-lg text-[0.8125rem] font-medium text-muted-foreground outline-none transition-[color,transform] duration-150 ease-out focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.96] data-active:text-foreground"
             >
               <Icon aria-hidden className="size-5 transition-colors group-data-active:text-brand" strokeWidth={1.75} />

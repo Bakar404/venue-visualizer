@@ -77,7 +77,11 @@ test("S5: installed but signed out shows the sign-in step; Test tells unknown fr
   await expect(copilot.getByTestId("test-result")).toContainText(/Failed/);
   await expect(copilot.getByTestId("test-result")).toContainText(/sign/i);
 
-  await page.evaluate(() => window.__vvMock.install("copilot"));
+  // Installing restarts nothing; skip the 10 s per-backend cooldown the failed test started.
+  await page.evaluate(() => {
+    window.__vvMock.install("copilot");
+    window.__vvMock.clearTests();
+  });
   await copilot.getByRole("button", { name: "Test chat" }).click();
   await expect(copilot.getByTestId("test-result")).toContainText(/Passed in [\d.]+ s/);
   await expect(pill(copilot)).toHaveText("Ready");
@@ -93,7 +97,8 @@ test("S5: image tests ask before using credits; free engines test straight away"
   await expect(confirm).toContainText(/credits/i);
   await confirm.getByRole("button", { name: "Cancel" }).click();
   await expect(confirm).toBeHidden();
-  await expect(copilot.getByTestId("test-result")).toHaveCount(0);
+  // The scenario's earlier passing test stays; Cancel ran no new one (a new one shows its sample image).
+  await expect(copilot.getByRole("img", { name: /test image/i })).toHaveCount(0);
 
   await copilot.getByRole("button", { name: "Test images" }).click();
   await settled(page);
@@ -131,6 +136,9 @@ test("S5: rate-limited tests say when to try again, and Test waits until then", 
   const copilot = card(page, "GitHub Copilot");
   const chat = copilot.getByRole("button", { name: "Test chat" });
   const images = copilot.getByRole("button", { name: "Test images" });
+  await mockReady(page);
+  await page.evaluate(() => window.__vvMock.clearTests());
+  await page.reload();
   await mockReady(page);
   await page.evaluate(() => window.__vvMock.rateLimitTests(4));
   await chat.click();
@@ -187,7 +195,7 @@ test("S5: Open on your phone shows the QR code, address and a one-time code; New
   await expect(phone.getByRole("switch")).toHaveCount(0);
   await expect(phone.getByTestId("lan-url")).toHaveText(/^http:\/\/\d+\.\d+\.\d+\.\d+:\d+/);
   await expect(phone).toContainText(/works once/i);
-  await expect(phone).toContainText(/expires after 10 minutes/i);
+  await expect(phone.getByTestId("pairing-expiry")).toHaveText(/^Expires in (10:00|9:[0-5]\d)$/);
   await expect(phone).toContainText(/anyone on the same Wi.?Fi could try to connect/i);
   const pairingCode = async () => (await phone.getByTestId("pairing-code").textContent())?.replace(/\s/g, "") ?? "";
   const old = await pairingCode();
@@ -208,7 +216,7 @@ test("S5: Open on your phone shows the QR code, address and a one-time code; New
   // The code New code replaced no longer works.
   await input.fill(old);
   await page.getByRole("button", { name: "Pair" }).click();
-  await expect(alert).toContainText(/didn.t match/i);
+  await expect(alert).toContainText(/Incorrect pairing code/i);
   await input.fill(code);
   await page.getByRole("button", { name: "Pair" }).click();
   await expect(page.getByRole("main").getByRole("status")).toContainText(/paired/i);
@@ -218,7 +226,7 @@ test("S5: Open on your phone shows the QR code, address and a one-time code; New
   await page.goto("/pair");
   await page.getByLabel("Pairing code").fill(code);
   await page.getByRole("button", { name: "Pair" }).click();
-  await expect(alert).toContainText(/didn.t match/i);
+  await expect(alert).toContainText(/No pairing code is active/i);
 });
 
 test("S5: paired phones are listed and can be forgotten one by one or all at once", async ({ page }) => {

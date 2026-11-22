@@ -1,0 +1,108 @@
+$ cd services && uv run pytest -q tests/test_fx_r4.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________________________ test_setup_reports_the_client _________________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x117316610>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1172a8640>
+
+    def test_setup_reports_the_client(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch)
+        with desktop() as api:
+>           assert api.get("/api/system/setup").json()["client"] == "owner"
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'client'
+
+tests/test_fx_r4.py:10: KeyError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_fx_r4.py::test_setup_reports_the_client - KeyError: 'client'
+1 failed, 1 warning in 0.06s
+
+$ cd apps/web && pnpm exec vitest run src/lib/mock-contract.test.ts -t unpaired phone
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/mock-contract.test.ts (19 tests | 1 failed | 18 skipped) 132ms
+   ❯ mock API matches the first-run setup contract (13)
+     × an unpaired phone gets 403 'Pair this device…' everywhere except pairing; a paired phone isn't the owner 130ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the first-run setup contract > an unpaired phone gets 403 'Pair this device…' everywhere except pairing; a paired phone isn't the owner
+TypeError: systemHooks.setClient is not a function
+ ❯ src/lib/mock-contract.test.ts:286:17
+    284|     systemHooks.setLan(true);
+    285|     const { pairing_code } = await mockApi.lanInfo();
+    286|     systemHooks.setClient("phone");
+       |                 ^
+    287|     for (const call of [mockApi.backends(), mockApi.setupStatus(), moc…
+    288|       const error = await rejects(call);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 18 skipped (19)
+   Start at  00:05:37
+   Duration  260ms (tests 69%, import 24%, transform 6%, worker 1%)
+
+
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r4.spec.ts
+
+Running 2 tests using 2 workers
+
+(node:21142) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21143) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/2] [chromium] › e2e/fx-r4.spec.ts:7:1 › FX-R4: a paired phone confirms before an mflux image test
+[2/2] [chromium] › e2e/fx-r4.spec.ts:24:1 › FX-R4: on this computer mflux still tests straight away
+  1) [chromium] › e2e/fx-r4.spec.ts:7:1 › FX-R4: a paired phone confirms before an mflux image test 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('alertdialog')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('alertdialog') with timeout 10000ms
+      - waiting for getByRole('alertdialog')
+
+
+      13 |   await mflux.getByRole("button", { name: "Test images" }).click();
+      14 |   const dialog = page.getByRole("alertdialog");
+    > 15 |   await expect(dialog).toBeVisible();
+         |                        ^
+      16 |   await expect(dialog).toContainText(/phone/i);
+      17 |   await settled(page);
+      18 |   await page.screenshot({ path: proof("FX-R4-phone-confirm.png") });
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r4.spec.ts:15:24
+
+    Error Context: test-results/fx-r4-FX-R4-a-paired-phone-3ca87--before-an-mflux-image-test-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r4-FX-R4-a-paired-phone-3ca87--before-an-mflux-image-test-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r4-FX-R4-a-paired-phone-3ca87--before-an-mflux-image-test-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/fx-r4.spec.ts:7:1 › FX-R4: a paired phone confirms before an mflux image test ─
+  1 passed (11.6s)

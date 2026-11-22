@@ -177,6 +177,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Settings */
+        patch: operations["patch_settings_api_settings_patch"];
+        trace?: never;
+    };
     "/api/spaces/{space_id}": {
         parameters: {
             query?: never;
@@ -333,6 +351,149 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/backends/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh Backends */
+        post: operations["refresh_backends_api_system_backends_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/backends/{kind}/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test Backend */
+        post: operations["test_backend_api_system_backends__kind___id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/lan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lan Info
+         * @description Show the current pairing code (issuing one if none is active) and restart its expiry.
+         */
+        get: operations["lan_info_api_system_lan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/lan/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * New Code
+         * @description Replace the pairing code with a fresh one (owner only). During a lockout it returns `pairing_locked_for`.
+         */
+        post: operations["new_code_api_system_lan_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/lan/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Devices */
+        get: operations["list_devices_api_system_lan_devices_get"];
+        put?: never;
+        post?: never;
+        /** Forget All Devices */
+        delete: operations["forget_all_devices_api_system_lan_devices_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/lan/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Forget Device */
+        delete: operations["forget_device_api_system_lan_devices__device_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/lan/pair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pair */
+        post: operations["pair_api_system_lan_pair_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Setup */
+        get: operations["setup_api_system_setup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/venues": {
         parameters: {
             query?: never;
@@ -455,6 +616,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/files/tests/{sample_id}.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Test Sample */
+        get: operations["get_test_sample_files_tests__sample_id__png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/files/{path}": {
         parameters: {
             query?: never;
@@ -508,15 +686,36 @@ export interface components {
             /** Engine */
             engine: string | null;
         };
+        /** BackendInstall */
+        BackendInstall: {
+            /** Docs Url */
+            docs_url: string;
+            /** Linux */
+            linux: string;
+            /** Macos */
+            macos: string;
+        };
+        /** BackendLogin */
+        BackendLogin: {
+            /** Command */
+            command: string;
+            /** Note */
+            note: string | null;
+        };
         /** BackendStatus */
         BackendStatus: {
             /** Available */
             available: boolean;
             caps?: components["schemas"]["BackendCaps"] | null;
+            /** Cost Note */
+            cost_note: string;
             /** Detail */
             detail: string | null;
             /** Id */
             id: string;
+            /** Image Setup */
+            image_setup?: string | null;
+            install: components["schemas"]["BackendInstall"];
             /**
              * Kind
              * @enum {string}
@@ -524,10 +723,33 @@ export interface components {
             kind: "brain" | "engine";
             /** Label */
             label: string;
+            last_test: components["schemas"]["LastTest"] | null;
             /** Logged In */
             logged_in: boolean | null;
+            login: components["schemas"]["BackendLogin"] | null;
+            /** Used For */
+            used_for: ("chat" | "web_research" | "vision" | "images")[];
             /** Version */
             version: string | null;
+        };
+        /** BackendTestIn */
+        BackendTestIn: {
+            /**
+             * Confirm Credits
+             * @default false
+             */
+            confirm_credits: boolean;
+        };
+        /** BackendTestOut */
+        BackendTestOut: {
+            /** Detail */
+            detail: string;
+            /** Ok */
+            ok: boolean;
+            /** Sample Url */
+            sample_url?: string | null;
+            /** Seconds */
+            seconds: number;
         };
         /** BackendThresholds */
         BackendThresholds: {
@@ -655,6 +877,21 @@ export interface components {
             spec_changed: boolean;
             /** Warnings */
             warnings: components["schemas"]["RuleWarning"][];
+        };
+        /** ClaudeOptions */
+        ClaudeOptions: {
+            /** Config Dir */
+            config_dir?: string | null;
+        };
+        /** ClaudePatch */
+        ClaudePatch: {
+            /** Config Dir */
+            config_dir?: string | null;
+        };
+        /** CopilotOptions */
+        CopilotOptions: {
+            /** Model */
+            model?: string | null;
         };
         /** DesignSpec */
         DesignSpec: {
@@ -805,6 +1042,83 @@ export interface components {
              */
             status: "queued" | "running" | "done" | "failed" | "cancelled";
         };
+        /** KimiOptions */
+        KimiOptions: {
+            /** Bin */
+            bin?: string | null;
+        };
+        /** KimiPatch */
+        KimiPatch: {
+            /** Bin */
+            bin?: string | null;
+        };
+        /** LanDeviceOut */
+        LanDeviceOut: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+            /**
+             * Paired At
+             * Format: date-time
+             */
+            paired_at: string;
+        };
+        /**
+         * LanOptions
+         * @description Read-only: reflects whether this run was started with `make dev-lan`.
+         */
+        LanOptions: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+        };
+        /** LanOut */
+        LanOut: {
+            /** Enabled */
+            enabled: boolean;
+            /** Pairing Code */
+            pairing_code: string | null;
+            /** Pairing Expires In */
+            pairing_expires_in?: number | null;
+            /** Pairing Locked For */
+            pairing_locked_for?: number | null;
+            /**
+             * Pairing Required
+             * @default true
+             */
+            pairing_required: boolean;
+            /** Qr Svg */
+            qr_svg: string | null;
+            /** Url */
+            url: string | null;
+        };
+        /** LastTest */
+        LastTest: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Detail */
+            detail: string;
+            /** Ok */
+            ok: boolean;
+            /** Seconds */
+            seconds: number;
+        };
         /** Lighting */
         Lighting: {
             /**
@@ -877,6 +1191,11 @@ export interface components {
             /** Fold */
             fold?: string | null;
         };
+        /** PairIn */
+        PairIn: {
+            /** Code */
+            code: string;
+        };
         /** PhotoOut */
         PhotoOut: {
             /** Approved */
@@ -929,6 +1248,18 @@ export interface components {
             rights_confirmed: boolean;
             /** Url */
             url: string;
+        };
+        /** Providers */
+        Providers: {
+            claude?: components["schemas"]["ClaudeOptions"];
+            copilot?: components["schemas"]["CopilotOptions"];
+            kimi?: components["schemas"]["KimiOptions"];
+        };
+        /** ProvidersPatch */
+        ProvidersPatch: {
+            claude?: components["schemas"]["ClaudePatch"];
+            copilot?: components["schemas"]["CopilotOptions"];
+            kimi?: components["schemas"]["KimiPatch"];
         };
         /** ReferenceImport */
         ReferenceImport: {
@@ -1028,6 +1359,15 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** RoleSetup */
+        RoleSetup: {
+            /** Likely */
+            likely: string[];
+            /** Missing */
+            missing: boolean;
+            /** Ready */
+            ready: string[];
+        };
         /** RuleWarning */
         RuleWarning: {
             /** Field */
@@ -1049,6 +1389,62 @@ export interface components {
              * @enum {string}
              */
             windows: "as_photographed" | "dark" | "sheer_draped";
+        };
+        /** SettingsOut */
+        SettingsOut: {
+            /**
+             * Allow Web Research
+             * @default true
+             */
+            allow_web_research: boolean;
+            /** Default Brain */
+            default_brain?: ("claude" | "codex" | "copilot" | "kimi" | "mock") | null;
+            /** Default Engine */
+            default_engine?: ("copilot" | "codex" | "mflux" | "mock") | null;
+            lan?: components["schemas"]["LanOptions"];
+            providers?: components["schemas"]["Providers"];
+            /** Setup Completed At */
+            setup_completed_at?: string | null;
+        };
+        /** SettingsPatch */
+        SettingsPatch: {
+            /**
+             * Allow Web Research
+             * @default true
+             */
+            allow_web_research: boolean;
+            /** Default Brain */
+            default_brain?: ("claude" | "codex" | "copilot" | "kimi" | "mock") | null;
+            /** Default Engine */
+            default_engine?: ("copilot" | "codex" | "mflux" | "mock") | null;
+            lan?: components["schemas"]["LanOptions"];
+            providers?: components["schemas"]["ProvidersPatch"];
+            /** Setup Completed At */
+            setup_completed_at?: string | null;
+        };
+        /** SetupOut */
+        SetupOut: {
+            brain: components["schemas"]["RoleSetup"];
+            /**
+             * Client
+             * @enum {string}
+             */
+            client: "owner" | "phone";
+            /** Complete */
+            complete: boolean;
+            engine: components["schemas"]["RoleSetup"];
+            /** Missing */
+            missing: ("brain" | "engine" | "defaults")[];
+            steps: components["schemas"]["SetupSteps"];
+        };
+        /** SetupSteps */
+        SetupSteps: {
+            /** Defaults */
+            defaults: boolean;
+            /** Tools */
+            tools: boolean;
+            /** Try It */
+            try_it: boolean;
         };
         /** SkippedPhoto */
         SkippedPhoto: {
@@ -1668,6 +2064,59 @@ export interface operations {
             };
         };
     };
+    get_settings_api_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+        };
+    };
+    patch_settings_api_settings_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_space_api_spaces__space_id__get: {
         parameters: {
             query?: never;
@@ -2044,6 +2493,224 @@ export interface operations {
             };
         };
     };
+    refresh_backends_api_system_backends_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackendsOut"];
+                };
+            };
+        };
+    };
+    test_backend_api_system_backends__kind___id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "brain" | "engine";
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BackendTestIn"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackendTestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lan_info_api_system_lan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanOut"];
+                };
+            };
+        };
+    };
+    new_code_api_system_lan_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanOut"];
+                };
+            };
+        };
+    };
+    list_devices_api_system_lan_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanDeviceOut"][];
+                };
+            };
+        };
+    };
+    forget_all_devices_api_system_lan_devices_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    forget_device_api_system_lan_devices__device_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pair_api_system_lan_pair_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    setup_api_system_setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupOut"];
+                };
+            };
+        };
+    };
     list_venues_api_venues_get: {
         parameters: {
             query?: never;
@@ -2352,6 +3019,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VenueOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_test_sample_files_tests__sample_id__png_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sample_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
                 };
             };
             /** @description Validation Error */

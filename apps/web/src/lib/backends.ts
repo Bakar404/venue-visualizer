@@ -23,19 +23,35 @@ export function canBrowse(brain: BackendStatus): boolean {
   return WEB_BRAINS.has(brain.id);
 }
 
-/** Installed and not known to be signed out. Copilot and Kimi can't report a login (null), so they count until a test fails. */
-export function isUsable(b: Pick<BackendStatus, "available" | "logged_in">): boolean {
-  return b.available && b.logged_in !== false;
+type Readiness = Pick<BackendStatus, "available" | "logged_in"> & { last_test?: BackendStatus["last_test"] };
+
+export type BackendState = "ready" | "likely" | "failed" | "signed_out" | "missing";
+
+/**
+ * The one readiness rule, mirroring services/api/readiness.py (used by `GET /api/system/setup` and `make doctor`).
+ * ready: installed and signed in, or its last test passed. likely: installed, sign-in unknown and no failed test.
+ */
+export function backendState(b: Readiness): BackendState {
+  if (!b.available) return "missing";
+  if (b.logged_in === false) return "signed_out";
+  const ok = b.last_test?.ok;
+  if (b.logged_in === true || ok === true) return "ready";
+  return ok === false ? "failed" : "likely";
 }
+
+/** Can be offered as a choice (defaults, Studio pickers, the default engine). */
+export const isReady = (b: Readiness) => backendState(b) === "ready";
+/** Will probably work, but nobody has checked: shown, never offered, with "Run Test first". */
+export const isLikely = (b: Readiness) => backendState(b) === "likely";
 
 export type SetupPill = "Not installed" | "Installed, not signed in" | "Ready" | "Unknown";
 
-/** The status pill on the setup page (docs/onboarding-and-mobile.md). */
-export function setupPill(b: Pick<BackendStatus, "available" | "logged_in" | "last_test">): SetupPill {
-  if (!b.available) return "Not installed";
-  if (b.logged_in === false) return "Installed, not signed in";
-  if (b.logged_in === true || b.last_test?.ok) return "Ready";
-  return "Unknown";
+/** The status pill on the setup page (docs/onboarding-and-mobile.md). Likely and failed both read "Unknown". */
+export function setupPill(b: Readiness): SetupPill {
+  const state = backendState(b);
+  if (state === "missing") return "Not installed";
+  if (state === "signed_out") return "Installed, not signed in";
+  return state === "ready" ? "Ready" : "Unknown";
 }
 
 const SHORT_NAMES: Record<string, string> = {
@@ -52,11 +68,19 @@ export function shortName(id: string): string {
   return SHORT_NAMES[id] ?? id;
 }
 
+/** "Copilot will probably work. Run Test to be sure." for likely tools; null when there are none. */
+export function likelyNote(ids: readonly string[]): string | null {
+  const names = [...new Set(ids)].filter((id) => id !== "mock").map(shortName);
+  if (names.length === 0) return null;
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return `${list} will probably work. Run Test to be sure.`;
+}
+
 /** Applied to every `/api/system/backends` response before the UI sees it. */
 export function normalizeBackends(data: Backends): Backends {
   const engines = userEngines(data.engines);
-  // Never invent a default: no usable engine means `null`, and the UI shows how to install one.
-  const usable = engines.filter(isUsable);
-  const engine = usable.some((e) => e.id === data.defaults.engine) ? data.defaults.engine : (usable[0]?.id ?? null);
+  // Never invent a default: no READY engine means `null`, and the UI shows how to get one ready.
+  const ready = engines.filter(isReady);
+  const engine = ready.some((e) => e.id === data.defaults.engine) ? data.defaults.engine : (ready[0]?.id ?? null);
   return { ...data, engines, defaults: { ...data.defaults, engine } };
 }

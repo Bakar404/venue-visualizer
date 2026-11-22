@@ -10,6 +10,7 @@
   },
   "pnpm": {
     "ignoredBuiltDependencies": [
+      "esbuild",
       "sharp",
       "unrs-resolver"
     ]

@@ -16,7 +16,8 @@ or an exact origin in the comma-separated `VV_ALLOWED_ORIGINS` setting.
 ```ts
 type BackendStatus = { id: string; label: string; kind: "brain" | "engine"; available: boolean;
   logged_in: boolean | null; version: string | null; detail: string | null;
-  install: { macos: string; linux: string; docs_url: string }; login: string | null;
+  install: { macos: string; linux: string; docs_url: string };
+  login: { command: string; note: string | null } | null; image_setup: string | null;
   used_for: ("chat" | "web_research" | "vision" | "images")[]; cost_note: string;
   last_test: { ok: boolean; at: string; seconds: number; detail: string } | null;
   caps: { can_generate: boolean; can_edit: boolean; typical_seconds: number; cost_note: string; photoreal: boolean; max_refs: number } | null };
@@ -27,11 +28,14 @@ type Settings = {
   providers: { claude: { config_dir: string | null }; copilot: { model: string | null }; kimi: { bin: string | null } };
   lan: { enabled: boolean };
 };
+type RoleSetup = { ready: string[]; likely: string[]; missing: boolean };
 type Setup = { complete: boolean; missing: ("brain" | "engine" | "defaults")[];
-  steps: { tools: boolean; defaults: boolean; try_it: boolean } };
+  steps: { tools: boolean; defaults: boolean; try_it: boolean };
+  brain: RoleSetup; engine: RoleSetup; client: "owner" | "phone" };
 type BackendTest = { ok: boolean; seconds: number; detail: string; sample_url: string | null };
 type Lan = { enabled: boolean; url: string | null; qr_svg: string | null;
-  pairing_code: string | null; pairing_required: true };
+  pairing_code: string | null; pairing_required: true;
+  pairing_expires_in: number | null; pairing_locked_for: number | null };
 type Venue = { id: string; name: string; rules: VenueRules; created_at: string; spaces: Space[] };
 type VenueImportResult = Venue & { skipped_photos: { url: string; reason: string }[] };
 type Space = { id: string; venue_id: string; name: string; venue_spec: VenueSpec; photos: Photo[]; current_spec: DesignSpec | null;
@@ -63,7 +67,8 @@ type Job = { id: string; kind: "render" | "generate_base"; status: JobStatus; pr
 | GET | `/api/system/setup` | | `Setup` |
 | GET | `/api/settings` | | `Settings` |
 | PATCH | `/api/settings` | Partial `Settings`, including partial nested objects | Updated `Settings` |
-| GET | `/api/system/lan` | | `Lan` (this computer only; issues or refreshes the pairing code) |
+| GET | `/api/system/lan` | | `Lan` (this computer only; shows the current pairing code, issuing one if none is active) |
+| POST | `/api/system/lan/code` | No body | `Lan` with a fresh pairing code (this computer only) |
 | POST | `/api/system/lan/pair` | `{code: string}` | `{ok: true}` and a device cookie (LAN only) |
 | GET | `/api/system/lan/devices` | | `LanDevice[]` (this computer only) |
 | DELETE | `/api/system/lan/devices/{id}` | | 204; forgets one paired device (404 if unknown) |
@@ -110,8 +115,18 @@ Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or
 - **Detection:** `available` means installed (or locally available for internal tools). `logged_in: false` excludes a
   backend from automatic selection and setup readiness; `null` means the app cannot verify login without a test. Login
   detection is cached for up to 60 seconds. If no backend of a given kind is usable, its default is `null`.
-  Setup is complete when a usable brain and engine are available and `setup_completed_at` is set. `steps.tools` reflects
-  backend availability, `steps.defaults` reflects the completion timestamp, and `steps.try_it` equals `complete`.
+  `login` is the sign-in step: `command` is what to type (the web makes only this copyable) and `note` is plain-text
+  guidance for after it starts (for example Copilot: `copilot`, "then type /login"). `image_setup` is a one-time
+  command that turns on images, if the tool needs one.
+- **Readiness (one rule for setup, the web and `make doctor`; `services/api/readiness.py`):** a backend is *ready* when
+  it is available and `logged_in` is `true` or its `last_test.ok` is `true`. It is *likely* when it is available,
+  `logged_in` is `null` and it has no failed last test: it will probably work, but only a passing Test makes it ready.
+  Not installed, signed out (`logged_in: false`) or a failed last test is neither. `Setup.brain` and `Setup.engine`
+  list the `ready` and `likely` ids per role; `missing` is true when the role has no ready backend. Setup is
+  `complete` only with a ready brain, a ready engine and `setup_completed_at` set. `steps.tools` means both roles have
+  a ready backend, `steps.defaults` reflects the completion timestamp, and `steps.try_it` equals `complete`. The web
+  offers only ready backends as defaults; likely ones are shown disabled with "Run Test first". `client` is `owner`
+  for this computer and `phone` for a paired phone.
 - **Tests:** A brain gets one JSON completion with a 60-second timeout. An engine generates a low-quality 1024×1024 sample.
   Engine tests other than mock and mflux require `confirm_credits: true` (422 otherwise); from a paired phone every
   engine test does. Only one test per backend runs at a time (409). A backend's brain test can start at most every
@@ -119,7 +134,8 @@ Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or
   A completed test request returns
   200 with `ok: false` and a user-facing detail on provider failure. Results are persisted separately for each brain and
   engine; only a successful image test returns a `sample_url`. `make doctor` lists install and sign-in instructions
-  without generating anything; `uv run python -m api.doctor --json` emits the same checklist as JSON.
+  without generating anything and always exits 0 after printing its verdict; `make doctor-ci` (`--strict`) exits
+  non-zero unless setup is ready. `uv run python -m api.doctor --json` emits the same checklist as JSON.
 - **LAN:** Off by default and only on while `make dev-lan` (alias `make lan`) runs (`VV_LAN=1` plus a per-run
   `VV_LAN_PROXY_KEY`); there is no settings toggle. It serves a production build (`next start`) on the LAN address
   while the API stays on 127.0.0.1. `make dev`, `make web`, `make api`, `pnpm dev:web` and the `apps/web`
@@ -128,9 +144,12 @@ Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or
   skipped) to allowed API hosts and permits HTTP origins on those addresses on ports 3000 and 8000.
   Use the returned web URL or QR code on a trusted Wi-Fi network: LAN mode uses plain HTTP by default.
   The six-digit pairing code is returned only by `GET /api/system/lan` on this computer (the console only says where to
-  find it). Each call issues a code if none is active and extends it to 10 minutes (`pairing_expires_in`, seconds). A
-  code works once; pair another device by reopening the panel. Ten wrong codes from any addresses retire the code and
-  lock pairing for 5 minutes (`pairing_locked_for`, seconds; pairing returns 429 with `Retry-After`).
+  find it). Each `GET` keeps the current code (issuing one if none is active) and restarts its 10 minutes
+  (`pairing_expires_in`, seconds); `POST /api/system/lan/code` replaces it. A code works once; pair another device by
+  reopening the panel or choosing New code. The QR code and URL point at `/pair`. The web app turns any API 403 "Pair
+  this device…" into a redirect to `/pair?next=<current path>` and returns there after pairing. Ten wrong codes from any addresses retire the code and
+  lock pairing for 5 minutes (`pairing_locked_for`, seconds, with `pairing_code: null`; pairing returns 429 with
+  `Retry-After`).
   A phone must pair before any API or file request except `GET /api/health` and `POST /api/system/lan/pair`.
   Five incorrect codes per client IP in ten minutes block further attempts with 429 and `Retry-After`. Successful pairing
   sets a signed, HttpOnly, SameSite=Strict cookie that lasts 30 days and survives restarts, but is honoured only in LAN

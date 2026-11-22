@@ -115,6 +115,31 @@
         "title": "BackendInstall",
         "type": "object"
       },
+      "BackendLogin": {
+        "properties": {
+          "command": {
+            "title": "Command",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "command",
+          "note"
+        ],
+        "title": "BackendLogin",
+        "type": "object"
+      },
       "BackendStatus": {
         "properties": {
           "available": {
@@ -149,6 +174,17 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "image_setup": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Setup"
           },
           "install": {
             "$ref": "#/components/schemas/BackendInstall"
@@ -189,13 +225,12 @@
           "login": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/BackendLogin"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Login"
+            ]
           },
           "used_for": {
             "items": {
@@ -2172,6 +2207,35 @@
         "title": "ResearchResult",
         "type": "object"
       },
+      "RoleSetup": {
+        "properties": {
+          "likely": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Likely",
+            "type": "array"
+          },
+          "missing": {
+            "title": "Missing",
+            "type": "boolean"
+          },
+          "ready": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ready",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ready",
+          "likely",
+          "missing"
+        ],
+        "title": "RoleSetup",
+        "type": "object"
+      },
       "RuleWarning": {
         "additionalProperties": false,
         "properties": {
@@ -2373,9 +2437,23 @@
       },
       "SetupOut": {
         "properties": {
+          "brain": {
+            "$ref": "#/components/schemas/RoleSetup"
+          },
+          "client": {
+            "enum": [
+              "owner",
+              "phone"
+            ],
+            "title": "Client",
+            "type": "string"
+          },
           "complete": {
             "title": "Complete",
             "type": "boolean"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/RoleSetup"
           },
           "missing": {
             "items": {
@@ -2396,7 +2474,10 @@
         "required": [
           "complete",
           "missing",
-          "steps"
+          "steps",
+          "brain",
+          "engine",
+          "client"
         ],
         "title": "SetupOut",
         "type": "object"
@@ -4515,6 +4596,7 @@
     },
     "/api/system/lan": {
       "get": {
+        "description": "Show the current pairing code (issuing one if none is active) and restart its expiry.",
         "operationId": "lan_info_api_system_lan_get",
         "responses": {
           "200": {
@@ -4529,6 +4611,28 @@
           }
         },
         "summary": "Lan Info",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/system/lan/code": {
+      "post": {
+        "description": "Replace the pairing code with a fresh one (owner only). During a lockout it returns `pairing_locked_for`.",
+        "operationId": "new_code_api_system_lan_code_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "New Code",
         "tags": [
           "system"
         ]

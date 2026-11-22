@@ -18,22 +18,14 @@ type Schemas = components["schemas"];
 
 export type BackendCaps = Schemas["BackendCaps"];
 
-// First-run setup additions from docs/onboarding-and-mobile.md, section 3. Written from the spec because the backend is
-// being built in parallel. TODO(openapi): switch these to `Schemas[...]` once packages/schema/openapi.json has them.
+// First-run setup (docs/onboarding-and-mobile.md, section 3), typed from the OpenAPI document.
 
-export type UsedFor = "chat" | "web_research" | "vision" | "images";
-export type InstallCommands = { macos: string; linux: string; docs_url: string };
-export type BackendTest = { ok: boolean; at: string; seconds: number; detail: string };
-/** Optional here so older APIs (without these fields) still type-check against the OpenAPI document. */
-export type BackendSetupInfo = {
-  install?: InstallCommands;
-  /** The sign-in command, or null when there's nothing to sign in to. */
-  login?: string | null;
-  used_for?: UsedFor[];
-  cost_note?: string;
-  last_test?: BackendTest | null;
-};
-export type BackendStatus = Schemas["BackendStatus"] & BackendSetupInfo;
+export type UsedFor = Schemas["BackendStatus"]["used_for"][number];
+export type InstallCommands = NonNullable<Schemas["BackendStatus"]["install"]>;
+export type BackendTest = Schemas["LastTest"];
+/** The sign-in command (copyable) and, separately, what to do once it's running (plain text). */
+export type BackendLogin = Schemas["BackendLogin"];
+export type BackendStatus = Schemas["BackendStatus"];
 /**
  * `engines`: user-facing photoreal engines, plus "mock" in dev. `internal`: helpers the pipeline uses on its own,
  * never offered as an output choice. `defaults.engine` is null when no public image engine is available.
@@ -57,31 +49,30 @@ export type Settings = {
   /** Read-only: phone access is turned on by starting the app with `make dev-lan`. */
   lan: { enabled: boolean };
 };
-/** `lan` is read-only, so it isn't part of the body; the API answers 400 if it's sent. */
+/** `lan` is read-only, so it isn't part of the body; the API answers 422 if it's sent. */
 export type SettingsPatch = Partial<Omit<Settings, "providers" | "lan">> & {
   providers?: Settings["providers"];
 };
 
-export type BackendTestResult = { ok: boolean; seconds: number; detail: string; sample_url?: string | null };
-export type SetupMissing = "brain" | "engine" | "defaults";
-/** The spec leaves `steps` open, so it's read loosely. */
-export type SetupStatus = { complete: boolean; missing: SetupMissing[]; steps: Record<string, unknown> };
+export type BackendTestResult = Schemas["BackendTestOut"];
+export type SetupMissing = Schemas["SetupOut"]["missing"][number];
 /**
- * `pairing_code` isn't in the spec's table; the setup page needs it to show the code on the computer. Assumed name,
- * to confirm with the backend. Each fetch issues a fresh one-time code that expires after 10 minutes (and replaces
- * the previous code). TODO(openapi): type these from packages/schema/openapi.json once the backend lands.
+ * `GET /api/system/setup`. Per role, `ready` backends are signed in or passed a test; `likely` ones are installed
+ * with an unknown sign-in and no failed test (they'll probably work). `complete` needs a READY brain and engine and
+ * saved defaults. `client` is "phone" for a paired LAN device, which can't change settings.
  */
-export type LanInfo = {
-  enabled: boolean;
-  url: string | null;
-  qr_svg: string | null;
-  pairing_required: true;
-  pairing_code?: string | null;
-};
-/** How long a pairing code works after `GET /api/system/lan` issues it. */
+export type SetupStatus = Schemas["SetupOut"];
+export type RoleSetup = Schemas["RoleSetup"];
+/**
+ * `GET /api/system/lan` (owner only). Showing it keeps the current pairing code and restarts its ten minutes;
+ * `POST /api/system/lan/code` replaces it. `pairing_expires_in` / `pairing_locked_for` are seconds; while pairing is
+ * locked after too many wrong codes there is no code.
+ */
+export type LanInfo = Schemas["LanOut"];
+/** How long a pairing code works after the panel shows it. */
 export const PAIRING_CODE_MINUTES = 10;
-/** A phone paired with this computer (`GET /api/system/lan/devices`). TODO(openapi): type from the schema once it lands. */
-export type LanDevice = { id: string; label: string; paired_at: string; last_seen: string };
+/** A phone paired with this computer (`GET /api/system/lan/devices`). */
+export type LanDevice = Schemas["LanDeviceOut"];
 
 /** Web photos carry `source_url` (the image), `source_page` (where it was found) and `credit` (printed on exports). */
 export type Photo = Schemas["PhotoOut"];
@@ -251,7 +242,10 @@ export interface VVApi {
   getSettings(): Promise<Settings>;
   updateSettings(body: SettingsPatch): Promise<Settings>;
   setupStatus(): Promise<SetupStatus>;
+  /** Shows the pairing panel: the current code (kept, not rotated) and how long it lasts. Owner only. */
   lanInfo(): Promise<LanInfo>;
+  /** New code: retires the current pairing code and issues a fresh one. Owner only. */
+  rotateLanCode(): Promise<LanInfo>;
   /** A phone on the LAN pairs with the 6-digit code shown on the computer; the API sets a device cookie. */
   pairDevice(code: string): Promise<void>;
   /** Phones paired with this computer, newest first. */

@@ -5,7 +5,7 @@ from .conftest_setup import setup_machine  # noqa: F401 - pytest fixture
 
 def test_doctor_lists_prerequisites_and_provider_instructions(setup_machine, capsys):  # noqa: F811
     doctor = import_module("api.doctor")
-    assert doctor.main([]) == 1
+    assert doctor.main([]) == 0
     output = capsys.readouterr().out
     for label in ("Node", "pnpm", "Python", "uv", "ffmpeg", "Playwright Chromium"):
         assert label in output
@@ -13,7 +13,7 @@ def test_doctor_lists_prerequisites_and_provider_instructions(setup_machine, cap
         "npm install -g @anthropic-ai/claude-code", "claude", "sign-in prompt",
         "npm install -g @openai/codex", "codex login", "codex features enable image_generation",
         "npm install -g @github/copilot", "/login",
-        "https://www.kimi.com/code/docs/en/", "uv tool install mflux", "Apple Silicon",
+        "https://www.kimi.com/code/docs/en/", "uv tool install mflux",
     ):
         assert command in output
     assert "Do this next:" in output

@@ -1,35 +1,64 @@
 "use client";
 
-import { CheckIcon, CopyIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { copyText } from "@/lib/clipboard";
 
-/** A terminal command with a copy button. The button is labelled "Copy {name}", then "Copied {name}". */
-export function CopyCommand({ label, command, name, testId }: { label: string; command: string; name: string; testId: string }) {
-  const [copied, setCopied] = useState(false);
+/**
+ * A terminal command with a copy button, labelled "Copy {name}", then "Copied {name}" or "Couldn't copy {name}". It
+ * copies without `navigator.clipboard` too (plain-http LAN pages). `note` is what to do after running it: plain text,
+ * not copied.
+ */
+export function CopyCommand({
+  label,
+  command,
+  name,
+  testId,
+  note,
+  noteTestId,
+}: {
+  label: string;
+  command: string;
+  name: string;
+  testId: string;
+  note?: string | null;
+  noteTestId?: string;
+}) {
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 2000);
+    if (state !== "copied") return;
+    const t = setTimeout(() => setState("idle"), 2000);
     return () => clearTimeout(t);
-  }, [copied]);
+  }, [state]);
   return (
     <div>
       <p className="text-sm text-muted-foreground">{label}</p>
       <div className="mt-1.5 flex items-start gap-1 rounded-lg bg-muted/60 py-1 pr-1 pl-3 ring-1 ring-border/70">
-        <code data-testid={testId} className="min-w-0 flex-1 self-center py-1 font-mono text-sm break-words whitespace-pre-wrap">
+        <code data-testid={testId} className="min-w-0 flex-1 self-center py-1 font-mono text-sm break-words whitespace-pre-wrap select-all">
           {command}
         </code>
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={copied ? `Copied ${name}` : `Copy ${name}`}
-          onClick={() => void navigator.clipboard.writeText(command).then(() => setCopied(true))}
+          aria-label={state === "copied" ? `Copied ${name}` : state === "failed" ? `Couldn't copy ${name}` : `Copy ${name}`}
+          onClick={() => void copyText(command).then((ok) => setState(ok ? "copied" : "failed"))}
         >
-          {copied ? <CheckIcon className="text-brand" /> : <CopyIcon />}
+          {state === "copied" ? <CheckIcon className="text-brand" /> : state === "failed" ? <XIcon className="text-destructive" /> : <CopyIcon />}
         </Button>
       </div>
+      {note && (
+        <p data-testid={noteTestId} className="mt-1.5 text-sm text-pretty text-muted-foreground">
+          {note}
+        </p>
+      )}
+      {state === "failed" && (
+        <p role="status" className="mt-1.5 text-sm text-destructive">
+          Couldn&apos;t copy. Select the command and copy it yourself.
+        </p>
+      )}
     </div>
   );
 }

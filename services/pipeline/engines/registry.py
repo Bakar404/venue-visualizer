@@ -258,12 +258,10 @@ def backend_report(*, options: ProviderOptions = ProviderOptions(), default_brai
 
 def status_fields(backend_id: str, kind: str) -> dict:
     provider = PROVIDERS[backend_id]
-    login = provider.login
-    if kind == "engine" and provider.image_setup:
-        login = f"{login}\n{provider.image_setup}" if login else provider.image_setup
     return {
         "install": asdict(provider.install),
-        "login": login,
+        "login": asdict(provider.login) if provider.login else None,
+        "image_setup": (provider.image_setup or None) if kind == "engine" else None,
         "used_for": provider.used_for,
         "cost_note": provider.cost_note,
     }

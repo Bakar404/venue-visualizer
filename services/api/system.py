@@ -20,7 +20,17 @@ from pipeline.brains.base import BrainError
 from pipeline.engines.base import EngineError, GenerateRequest
 from pipeline.providers import PROVIDERS
 
-from .contracts import BackendsOut, BackendTestIn, BackendTestOut, JobOut, LastTest, SetupOut, SetupSteps
+from . import readiness
+from .contracts import (
+    BackendsOut,
+    BackendTestIn,
+    BackendTestOut,
+    JobOut,
+    LastTest,
+    RoleSetup,
+    SetupOut,
+    SetupSteps,
+)
 from .db import write_session
 from .deps import Runtime, RuntimeDep, require
 from .integrations import IntegrationError, backend_report, invoke, pick_brain, pick_engine, pipeline_output
@@ -99,21 +109,24 @@ def refresh_backends(runtime: RuntimeDep) -> BackendsOut:
 
 
 @system.get("/api/system/setup")
-def setup(runtime: RuntimeDep) -> SetupOut:
+def setup(runtime: RuntimeDep, request: Request) -> SetupOut:
     report = backends(runtime)
-    brain = any(item.available and item.logged_in is not False for item in report.brains)
-    engine = any(item.available and item.logged_in is not False for item in report.engines)
+    brain = readiness.role(item.model_dump() for item in report.brains)
+    engine = readiness.role(item.model_dump() for item in report.engines)
     defaults = preferences(load(runtime.engine)).setup_completed_at is not None
     missing = []
-    if not brain:
+    if brain["missing"]:
         missing.append("brain")
-    if not engine:
+    if engine["missing"]:
         missing.append("engine")
     if not defaults:
         missing.append("defaults")
     complete = not missing
+    tools = not brain["missing"] and not engine["missing"]
     return SetupOut(complete=complete, missing=missing,
-                    steps=SetupSteps(tools=brain and engine, defaults=defaults, try_it=complete))
+                    steps=SetupSteps(tools=tools, defaults=defaults, try_it=complete),
+                    brain=RoleSetup(**brain), engine=RoleSetup(**engine),
+                    client="owner" if request.state.owner else "phone")
 
 
 def _test_error(backend_id: str, exc: Exception) -> str:

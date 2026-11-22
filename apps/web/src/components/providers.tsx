@@ -1,6 +1,6 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
@@ -10,12 +10,21 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApiError } from "@/lib/api";
 import { JobWatcher } from "@/lib/jobs";
+import { needsPairing, pairUrl } from "@/lib/pairing";
 import { PreferencesProvider } from "@/lib/preferences";
+
+/** An unpaired phone gets 403 "Pair this device…" from every endpoint; send it to /pair and back here afterwards. */
+function sendToPairing(error: unknown) {
+  if (!needsPairing(error) || window.location.pathname === "/pair") return;
+  window.location.replace(pairUrl(window.location));
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
     () =>
       new QueryClient({
+        queryCache: new QueryCache({ onError: sendToPairing }),
+        mutationCache: new MutationCache({ onError: sendToPairing }),
         defaultOptions: {
           queries: {
             staleTime: 5_000,

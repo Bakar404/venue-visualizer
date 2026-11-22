@@ -1,13 +1,17 @@
 /**
  * The mock's view of "this machine" for first-run setup (docs/onboarding-and-mobile.md): which AI tools are installed
  * and signed in, the saved settings, test results and LAN pairing. End-to-end tests steer it with `?vvScenario=` or
- * `window.__vvMock.setScenario()` / `.install()` / `.setLan()` / `.rateLimitTests()`. Unlike the rest of the mock database it lives in sessionStorage, so a
- * scenario survives navigation within a test (reloading re-detects the tools, like restarting the API).
+ * `window.__vvMock.setScenario()` / `.install()` / `.setLan()` / `.setClient()` / `.lockPairing()` / `.rateLimitTests()` / `.clearTests()`.
+ * Unlike the rest of the mock database it lives in sessionStorage, so a scenario survives navigation within a test
+ * (reloading re-detects the tools, like restarting the API). It mirrors the live API's rules: readiness
+ * (services/api/readiness.py), settings validation, owner/phone access, test cooldowns and pairing limits.
  */
 import { ApiError } from "@/lib/errors";
 import { SAMPLES } from "@/lib/samples";
 import { LOW_STRUCTURE_SCORE } from "@/lib/spec";
+import { backendState } from "@/lib/backends";
 import type {
+  BackendLogin,
   Backends,
   BackendStatus,
   BackendTest,
@@ -18,6 +22,7 @@ import type {
   Settings,
   SettingsPatch,
   SetupMissing,
+  RoleSetup,
   SetupStatus,
   UsedFor,
 } from "@/lib/types";
@@ -46,7 +51,9 @@ type Tool = {
   version: string;
   used_for: UsedFor[];
   cost_note: string;
-  login: string | null;
+  login: BackendLogin | null;
+  /** A one-off command that turns on image generation (Codex). */
+  image_setup?: string;
   install: InstallCommands;
   caps?: BackendStatus["caps"];
   /** CLIs that can't report a login: the API returns `logged_in: null` ("Unknown, run a test"). */
@@ -58,7 +65,7 @@ const TOOLS: Record<MockProvider, Tool> = {
     label: "Claude Code", brain: true, engine: false, bin: "claude", version: "2.4.0",
     used_for: ["chat", "web_research", "vision"],
     cost_note: "Uses your Claude subscription",
-    login: "claude auth login",
+    login: { command: "claude", note: "then follow the sign-in prompt" },
     install: {
       macos: "npm install -g @anthropic-ai/claude-code",
       linux: "npm install -g @anthropic-ai/claude-code",
@@ -70,7 +77,8 @@ const TOOLS: Record<MockProvider, Tool> = {
     label: "Codex", engineLabel: "Codex image", brain: true, engine: true, bin: "codex", version: "0.42.0",
     used_for: ["chat", "web_research", "vision", "images"],
     cost_note: "Uses your ChatGPT plan's quota",
-    login: "codex login",
+    login: { command: "codex login", note: null },
+    image_setup: "codex features enable image_generation",
     install: { macos: "npm install -g @openai/codex", linux: "npm install -g @openai/codex", docs_url: "https://github.com/openai/codex" },
     caps: { can_generate: true, can_edit: true, typical_seconds: 40, cost_note: "Uses your ChatGPT plan quota", photoreal: true, max_refs: 3 },
     reportsLogin: true,
@@ -79,7 +87,7 @@ const TOOLS: Record<MockProvider, Tool> = {
     label: "Copilot CLI", engineLabel: "Copilot image", brain: true, engine: true, bin: "copilot", version: "1.0.115",
     used_for: ["chat", "web_research", "vision", "images"],
     cost_note: "Uses your Copilot AI credits",
-    login: "copilot login",
+    login: { command: "copilot", note: "then type /login" },
     install: {
       macos: "npm install -g @github/copilot",
       linux: "npm install -g @github/copilot",
@@ -92,7 +100,7 @@ const TOOLS: Record<MockProvider, Tool> = {
     label: "Kimi Code", brain: true, engine: false, bin: "kimi", version: "0.9.2",
     used_for: ["chat", "web_research"],
     cost_note: "Uses your Kimi plan",
-    login: "kimi login",
+    login: { command: "kimi", note: "then type /login" },
     install: { macos: "uv tool install kimi-cli", linux: "uv tool install kimi-cli", docs_url: "https://github.com/MoonshotAI/kimi-cli" },
     reportsLogin: false,
   },
@@ -150,11 +158,23 @@ type SystemState = {
   detected: Record<MockProvider, ToolState>;
   settings: Settings;
   tests: Record<string, BackendTest>;
-  /** The newest pairing code; issuing one replaces the last, and pairing uses it up. */
-  pairing: { code: string; issuedAt: number } | null;
+  /** The pairing code; showing the panel keeps it and restarts its ten minutes, New code replaces it. */
+  pairing: { code: string; expiresAt: number } | null;
+  /** The last retired code, so a new one never repeats it. */
+  previousCode: string | null;
   devices: LanDevice[];
   /** `rateLimitTests()`: the next test starts a window of `pending` seconds; tests are refused until `until`. */
   testLimit: { pending: number | null; until: number };
+  /** Who is calling: this computer, or a phone over the LAN (`setClient()`); a phone must pair first. */
+  client: "owner" | "phone";
+  paired: boolean;
+  /** Backend tests in progress (`kind:id`), and when each backend's last test started. */
+  running: string[];
+  testStarts: Record<string, number>;
+  /** Wrong pairing codes from this client (timestamps), wrong codes for the current code, and the lockout. */
+  pairFailures: number[];
+  codeFailures: number;
+  lockedUntil: number;
 };
 
 const KEY = "vv:mock-system";
@@ -171,16 +191,33 @@ function freshSettings(scenario: MockScenario): Settings {
   };
 }
 
+/** Tests that already passed on this machine, so the scenario's default tools are READY (not just likely). */
+function seededTests(scenario: MockScenario): Record<string, BackendTest> {
+  const at = "2026-11-01T09:00:00Z";
+  const passed = (seconds: number): BackendTest => ({ ok: true, at, seconds, detail: "Passed." });
+  if (scenario === "ready") return { "brain:copilot": passed(1.2), "engine:copilot": passed(6.4) };
+  if (scenario === "demo") return { "brain:mock": passed(0.1), "engine:mock": passed(0.1) };
+  return {};
+}
+
 function initial(scenario: MockScenario): SystemState {
   return {
     scenario,
     machine: { ...MACHINES[scenario] },
     detected: { ...MACHINES[scenario] },
     settings: freshSettings(scenario),
-    tests: {},
+    tests: seededTests(scenario),
     pairing: null,
+    previousCode: null,
     devices: [],
     testLimit: { pending: null, until: 0 },
+    client: "owner",
+    paired: false,
+    running: [],
+    testStarts: {},
+    pairFailures: [],
+    codeFailures: 0,
+    lockedUntil: 0,
   };
 }
 
@@ -199,8 +236,8 @@ function load(): SystemState {
     const saved = storage()?.getItem(KEY);
     if (saved) {
       const state = { ...initial("demo"), ...(JSON.parse(saved) as Partial<SystemState>) } as SystemState;
-      // Starting up re-detects, like restarting the API.
-      return { ...state, detected: { ...state.machine } };
+      // Starting up re-detects, like restarting the API (which also forgets running tests).
+      return { ...state, detected: { ...state.machine }, running: [] };
     }
   } catch {
     // Corrupt or unavailable storage: start from the demo.
@@ -243,7 +280,7 @@ function detail(id: MockProvider, state: ToolState): string | null {
   if (state === "missing") {
     return id === "mflux" ? "mflux is not installed. It runs on Apple Silicon: `uv tool install mflux`." : `\`${tool.bin}\` was not found on your PATH.`;
   }
-  if (state === "signed-out" && loggedIn(id, state) === false) return `Installed but signed out. Run \`${tool.login}\`.`;
+  if (state === "signed-out" && loggedIn(id, state) === false) return `Installed but signed out. Run \`${tool.login?.command}\`.`;
   return null;
 }
 
@@ -262,16 +299,16 @@ function status(id: MockProvider, kind: "brain" | "engine"): BackendStatus {
     ...(kind === "engine" ? { caps: tool.caps ?? null } : {}),
     install: tool.install,
     login: tool.login,
+    ...(kind === "engine" ? { image_setup: tool.image_setup ?? null } : {}),
     used_for: tool.used_for,
     cost_note: tool.cost_note,
     last_test: sys().tests[`${kind}:${id}`] ?? null,
   };
 }
 
-const usable = (b: BackendStatus) => b.available && b.logged_in !== false;
-
+/** Like the API's auto pick: installed and not signed out. The web narrows it to READY (`normalizeBackends`). */
 function pick(list: BackendStatus[], preferred: string | null, order: string[]) {
-  const ready = list.filter(usable).map((b) => b.id);
+  const ready = list.filter((b) => b.available && b.logged_in !== false).map((b) => b.id);
   if (preferred && ready.includes(preferred)) return preferred;
   return order.find((id) => ready.includes(id)) ?? null;
 }
@@ -305,10 +342,32 @@ export function getSettings(): Settings {
   return clone(sys().settings);
 }
 
+/** services/api/settings.py LAN_READ_ONLY. */
+const LAN_READ_ONLY =
+  "LAN mode can't be changed in settings. Restart with `make dev-lan` to open the app on your phone, " +
+  "or with `make dev` to keep it on this computer.";
+const CONFIG_DIR_ERROR =
+  "Claude config_dir must be an existing Claude configuration directory under your home folder " +
+  "(containing .claude.json or settings.json)";
+const KIMI_BIN_ERROR = "Kimi bin must be the absolute path of an existing kimi executable (named kimi or kimi-*)";
+
+/** The API checks the real filesystem; the mock accepts any `~/…` folder and any absolute kimi path. */
+function validateProviders(providers: SettingsPatch["providers"]) {
+  const dir = providers?.claude?.config_dir;
+  if (dir && !(dir.startsWith("~/") && dir.length > 2 && !dir.includes(".."))) throw new ApiError(422, CONFIG_DIR_ERROR);
+  const bin = providers?.kimi?.bin;
+  if (bin && !(bin.startsWith("/") && /^kimi(-[\w.-]+)?$/.test(bin.split("/").pop() ?? ""))) throw new ApiError(422, KIMI_BIN_ERROR);
+}
+
+/** Owner-only endpoints answer a paired phone with 403, like services/api. */
+export function requireOwner(detail: string) {
+  if (sys().client === "phone") throw new ApiError(403, detail);
+}
+
 export function updateSettings(patch: SettingsPatch): Settings {
-  if ("lan" in patch) {
-    throw new ApiError(400, "lan.enabled is read-only. To let phones connect, restart the app with `make dev-lan`.");
-  }
+  requireOwner("Change settings on this computer, not from a paired device.");
+  if ("lan" in patch) throw new ApiError(422, LAN_READ_ONLY);
+  validateProviders(patch.providers);
   const s = sys().settings;
   const { providers, ...rest } = patch;
   Object.assign(s, rest);
@@ -321,14 +380,20 @@ export function updateSettings(patch: SettingsPatch): Settings {
   return getSettings();
 }
 
-/** Image engines that cost money ask first; the mock engine and local mflux are free. */
+/** Image engines that cost money ask first; the mock engine and local mflux are free, but only on this computer. */
 const FREE_ENGINES = new Set(["mock", "mflux"]);
+/** services/api/system.py TEST_INTERVALS: seconds between test starts per backend. */
+export const TEST_INTERVALS = { brain: 10, engine: 60 } as const;
 
-export function testBackend(kind: "brain" | "engine", id: string, confirmCredits: boolean): BackendTestResult {
-  const limit = sys().testLimit;
+export type TestRun = { kind: "brain" | "engine"; id: string; key: string };
+
+/** Claims a test slot: 409 while one is running for that backend, 429 within its cooldown. */
+export function beginTest(kind: "brain" | "engine", id: string, confirmCredits: boolean): TestRun {
+  const state = sys();
+  const limit = state.testLimit;
   if (limit.pending !== null) {
     const seconds = limit.pending;
-    sys().testLimit = { pending: null, until: Date.now() + seconds * 1000 };
+    state.testLimit = { pending: null, until: Date.now() + seconds * 1000 };
     save();
     throw new ApiError(429, `Too many tests. Try again in ${seconds} s.`, seconds);
   }
@@ -338,97 +403,200 @@ export function testBackend(kind: "brain" | "engine", id: string, confirmCredits
   }
   const list = kind === "brain" ? currentBackends().brains : currentBackends().engines;
   const backend = list.find((b) => b.id === id);
-  if (!backend) throw new ApiError(404, `Unknown ${kind} “${id}”.`);
-  if (kind === "engine" && !FREE_ENGINES.has(id) && !confirmCredits) {
+  if (!backend) throw new ApiError(404, `Unknown ${kind}: ${id}`);
+  if (kind === "engine" && !(FREE_ENGINES.has(id) && state.client === "owner") && !confirmCredits) {
     throw new ApiError(422, "An image test uses credits. Send confirm_credits: true to run it.");
   }
+  const key = `${kind}:${id}`;
+  if (state.running.includes(key)) throw new ApiError(409, `A ${backend.label} test is already running.`);
+  const last = state.testStarts[key];
+  const wait = last === undefined ? 0 : TEST_INTERVALS[kind] - (Date.now() - last) / 1000;
+  if (wait > 0) {
+    const seconds = Math.ceil(wait);
+    throw new ApiError(429, `${backend.label} was tested moments ago. Try again in ${seconds} s.`, seconds);
+  }
+  state.running.push(key);
+  state.testStarts[key] = Date.now();
+  save();
+  return { kind, id, key };
+}
+
+/** Runs the claimed test and frees the slot. */
+export function finishTest(run: TestRun): BackendTestResult {
+  const { kind, id, key } = run;
+  const state = sys();
+  state.running = state.running.filter((k) => k !== key);
   const provider = PROVIDERS.find((p) => p === id);
-  const state = provider ? sys().machine[provider] : "ready";
+  const machine = provider ? state.machine[provider] : "ready";
   const tool = provider ? TOOLS[provider] : null;
   let result: BackendTestResult;
-  if (state === "missing") {
-    result = { ok: false, seconds: 0.1, detail: `\`${tool?.bin ?? id}\` isn't installed on this computer.` };
-  } else if (state === "signed-out") {
-    result = { ok: false, seconds: 1.4, detail: `Not signed in. Run \`${tool?.login ?? "login"}\`, then test again.` };
+  if (machine === "missing") {
+    result = { ok: false, seconds: 0.1, detail: `${tool?.label ?? id} is not installed. See the install instructions in Setup.` };
+  } else if (machine === "signed-out") {
+    result = { ok: false, seconds: 1.4, detail: `${tool?.label ?? id} is not signed in. Follow the sign-in instructions in Setup.` };
   } else if (kind === "brain") {
     result = { ok: true, seconds: 1.2, detail: '{"ok": true}' };
   } else {
     result = { ok: true, seconds: id === "mflux" ? 48.3 : 6.4, detail: "Made a small test image.", sample_url: SAMPLES["ballroom-a"].looks.blush!.url };
   }
-  sys().tests[`${kind}:${id}`] = { ok: result.ok, at: new Date().toISOString(), seconds: result.seconds, detail: result.detail };
+  state.tests[key] = { ok: result.ok, at: new Date().toISOString(), seconds: result.seconds, detail: result.detail };
   save();
   return result;
 }
 
-export function setupStatus(): SetupStatus {
-  const backends = currentBackends();
-  const brain = backends.brains.some(usable);
-  const engine = backends.engines.some(usable);
-  const defaults = Boolean(sys().settings.setup_completed_at);
-  const missing: SetupMissing[] = [];
-  if (!brain) missing.push("brain");
-  if (!engine) missing.push("engine");
-  if (!defaults) missing.push("defaults");
-  return { complete: missing.length === 0, missing, steps: { tools: brain && engine, defaults, try_it: defaults } };
+export function testBackend(kind: "brain" | "engine", id: string, confirmCredits: boolean): BackendTestResult {
+  return finishTest(beginTest(kind, id, confirmCredits));
 }
 
-const LAN_URL = "http://192.168.1.24:3000";
+function role(list: BackendStatus[]): RoleSetup {
+  const ready = list.filter((b) => backendState(b) === "ready").map((b) => b.id);
+  const likely = list.filter((b) => backendState(b) === "likely").map((b) => b.id);
+  return { ready, likely, missing: ready.length === 0 };
+}
 
-function newCode(previous?: string) {
+/** `GET /api/system/setup`: complete needs a READY brain, a READY engine and saved defaults. */
+export function setupStatus(): SetupStatus {
+  const backends = currentBackends();
+  const brain = role(backends.brains);
+  const engine = role(backends.engines);
+  const defaults = Boolean(sys().settings.setup_completed_at);
+  const missing: SetupMissing[] = [];
+  if (brain.missing) missing.push("brain");
+  if (engine.missing) missing.push("engine");
+  if (!defaults) missing.push("defaults");
+  const complete = missing.length === 0;
+  return {
+    complete,
+    missing,
+    steps: { tools: !brain.missing && !engine.missing, defaults, try_it: complete },
+    brain,
+    engine,
+    client: sys().client,
+  };
+}
+
+/** The phone opens the pairing page first (any other page answers 403 until it's paired). */
+const LAN_URL = "http://192.168.1.24:3000/pair";
+const CODE_SECONDS = PAIRING_CODE_MINUTES * 60;
+/** services/api/lan.py: per-client failures in a window, then a global lockout after too many wrong codes. */
+const MAX_FAILURES = 5;
+const ATTEMPT_SECONDS = 600;
+const MAX_CODE_FAILURES = 10;
+const LOCK_SECONDS = 300;
+const OPEN_SETUP = "Open Setup → Open on your phone on this computer to see the pairing code";
+
+function newCode(previous: string | null) {
   for (;;) {
     const code = String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0");
     if (code !== previous) return code;
   }
 }
 
-/** `GET /api/system/lan`. Each call issues a fresh one-time code and retires the previous one. */
-export function lanInfo(): LanInfo {
-  const { enabled } = sys().settings.lan;
-  if (!enabled) return { enabled: false, url: null, qr_svg: null, pairing_required: true, pairing_code: null };
-  const code = newCode(sys().pairing?.code);
-  sys().pairing = { code, issuedAt: Date.now() };
+function retire() {
+  const state = sys();
+  state.previousCode = state.pairing?.code ?? state.previousCode;
+  state.pairing = null;
+  state.codeFailures = 0;
+}
+
+function showLan(rotate: boolean): LanInfo {
+  requireOwner("LAN pairing information is only available from localhost.");
+  const state = sys();
+  if (!state.settings.lan.enabled) return { enabled: false, url: null, qr_svg: null, pairing_required: true, pairing_code: null };
+  const base = { enabled: true, url: LAN_URL, qr_svg: fakeQr(LAN_URL), pairing_required: true };
+  const now = Date.now();
+  if (now < state.lockedUntil) {
+    return { ...base, pairing_code: null, pairing_expires_in: null, pairing_locked_for: Math.ceil((state.lockedUntil - now) / 1000) };
+  }
+  if (rotate || !state.pairing || now >= state.pairing.expiresAt) {
+    retire();
+    state.pairing = { code: newCode(state.previousCode), expiresAt: 0 };
+  }
+  state.pairing!.expiresAt = now + CODE_SECONDS * 1000;
   save();
-  return { enabled: true, url: LAN_URL, qr_svg: fakeQr(LAN_URL), pairing_required: true, pairing_code: code };
+  return { ...base, pairing_code: state.pairing!.code, pairing_expires_in: CODE_SECONDS, pairing_locked_for: null };
+}
+
+/** `GET /api/system/lan` (owner only). Keeps the current code and restarts its ten minutes; issues one if none. */
+export function lanInfo(): LanInfo {
+  return showLan(false);
+}
+
+/** `POST /api/system/lan/code` (owner only): retires the current code and issues a fresh one. */
+export function rotateLanCode(): LanInfo {
+  return showLan(true);
 }
 
 /** `POST /api/system/lan/pair`. `label` is what the real API derives from the phone's User-Agent. */
 export function pairDevice(code: string, label: string) {
-  if (!sys().settings.lan.enabled) throw new ApiError(409, "Phone access is off. Restart the app on the computer with `make dev-lan`.");
-  const pairing = sys().pairing;
-  if (!pairing || code.trim() !== pairing.code) throw new ApiError(403, "That code didn't match.");
-  if (Date.now() - pairing.issuedAt > PAIRING_CODE_MINUTES * 60_000) {
-    sys().pairing = null;
+  const state = sys();
+  if (!state.settings.lan.enabled) throw new ApiError(409, "Phone access is off. Restart the app on the computer with `make dev-lan`.");
+  const now = Date.now();
+  state.pairFailures = state.pairFailures.filter((t) => now - t < ATTEMPT_SECONDS * 1000);
+  if (now < state.lockedUntil) {
+    const retry = Math.ceil((state.lockedUntil - now) / 1000);
+    throw new ApiError(429, "Too many attempts. Try again later.", retry);
+  }
+  if (state.pairFailures.length >= MAX_FAILURES) {
+    const retry = Math.ceil(ATTEMPT_SECONDS - (now - state.pairFailures[0]) / 1000);
+    throw new ApiError(429, "Too many attempts. Try again later.", retry);
+  }
+  if (!state.pairing || now >= state.pairing.expiresAt) {
+    retire();
     save();
-    throw new ApiError(403, "That code has expired. Press New code on the computer.");
+    throw new ApiError(403, `No pairing code is active. ${OPEN_SETUP}.`);
+  }
+  if (code !== state.pairing.code) {
+    state.pairFailures.push(now);
+    state.codeFailures += 1;
+    if (state.codeFailures >= MAX_CODE_FAILURES) {
+      retire();
+      state.lockedUntil = now + LOCK_SECONDS * 1000;
+    }
+    save();
+    throw new ApiError(403, "Incorrect pairing code.");
   }
   // One-time: the computer shows a new code for the next phone.
-  sys().pairing = null;
+  retire();
+  if (state.client === "phone") state.paired = true;
   addDevice(label);
+}
+
+/** An unpaired phone can only reach the pairing endpoint (services/api/main.py). */
+export function requirePaired() {
+  const state = sys();
+  if (state.client === "phone" && !state.paired) {
+    throw new ApiError(403, "Pair this device before using Venue Visualizer over the LAN.");
+  }
 }
 
 function addDevice(label: string) {
   const at = new Date().toISOString();
   const id = `phone-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-  sys().devices.unshift({ id, label, paired_at: at, last_seen: at });
+  const expires = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+  sys().devices.unshift({ id, label, paired_at: at, last_seen: at, expires_at: expires });
   save();
 }
 
-/** `GET /api/system/lan/devices`, newest first. */
+/** `GET /api/system/lan/devices` (owner only), newest first. */
 export function lanDevices(): LanDevice[] {
+  requireOwner("Paired devices are only listed on this computer.");
   return clone(sys().devices);
 }
 
-/** `DELETE /api/system/lan/devices/{id}`. */
+/** `DELETE /api/system/lan/devices/{id}` (owner only). */
 export function forgetDevice(id: string) {
+  requireOwner("Forget devices on this computer.");
   const devices = sys().devices;
   const i = devices.findIndex((d) => d.id === id);
-  if (i < 0) throw new ApiError(404, "That phone isn't paired.");
+  if (i < 0) throw new ApiError(404, "Device not found");
   devices.splice(i, 1);
   save();
 }
 
-/** `DELETE /api/system/lan/devices`. */
+/** `DELETE /api/system/lan/devices` (owner only). */
 export function forgetAllDevices() {
+  requireOwner("Forget devices on this computer.");
   sys().devices = [];
   save();
 }
@@ -491,7 +659,26 @@ export const systemHooks = {
     if (!enabled) sys().pairing = null;
     save();
   },
-  lanDevices,
+  lanDevices: () => clone(sys().devices),
+  /** Who the mock thinks is calling: this computer ("owner") or a phone over the LAN, paired or not. */
+  setClient(client: "owner" | "phone", paired = false) {
+    sys().client = client;
+    sys().paired = client === "phone" && paired;
+    save();
+  },
+  client: () => ({ client: sys().client, paired: sys().paired }),
+  /** Too many wrong codes: pairing is paused for `seconds` and there is no code. */
+  lockPairing(seconds: number) {
+    retire();
+    sys().lockedUntil = Date.now() + seconds * 1000;
+    save();
+  },
+  /** The pairing code expires now (as if ten minutes passed). */
+  expirePairingCode() {
+    const pairing = sys().pairing;
+    if (pairing) pairing.expiresAt = Date.now();
+    save();
+  },
   /** A phone pairs (as if through /pair with the right code). */
   pairPhone(label = "iPhone (Safari)") {
     addDevice(label);
@@ -499,6 +686,13 @@ export const systemHooks = {
   /** The next backend test is refused with 429 and `Retry-After: seconds`, and so is every test until that passes. */
   rateLimitTests(seconds: number) {
     sys().testLimit = { pending: seconds, until: 0 };
+    save();
+  },
+  /** Forgets every test result and per-backend cooldown, like a restarted API with no saved results. */
+  clearTests() {
+    const state = sys();
+    state.tests = {};
+    state.testStarts = {};
     save();
   },
 };

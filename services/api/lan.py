@@ -321,13 +321,16 @@ class Pairing:
     def _retire(self) -> None:
         self._previous, self.code, self._code_failures = self.code or self._previous, None, 0
 
-    def show(self) -> tuple[str | None, int | None, int | None]:
-        """Issue or refresh the code for the owner's panel: (code, expires_in, locked_for)."""
+    def show(self, *, rotate: bool = False) -> tuple[str | None, int | None, int | None]:
+        """Issue or refresh the code for the owner's panel: (code, expires_in, locked_for).
+
+        Showing keeps the current code and restarts its ten minutes; `rotate` (POST /code) always issues a new one.
+        """
         with self._lock:
             now = time.monotonic()
             if now < self._locked_until:
                 return None, None, ceil(self._locked_until - now)
-            if self.code is None or now >= self._expires:
+            if rotate or self.code is None or now >= self._expires:
                 self._retire()
                 while (code := f"{secrets.randbelow(1_000_000):06d}") == self._previous:
                     pass
@@ -370,16 +373,16 @@ def _require_owner(request: Request, detail: str) -> None:
         raise HTTPException(403, detail)
 
 
-@router.get("")
-def lan_info(runtime: RuntimeDep, request: Request, response: Response) -> LanOut:
+def _lan_out(runtime: RuntimeDep, request: Request, response: Response, *, rotate: bool) -> LanOut:
     _require_owner(request, "LAN pairing information is only available from localhost.")
     response.headers["Cache-Control"] = "no-store"
     if not enabled(runtime.settings):
         return LanOut(enabled=False, url=None, qr_svg=None, pairing_code=None)
     pairing: Pairing = request.app.state.pairing
-    code, expires_in, locked_for = pairing.show()
+    code, expires_in, locked_for = pairing.show(rotate=rotate)
     hosts = addresses()
-    url = f"http://{hosts[0]}:{runtime.settings.web_port}" if hosts else None
+    # The phone isn't paired yet, so the link opens the pairing page (any other page answers 403).
+    url = f"http://{hosts[0]}:{runtime.settings.web_port}/pair" if hosts else None
     svg = None
     if url:
         output = io.BytesIO()
@@ -387,6 +390,18 @@ def lan_info(runtime: RuntimeDep, request: Request, response: Response) -> LanOu
         svg = output.getvalue().decode("utf-8")
     return LanOut(enabled=True, url=url, qr_svg=svg, pairing_code=code, pairing_expires_in=expires_in,
                   pairing_locked_for=locked_for)
+
+
+@router.get("")
+def lan_info(runtime: RuntimeDep, request: Request, response: Response) -> LanOut:
+    """Show the current pairing code (issuing one if none is active) and restart its expiry."""
+    return _lan_out(runtime, request, response, rotate=False)
+
+
+@router.post("/code")
+def new_code(runtime: RuntimeDep, request: Request, response: Response) -> LanOut:
+    """Replace the pairing code with a fresh one (owner only). During a lockout it returns `pairing_locked_for`."""
+    return _lan_out(runtime, request, response, rotate=True)
 
 
 @router.post("/pair")

@@ -380,6 +380,11 @@ class BackendInstall(BaseModel):
     docs_url: str
 
 
+class BackendLogin(BaseModel):
+    command: str
+    note: str | None
+
+
 class TestResult(BaseModel):
     ok: bool
     seconds: float
@@ -407,7 +412,8 @@ class BackendStatus(BaseModel):
     version: str | None
     detail: str | None
     install: BackendInstall
-    login: str | None
+    login: BackendLogin | None
+    image_setup: str | None = None
     used_for: list[Literal["chat", "web_research", "vision", "images"]]
     cost_note: str
     last_test: LastTest | None
@@ -437,7 +443,16 @@ class SetupSteps(BaseModel):
     try_it: bool
 
 
+class RoleSetup(BaseModel):
+    ready: list[str]
+    likely: list[str]
+    missing: bool
+
+
 class SetupOut(BaseModel):
     complete: bool
     missing: list[Literal["brain", "engine", "defaults"]]
     steps: SetupSteps
+    brain: RoleSetup
+    engine: RoleSetup
+    client: Literal["owner", "phone"]

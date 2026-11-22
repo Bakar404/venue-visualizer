@@ -1,0 +1,232 @@
+$ cd services && uv run pytest -q tests/test_fx_fi5.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_________________ test_setup_reports_ready_and_likely_per_role _________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...0/data', 'NO_COLOR': '1', 'TERM': 'dumb'})], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10c252770>)
+
+    def test_setup_reports_ready_and_likely_per_role(setup_machine):  # noqa: F811
+        setup_machine.installed.update({"claude", "copilot"})
+        setup_machine.logged_in["claude"] = True
+        with desktop() as api:
+            assert api.patch("/api/settings", json=DONE).status_code == 200
+            setup = api.get("/api/system/setup").json()
+>       assert setup["brain"] == {"ready": ["claude"], "likely": ["copilot"], "missing": False}
+               ^^^^^^^^^^^^^^
+E       KeyError: 'brain'
+
+tests/test_fx_fi5.py:17: KeyError
+______ test_passed_test_makes_a_backend_ready_and_failed_test_is_neither _______
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25....UTF-8', 'NO_COLOR': '1', 'TERM': 'dumb'})], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10c36c3b0>)
+
+    def test_passed_test_makes_a_backend_ready_and_failed_test_is_neither(setup_machine):  # noqa: F811
+        setup_machine.installed.update({"claude", "copilot", "codex"})
+        setup_machine.logged_in["claude"] = True
+        record_test("engine", "copilot", ok=True)
+        record_test("brain", "copilot", ok=False)
+        with desktop() as api:
+            assert api.patch("/api/settings", json=DONE).status_code == 200
+            setup = api.get("/api/system/setup").json()
+>       assert setup["engine"] == {"ready": ["copilot"], "likely": [], "missing": False}
+               ^^^^^^^^^^^^^^^
+E       KeyError: 'engine'
+
+tests/test_fx_fi5.py:32: KeyError
+________________________ test_doctor_uses_the_same_rule ________________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...0/data', 'NO_COLOR': '1', 'TERM': 'dumb'})], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10c390510>)
+capsys = <_pytest.capture.CaptureFixture object at 0x10c27e660>
+
+    def test_doctor_uses_the_same_rule(setup_machine, capsys):  # noqa: F811
+        doctor = import_module("api.doctor")
+        setup_machine.installed.update({"claude", "copilot"})
+        setup_machine.logged_in["claude"] = True
+        doctor.main(["--json"])
+        report = json.loads(capsys.readouterr().out)
+        assert report["ready"] is False
+>       assert report["roles"]["brain"] == {"ready": ["claude"], "likely": ["copilot"], "missing": False}
+               ^^^^^^^^^^^^^^^
+E       KeyError: 'roles'
+
+tests/test_fx_fi5.py:44: KeyError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_fx_fi5.py::test_setup_reports_ready_and_likely_per_role - K...
+FAILED tests/test_fx_fi5.py::test_passed_test_makes_a_backend_ready_and_failed_test_is_neither
+FAILED tests/test_fx_fi5.py::test_doctor_uses_the_same_rule - KeyError: 'roles'
+3 failed, 1 warning in 0.12s
+
+$ cd apps/web && pnpm exec vitest run src/lib/fx-fi5.test.ts
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/fx-fi5.test.ts (5 tests | 5 failed) 9ms
+   ❯ backendState mirrors services/api/readiness.py (1)
+     × ready = signed in or a passed test; likely = installed, login unknown, no failed test 2ms
+   ❯ likelyNote (1)
+     × says a likely tool will probably work, and never calls it ready 0ms
+   ❯ normalizeBackends (R2: the default choice is only ever a READY engine) (2)
+     × skips a likely default and falls back to a ready engine 2ms
+     × never picks a failed or merely likely engine 1ms
+   ❯ mock GET /api/system/setup uses the same rule (1)
+     × reports per-role ready/likely and only completes with READY tools 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/fx-fi5.test.ts > backendState mirrors services/api/readiness.py > ready = signed in or a passed test; likely = installed, login unknown, no failed test
+TypeError: backendState is not a function
+ ❯ src/lib/fx-fi5.test.ts:14:12
+     12| describe("backendState mirrors services/api/readiness.py", () => {
+     13|   it("ready = signed in or a passed test; likely = installed, login un…
+     14|     expect(backendState({ available: false, logged_in: null })).toBe("…
+       |            ^
+     15|     expect(backendState({ available: true, logged_in: false })).toBe("…
+     16|     expect(backendState({ available: true, logged_in: true })).toBe("r…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/lib/fx-fi5.test.ts > likelyNote > says a likely tool will probably work, and never calls it ready
+TypeError: likelyNote is not a function
+ ❯ src/lib/fx-fi5.test.ts:28:12
+     26| describe("likelyNote", () => {
+     27|   it("says a likely tool will probably work, and never calls it ready"…
+     28|     expect(likelyNote(["copilot"])).toBe("Copilot will probably work. …
+       |            ^
+     29|     expect(likelyNote(["copilot", "kimi"])).toBe("Copilot and Kimi Cod…
+     30|     expect(likelyNote([])).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/lib/fx-fi5.test.ts > normalizeBackends (R2: the default choice is only ever a READY engine) > skips a likely default and falls back to a ready engine
+AssertionError: expected 'copilot' to be 'mflux' // Object.is equality
+
+Expected: "mflux"
+Received: "copilot"
+
+ ❯ src/lib/fx-fi5.test.ts:46:33
+     44|   it("skips a likely default and falls back to a ready engine", () => {
+     45|     const out = normalizeBackends(data([engine("copilot", {}), engine(…
+     46|     expect(out.defaults.engine).toBe("mflux");
+       |                                 ^
+     47|   });
+     48|   it("never picks a failed or merely likely engine", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/lib/fx-fi5.test.ts > normalizeBackends (R2: the default choice is only ever a READY engine) > never picks a failed or merely likely engine
+AssertionError: expected 'copilot' to be null
+
+- Expected:
+null
+
++ Received:
+"copilot"
+
+ ❯ src/lib/fx-fi5.test.ts:50:33
+     48|   it("never picks a failed or merely likely engine", () => {
+     49|     const out = normalizeBackends(data([engine("copilot", {}), engine(…
+     50|     expect(out.defaults.engine).toBeNull();
+       |                                 ^
+     51|   });
+     52| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  src/lib/fx-fi5.test.ts > mock GET /api/system/setup uses the same rule > reports per-role ready/likely and only completes with READY tools
+AssertionError: expected { complete: true, missing: [], …(1) } to match object { complete: false, …(3) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "brain": {
+-     "likely": [
+-       "copilot",
+-     ],
+-     "missing": true,
+-     "ready": [],
+-   },
+-   "client": "owner",
+-   "complete": false,
+-   "engine": {
+-     "likely": [
+-       "copilot",
+-     ],
+-     "missing": true,
+-     "ready": [],
+-   },
++   "complete": true,
+  }
+
+ ❯ src/lib/fx-fi5.test.ts:63:20
+     61|     system.updateSettings({ setup_completed_at: at });
+     62|     const likely = system.setupStatus();
+     63|     expect(likely).toMatchObject({
+       |                    ^
+     64|       complete: false,
+     65|       client: "owner",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed (5)
+   Start at  00:05:14
+   Duration  106ms (import 35%, tests 34%, transform 24%, worker 7%)
+
+
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-fi5.spec.ts
+
+Running 1 test using 1 worker
+
+(node:20867) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] [chromium] › e2e/fx-fi5.spec.ts:10:1 › FX-FI5: setup never calls a likely tool ready, and says to run Test
+  1) [chromium] › e2e/fx-fi5.spec.ts:10:1 › FX-FI5: setup never calls a likely tool ready, and says to run Test 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByTestId('setup-summary')
+    Expected substring: "Still needed: a brain and an image engine."
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" getByTestId('setup-summary') with timeout 10000ms
+      - waiting for getByTestId('setup-summary')
+
+
+      17 |
+      18 |   const summary = page.getByTestId("setup-summary");
+    > 19 |   await expect(summary).toContainText("Still needed: a brain and an image engine.");
+         |                         ^
+      20 |   await expect(summary).toContainText("Copilot will probably work. Run Test to be sure.");
+      21 |   await expect(summary).not.toContainText(/ready brain/);
+      22 |   await settled(page);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-fi5.spec.ts:19:25
+
+    Error Context: test-results/fx-fi5-FX-FI5-setup-never--01f00--ready-and-says-to-run-Test-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-fi5-FX-FI5-setup-never--01f00--ready-and-says-to-run-Test-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-fi5-FX-FI5-setup-never--01f00--ready-and-says-to-run-Test-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/fx-fi5.spec.ts:10:1 › FX-FI5: setup never calls a likely tool ready, and says to run Test 

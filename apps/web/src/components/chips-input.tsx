@@ -50,7 +50,7 @@ export function ChipsInput({ value, onChange, placeholder, label, id, swatches, 
           {chip}
           <button
             type="button"
-            className="rounded-sm p-0.5 text-muted-foreground hover:bg-background hover:text-foreground pointer-coarse:-mr-1 pointer-coarse:grid pointer-coarse:h-8 pointer-coarse:w-11 pointer-coarse:place-items-center"
+            className="rounded-sm p-0.5 text-muted-foreground hover:bg-background hover:text-foreground pointer-coarse:-mr-1 pointer-coarse:grid pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:place-items-center"
             aria-label={`Remove ${chip}`}
             onClick={() => onChange(value.filter((v) => v !== chip))}
           >

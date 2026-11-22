@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRightIcon, ChevronDownIcon, HourglassIcon, ImageIcon, Loader2Icon, MessageSquareIcon, RefreshCwIcon } from "lucide-react";
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useId, useState, useSyncExternalStore } from "react";
 
 import { CopyCommand } from "@/components/setup/copy-command";
 import { Ticks } from "@/components/setup/ticks";
@@ -18,10 +18,11 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRetryCountdown } from "@/hooks/use-retry-countdown";
 import { api, ApiError, errorMessage } from "@/lib/api";
 import { setupPill, type SetupPill } from "@/lib/backends";
-import { qk, useRefreshBackends, useSettings, useUpdateSettings } from "@/lib/queries";
-import type { BackendStatus, UsedFor } from "@/lib/types";
+import { qk, useRefreshBackends, useSettings, useSetupStatus, useUpdateSettings } from "@/lib/queries";
+import type { BackendLogin, BackendStatus, UsedFor } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Kind = "brain" | "engine";
@@ -55,34 +56,15 @@ function useOs(): "macos" | "linux" {
   );
 }
 
-function Command({ which, label, command }: { which: "install" | "sign-in"; label: string; command: string }) {
-  return <CopyCommand label={label} command={command} name={`${which} command`} testId={`${which}-command`} />;
+function Command({ which, label, command }: { which: "install" | "image-setup"; label: string; command: string }) {
+  return <CopyCommand label={label} command={command} name={`${which.replace("-", " ")} command`} testId={`${which}-command`} />;
 }
 
-/**
- * After a 429 the API's `Retry-After` says how long to wait; this counts it down and returns null when it's over.
- * `start` begins a wait of `seconds`.
- */
-function useRetryCountdown() {
-  const [wait, setWait] = useState<{ until: number; left: number; total: number } | null>(null);
-  const waiting = wait !== null;
-  useEffect(() => {
-    if (!waiting) return;
-    const t = setInterval(() => {
-      setWait((w) => {
-        if (!w) return null;
-        const left = Math.ceil((w.until - Date.now()) / 1000);
-        if (left <= 0) return null;
-        return left === w.left ? w : { ...w, left };
-      });
-    }, 250);
-    return () => clearInterval(t);
-  }, [waiting]);
-  const start = (seconds: number) => {
-    const total = Math.max(1, Math.ceil(seconds));
-    setWait({ until: Date.now() + total * 1000, left: total, total });
-  };
-  return { wait, start };
+/** Sign-in: only the command is copyable; what to do once it's running (`note`) is plain text. */
+function SignIn({ label, login }: { label: string; login: BackendLogin }) {
+  return (
+    <CopyCommand label={label} command={login.command} name="sign-in command" testId="sign-in-command" note={login.note} noteTestId="sign-in-note" />
+  );
 }
 
 function roleLine(brain: BackendStatus | undefined, engine: BackendStatus | undefined) {
@@ -177,6 +159,7 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
   const headingId = useId();
   const advancedId = useId();
   const refresh = useRefreshBackends();
+  const setup = useSetupStatus();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
@@ -191,6 +174,7 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
   const costNote = base?.cost_note ?? engine?.caps?.cost_note ?? "See the provider's pricing.";
   const install = base?.install ? (os === "linux" ? base.install.linux : base.install.macos) : null;
   const login = base?.login ?? null;
+  const imageSetup = engine?.image_setup ?? null;
   const installed = pill !== "Not installed";
   const engineLabel = engine?.label ?? provider.name;
 
@@ -213,7 +197,10 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
   });
   const shown = result ?? lastTest;
   const testBlocked = test.isPending || retry.wait !== null;
-  const freeImages = engine ? FREE_ENGINES.has(engine.id) : false;
+  // From a paired phone every image test asks first (and sends confirm_credits), even for a free local engine.
+  const fromPhone = setup.data?.client === "phone";
+  // Until the API says this is the computer itself, a free engine still asks first.
+  const freeImages = engine ? FREE_ENGINES.has(engine.id) && setup.data?.client === "owner" : false;
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-[0_1px_0_0_var(--border)] sm:p-6">
@@ -249,13 +236,14 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
             {login ? ", then the sign-in command" : ""}, and come back to press Check again.
           </p>
           {install && <Command which="install" label="1. Install" command={install} />}
-          {login && <Command which="sign-in" label={install ? "2. Sign in" : "Sign in"} command={login} />}
+          {login && <SignIn label={install ? "2. Sign in" : "Sign in"} login={login} />}
+          {imageSetup && <Command which="image-setup" label={install ? "3. Turn on images" : "Turn on images"} command={imageSetup} />}
         </div>
       )}
       {pill === "Installed, not signed in" && login && (
         <div className="grid gap-3">
           <p className="text-sm text-pretty">It&apos;s installed but not signed in. Run this in Terminal, then press Check again.</p>
-          <Command which="sign-in" label="Sign in" command={login} />
+          <SignIn label="Sign in" login={login} />
         </div>
       )}
       {pill === "Unknown" && (
@@ -263,10 +251,13 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
           <p className="text-sm text-pretty">
             It&apos;s installed, but we can&apos;t tell whether it&apos;s signed in. Run a test to find out.
           </p>
-          {login && <Command which="sign-in" label="If the test fails, sign in with" command={login} />}
+          {login && <SignIn label="If the test fails, sign in with" login={login} />}
         </div>
       )}
       {pill === "Ready" && base?.version && <p className="text-sm text-muted-foreground">Version {base.version} is installed and signed in.</p>}
+      {installed && imageSetup && !engine?.last_test?.ok && (
+        <Command which="image-setup" label="To make images, turn them on once with" command={imageSetup} />
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="outline" size="sm" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
@@ -356,10 +347,20 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
       {engine && !freeImages && (
         <AlertDialog open={confirming} onOpenChange={setConfirming}>
           <AlertDialogContent className="sm:max-w-md">
-            <AlertDialogTitle>Use credits for a test image?</AlertDialogTitle>
+            <AlertDialogTitle>{FREE_ENGINES.has(engine.id) ? "Make a test image on the computer?" : "Use credits for a test image?"}</AlertDialogTitle>
             <AlertDialogDescription>
-              The test makes one small image with {engineLabel}, so it uses some of your credits or plan quota
-              ({costNote.charAt(0).toLowerCase() + costNote.slice(1)}). Chat tests are much cheaper.
+              {FREE_ENGINES.has(engine.id) ? (
+                <>
+                  {fromPhone ? "You're on a paired phone. " : ""}The test makes one small image with {engineLabel} on the
+                  computer, which keeps it busy for a minute or so.
+                </>
+              ) : (
+                <>
+                  The test makes one small image with {engineLabel}, so it uses some of your credits or plan quota
+                  ({costNote.charAt(0).toLowerCase() + costNote.slice(1)}).{fromPhone ? " You're starting it from a paired phone." : ""}{" "}
+                  Chat tests are much cheaper.
+                </>
+              )}
             </AlertDialogDescription>
             <AlertDialogFooter>
               <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
@@ -370,7 +371,7 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
                   test.mutate({ kind: "engine", confirm: true });
                 }}
               >
-                Use credits and test
+                {FREE_ENGINES.has(engine.id) ? "Test on the computer" : "Use credits and test"}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

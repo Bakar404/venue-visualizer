@@ -2,8 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { mockReady, openStudio, proof, settled } from "./helpers";
 
-// S7 (docs/onboarding-and-mobile.md) @mobile: every route at 390×844 has no horizontal overflow, and every visible
-// interactive element is at least 44 px in one dimension and 24 px in the other. One screenshot per route.
+// S7 (docs/onboarding-and-mobile.md) @mobile: every route at 390×844 has no horizontal overflow, every visible
+// interactive element is at least 44 px in one dimension and 24 px in the other, and primary touch targets (buttons
+// and tabs) are at least 44×44 px. One screenshot per route.
 
 type Route = { name: string; path: string; ready?: (page: Page) => Promise<void> };
 
@@ -113,7 +114,8 @@ async function audit(page: Page) {
       if (width <= 1 || height <= 1) continue;
       const big = Math.max(width, height);
       const small = Math.min(width, height);
-      if (big >= 44 - 0.01 && small >= 24 - 0.01) continue;
+      const primary = el.matches("button, [role=button], [role=tab]");
+      if (big >= 44 - 0.01 && small >= (primary ? 44 : 24) - 0.01) continue;
       const role = el.getAttribute("role");
       const name = (el.getAttribute("aria-label") ?? el.textContent ?? el.getAttribute("placeholder") ?? "").trim().replace(/\s+/g, " ").slice(0, 48);
       offenders.push(`${el.tagName.toLowerCase()}${role ? `[role=${role}]` : ""} "${name}" ${width.toFixed(1)}×${height.toFixed(1)}`);
@@ -141,6 +143,6 @@ for (const route of ROUTES) {
     const result = await audit(page);
     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
-    expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+    expect(result.offenders, `${route.name}: touch targets under 44×24 px (44×44 for buttons and tabs):\n${result.offenders.join("\n")}`).toEqual([]);
   });
 }

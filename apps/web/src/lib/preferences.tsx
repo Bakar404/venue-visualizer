@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
 
-import { isUsable } from "@/lib/backends";
+import { isReady } from "@/lib/backends";
 import { useBackends, useSettings } from "@/lib/queries";
 import type { BackendStatus } from "@/lib/types";
 
@@ -59,14 +59,14 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 
   const engine = useMemo(() => {
     if (!data) return null;
-    const available = data.engines.filter(isUsable).map((e) => e.id);
+    const available = data.engines.filter(isReady).map((e) => e.id);
     if (stored.engine && available.includes(stored.engine)) return stored.engine;
     return data.defaults.engine && available.includes(data.defaults.engine) ? data.defaults.engine : null;
   }, [data, stored.engine]);
 
   const brain = useMemo(() => {
     if (!data) return null;
-    const available = data.brains.filter(isUsable).map((b) => b.id);
+    const available = data.brains.filter(isReady).map((b) => b.id);
     if (stored.brain && available.includes(stored.brain)) return stored.brain;
     const preferred = data.defaults.brain;
     return preferred && available.includes(preferred) ? preferred : (available[0] ?? null);
@@ -79,7 +79,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     const broken = (list: BackendStatus[] | undefined, ...chosen: (string | null | undefined)[]) => {
       const id = chosen.find(Boolean);
       const b = id ? list?.find((x) => x.id === id) : undefined;
-      return b && !isUsable(b) ? b : null;
+      return b && !isReady(b) ? b : null;
     };
     return {
       engine: broken(data?.engines, stored.engine, settings?.default_engine),

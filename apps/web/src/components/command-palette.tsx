@@ -27,7 +27,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { isUsable } from "@/lib/backends";
+import { isReady } from "@/lib/backends";
 import { usePreferences } from "@/lib/preferences";
 import { useBackends, useVenues } from "@/lib/queries";
 import { useStudioActions } from "@/lib/studio-actions";
@@ -145,7 +145,7 @@ export function CommandPalette() {
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Engine">
-          {backends.data?.engines.filter(isUsable).map((e) => (
+          {backends.data?.engines.filter(isReady).map((e) => (
             <CommandItem
               key={e.id}
               value={`engine switch ${e.label} ${e.id}`}

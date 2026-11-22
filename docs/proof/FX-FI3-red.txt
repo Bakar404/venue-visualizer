@@ -1,0 +1,48 @@
+$ cd services && uv run pytest -q tests/test_fx_fi3.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____________ test_one_plain_line_per_tool_with_indented_commands ______________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...0/data', 'NO_COLOR': '1', 'TERM': 'dumb'})], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10dc42400>)
+capsys = <_pytest.capture.CaptureFixture object at 0x10dbdd2b0>
+
+    def test_one_plain_line_per_tool_with_indented_commands(setup_machine, capsys):  # noqa: F811
+        doctor = import_module("api.doctor")
+        setup_machine.installed.update({"claude", "copilot"})
+        setup_machine.logged_in["claude"] = True
+        doctor.main([])
+        lines = _lines(capsys)
+>       assert "  ✓ Claude Code: ready (signed in)" in lines
+E       AssertionError: assert '  ✓ Claude Code: ready (signed in)' in ['Venue Visualizer doctor', '', 'Prerequisites', '  ✗ Node: Runs the web app and npm-based AI CLIs', '    Install: brew install node', '  ✗ pnpm: Installs and runs the web app', ...]
+
+tests/test_fx_fi3.py:19: AssertionError
+______________________ test_signed_out_and_tested_states _______________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...0/data', 'NO_COLOR': '1', 'TERM': 'dumb'})], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10dc75c70>)
+capsys = <_pytest.capture.CaptureFixture object at 0x10db934d0>
+
+    def test_signed_out_and_tested_states(setup_machine, capsys):  # noqa: F811
+        doctor = import_module("api.doctor")
+        setup_machine.installed.update({"codex", "copilot"})
+        setup_machine.logged_in["codex"] = False
+        record_test("engine", "copilot", ok=True)
+        doctor.main([])
+        lines = _lines(capsys)
+>       assert "  ✗ Codex: installed, not signed in" in lines
+E       AssertionError: assert '  ✗ Codex: installed, not signed in' in ['Venue Visualizer doctor', '', 'Prerequisites', '  ✗ Node: Runs the web app and npm-based AI CLIs', '    Install: brew install node', '  ✗ pnpm: Installs and runs the web app', ...]
+
+tests/test_fx_fi3.py:34: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_fx_fi3.py::test_one_plain_line_per_tool_with_indented_commands
+FAILED tests/test_fx_fi3.py::test_signed_out_and_tested_states - AssertionErr...
+2 failed, 1 warning in 0.16s

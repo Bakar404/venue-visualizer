@@ -1,0 +1,264 @@
+$ cd services && uv run pytest -q tests/test_fx_r3.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+________________ test_post_code_rotates_and_get_keeps_the_code _________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10abbbcc0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ab00c30>
+
+    def test_post_code_rotates_and_get_keeps_the_code(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch)
+        Clock().install(monkeypatch)
+        with desktop() as api:
+            first = api.get("/api/system/lan").json()
+            assert api.get("/api/system/lan").json()["pairing_code"] == first["pairing_code"]
+            rotated = api.post("/api/system/lan/code", headers=JSON)
+>           assert rotated.status_code == 200, rotated.text
+E           AssertionError: {"detail":"Not Found"}
+E           assert 404 == 200
+E            +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/test_fx_r3.py:17: AssertionError
+_________________________ test_post_code_is_owner_only _________________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10abbada0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ab029e0>
+
+    def test_post_code_is_owner_only(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch)
+        with desktop() as api:
+            device = pair_phone(api)
+>           assert device.post("/api/system/lan/code", headers=JSON).status_code == 403
+E           AssertionError: assert 404 == 403
+E            +  where 404 = <Response [404 Not Found]>.status_code
+E            +    where <Response [404 Not Found]> = post('/api/system/lan/code', headers={'Content-Type': 'application/json'})
+E            +      where post = <starlette.testclient.TestClient object at 0x10ad16490>.post
+
+tests/test_fx_r3.py:30: AssertionError
+______________________ test_post_code_reports_the_lockout ______________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10ad1e980>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10abc7410>
+
+    def test_post_code_reports_the_lockout(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch)
+        clock = Clock().install(monkeypatch)
+        with desktop() as api:
+            code = api.get("/api/system/lan").json()["pairing_code"]
+            wrong = "000000" if code != "000000" else "111111"
+            for n in range(10):
+                _pair(api, f"192.168.10.{20 + n // 2}", wrong)
+            locked = api.post("/api/system/lan/code", headers=JSON).json()
+>           assert locked["pairing_code"] is None and 0 < locked["pairing_locked_for"] <= 300
+                   ^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'pairing_code'
+
+tests/test_fx_r3.py:43: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  uvicorn.error:lan.py:362 Pairing is locked for 5 minutes after 10 incorrect codes.
+________________________ test_post_code_when_lan_is_off ________________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10abbac40>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ac0e9c0>
+
+    def test_post_code_when_lan_is_off(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch, lan=False)
+        with desktop() as api:
+            response = api.post("/api/system/lan/code", headers=JSON)
+>           assert response.status_code == 200, response.text
+E           AssertionError: {"detail":"Not Found"}
+E           assert 404 == 200
+E            +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/test_fx_r3.py:52: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_fx_r3.py::test_post_code_rotates_and_get_keeps_the_code - A...
+FAILED tests/test_fx_r3.py::test_post_code_is_owner_only - AssertionError: as...
+FAILED tests/test_fx_r3.py::test_post_code_reports_the_lockout - KeyError: 'p...
+FAILED tests/test_fx_r3.py::test_post_code_when_lan_is_off - AssertionError: ...
+4 failed, 1 warning in 0.46s
+
+$ cd apps/web && pnpm exec vitest run src/lib/mock-contract.test.ts -t lan
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/lib/mock-contract.test.ts (19 tests | 4 failed | 15 skipped) 2959ms
+   ❯ mock API matches the first-run setup contract (13)
+     × PATCH /api/settings refuses lan.enabled with a 422: it's read-only (set by `make dev-lan`) 223ms
+     × GET /api/system/lan keeps the code; POST /api/system/lan/code rotates it 768ms
+     × pairing pauses after too many wrong codes, and GET /api/system/lan says for how long 1728ms
+     × GET and DELETE /api/system/lan/devices 237ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the first-run setup contract > PATCH /api/settings refuses lan.enabled with a 422: it's read-only (set by `make dev-lan`)
+AssertionError: expected 400 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 400
+
+ ❯ src/lib/mock-contract.test.ts:150:26
+    148|     const typed: SettingsPatch = { lan: { enabled: true } };
+    149|     const error = await rejects(mockApi.updateSettings(typed));
+    150|     expect(error.status).toBe(422);
+       |                          ^
+    151|     expect(error.message).toContain("make dev-lan");
+    152|     // Nothing in the body is applied, and phone access stays off.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the first-run setup contract > GET /api/system/lan keeps the code; POST /api/system/lan/code rotates it
+AssertionError: expected { enabled: true, …(4) } to match object { pairing_expires_in: 600, …(1) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "pairing_expires_in": 600,
+-   "pairing_locked_for": null,
++   "enabled": true,
++   "pairing_code": "370484",
++   "pairing_required": true,
++   "qr_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-2 -2 29 29\" shape-rendering=\"crispEdges\"><rect x=\"-2\" y=\"-2\" width=\"29\" height=\"29\" fill=\"#fff\"/><g fill=\"#111\"><path d=\"M0 0h7v7h-7z M1 1v5h5v-5z\" fill-rule=\"evenodd\"/><rect x=\"2\" y=\"2\" width=\"3\" height=\"3\"/><path d=\"M18 0h7v7h-7z M19 1v5h5v-5z\" fill-rule=\"evenodd\"/><rect x=\"20\" y=\"2\" width=\"3\" height=\"3\"/><path d=\"M0 18h7v7h-7z M1 19v5h5v-5z\" fill-rule=\"evenodd\"/><rect x=\"2\" y=\"20\" width=\"3\" height=\"3\"/><rect x=\"8\" y=\"0\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"0\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"0\" width=\"1\" height=\"1\"/><rect x=\"14\" y=\"0\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"0\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"1\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"1\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"1\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"1\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"2\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"2\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"2\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"2\" width=\"1\" height=\"1\"/><rect x=\"15\" y=\"2\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"3\" width=\"1\" height=\"1\"/><rect x=\"14\" y=\"3\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"4\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"4\" width=\"1\" height=\"1\"/><rect x=\"13\" y=\"4\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"5\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"5\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"6\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"6\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"6\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"6\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"7\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"7\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"7\" width=\"1\" height=\"1\"/><rect x=\"15\" y=\"7\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"7\" width=\"1\" height=\"1\"/><rect x=\"0\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"1\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"3\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"4\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"5\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"6\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"7\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"14\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"15\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"18\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"22\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"23\" y=\"8\" width=\"1\" height=\"1\"/><rect x=\"0\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"6\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"13\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"15\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"20\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"21\" y=\"9\" width=\"1\" height=\"1\"/><rect x=\"0\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"1\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"2\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"3\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"19\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"20\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"22\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"23\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"24\" y=\"10\" width=\"1\" height=\"1\"/><rect x=\"0\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"1\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"3\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"5\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"6\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"17\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"21\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"22\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"23\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"24\" y=\"11\" width=\"1\" height=\"1\"/><rect x=\"0\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"1\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"3\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"4\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"13\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"14\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"15\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"17\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"23\" y=\"12\" width=\"1\" height=\"1\"/><rect x=\"0\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"3\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"6\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"7\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"13\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"15\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"17\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"21\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"22\" y=\"13\" width=\"1\" height=\"1\"/><rect x=\"0\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"3\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"6\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"7\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"13\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"15\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"17\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"18\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"20\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"21\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"24\" y=\"14\" width=\"1\" height=\"1\"/><rect x=\"1\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"2\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"4\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"5\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"6\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"7\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"14\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"23\" y=\"15\" width=\"1\" height=\"1\"/><rect x=\"1\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"4\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"5\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"6\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"7\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"19\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"20\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"21\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"22\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"23\" y=\"16\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"17\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"17\" width=\"1\" height=\"1\"/><rect x=\"15\" y=\"17\" width=\"1\" height=\"1\"/><rect x=\"17\" y=\"17\" width=\"1\" height=\"1\"/><rect x=\"19\" y=\"17\" width=\"1\" height=\"1\"/><rect x=\"20\" y=\"17\" width=\"1\" height=\"1\"/><rect x=\"22\" y=\"17\" width=\"1\" height=\"1\"/><rect x=\"24\" y=\"17\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"18\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"18\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"18\" width=\"1\" height=\"1\"/><rect x=\"17\" y=\"18\" width=\"1\" height=\"1\"/><rect x=\"21\" y=\"18\" width=\"1\" height=\"1\"/><rect x=\"23\" y=\"18\" width=\"1\" height=\"1\"/><rect x=\"24\" y=\"18\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"19\" width=\"1\" height=\"1\"/><rect x=\"13\" y=\"19\" width=\"1\" height=\"1\"/><rect x=\"20\" y=\"19\" width=\"1\" height=\"1\"/><rect x=\"23\" y=\"19\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"20\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"20\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"20\" width=\"1\" height=\"1\"/><rect x=\"14\" y=\"20\" width=\"1\" height=\"1\"/><rect x=\"19\" y=\"20\" width=\"1\" height=\"1\"/><rect x=\"20\" y=\"20\" width=\"1\" height=\"1\"/><rect x=\"24\" y=\"20\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"13\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"14\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"15\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"18\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"21\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"22\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"23\" y=\"21\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"13\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"19\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"21\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"22\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"24\" y=\"22\" width=\"1\" height=\"1\"/><rect x=\"8\" y=\"23\" width=\"1\" height=\"1\"/><rect x=\"9\" y=\"23\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"23\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"23\" width=\"1\" height=\"1\"/><rect x=\"16\" y=\"23\" width=\"1\" height=\"1\"/><rect x=\"18\" y=\"23\" width=\"1\" height=\"1\"/><rect x=\"20\" y=\"23\" width=\"1\" height=\"1\"/><rect x=\"22\" y=\"23\" width=\"1\" height=\"1\"/><rect x=\"10\" y=\"24\" width=\"1\" height=\"1\"/><rect x=\"11\" y=\"24\" width=\"1\" height=\"1\"/><rect x=\"12\" y=\"24\" width=\"1\" height=\"1\"/><rect x=\"13\" y=\"24\" width=\"1\" height=\"1\"/><rect x=\"18\" y=\"24\" width=\"1\" height=\"1\"/><rect x=\"19\" y=\"24\" width=\"1\" height=\"1\"/><rect x=\"20\" y=\"24\" width=\"1\" height=\"1\"/><rect x=\"21\" y=\"24\" width=\"1\" height=\"1\"/></g></svg>",
++   "url": "http://192.168.1.24:3000",
+  }
+
+ ❯ src/lib/mock-contract.test.ts:217:19
+    215|     const first = await mockApi.lanInfo();
+    216|     expectSchema("LanOut", first);
+    217|     expect(first).toMatchObject({ pairing_expires_in: 600, pairing_loc…
+       |                   ^
+    218|     expect(first.url).toMatch(/^http:\/\/[\d.]+:3000\/pair$/);
+    219|     expect(first.qr_svg).toContain("<svg");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the first-run setup contract > pairing pauses after too many wrong codes, and GET /api/system/lan says for how long
+Error: Expected the request to fail
+ ❯ rejects src/lib/mock-contract.test.ts:92:9
+     90|     return error as ApiError;
+     91|   }
+     92|   throw new Error("Expected the request to fail");
+       |         ^
+     93| }
+     94|
+ ❯ src/lib/mock-contract.test.ts:237:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/lib/mock-contract.test.ts > mock API matches the first-run setup contract > GET and DELETE /api/system/lan/devices
+TypeError: mockApi.rotateLanCode is not a function
+ ❯ src/lib/mock-contract.test.ts:267:73
+    265|     systemHooks.setLan(true);
+    266|     expect(await mockApi.lanDevices()).toEqual([]);
+    267|     for (let i = 0; i < 3; i++) await mockApi.pairDevice((await mockAp…
+       |                                                                         ^
+    268|     const devices = await mockApi.lanDevices();
+    269|     expect(devices).toHaveLength(3);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 15 skipped (19)
+   Start at  00:05:33
+   Duration  3.10s (tests 98%, import 2%)
+
+
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r3.spec.ts
+
+Running 2 tests using 2 workers
+
+(node:21078) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21077) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/2] [chromium] › e2e/fx-r3.spec.ts:32:1 › FX-R3: during a lockout the panel says pairing is paused, counts down, then shows a code
+[2/2] [chromium] › e2e/fx-r3.spec.ts:8:1 › FX-R3: New code replaces the code; the panel counts down and refreshes at expiry
+  1) [chromium] › e2e/fx-r3.spec.ts:8:1 › FX-R3: New code replaces the code; the panel counts down and refreshes at expiry 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByTestId('pairing-expiry')
+    Expected pattern: /Expires in (10:00|9:5\d)/
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" getByTestId('pairing-expiry') with timeout 10000ms
+      - waiting for getByTestId('pairing-expiry')
+
+
+      12 |   const code = page.getByTestId("pairing-code");
+      13 |   const expiry = page.getByTestId("pairing-expiry");
+    > 14 |   await expect(expiry).toHaveText(/Expires in (10:00|9:5\d)/);
+         |                        ^
+      15 |   await page.clock.fastForward(65_000);
+      16 |   await expect(expiry).toHaveText(/Expires in 8:5\d/);
+      17 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r3.spec.ts:14:24
+
+    Error Context: test-results/fx-r3-FX-R3-New-code-repla-52767-own-and-refreshes-at-expiry-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r3-FX-R3-New-code-repla-52767-own-and-refreshes-at-expiry-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r3-FX-R3-New-code-repla-52767-own-and-refreshes-at-expiry-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/fx-r3.spec.ts:32:1 › FX-R3: during a lockout the panel says pairing is paused, counts down, then shows a code 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByTestId('pairing-locked')
+    Expected pattern: /Pairing is paused for (30|29) s after too many wrong codes/
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" getByTestId('pairing-locked') with timeout 10000ms
+      - waiting for getByTestId('pairing-locked')
+
+
+      38 |   await mockReady(page);
+      39 |   const paused = page.getByTestId("pairing-locked");
+    > 40 |   await expect(paused).toHaveText(/Pairing is paused for (30|29) s after too many wrong codes/);
+         |                        ^
+      41 |   await expect(page.getByTestId("pairing-code")).toHaveCount(0);
+      42 |   await settled(page);
+      43 |   await page.getByRole("region", { name: "Open on your phone" }).screenshot({ path: proof("FX-R3-locked.png") });
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r3.spec.ts:40:24
+
+    Error Context: test-results/fx-r3-FX-R3-during-a-locko-349b3-unts-down-then-shows-a-code-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r3-FX-R3-during-a-locko-349b3-unts-down-then-shows-a-code-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r3-FX-R3-during-a-locko-349b3-unts-down-then-shows-a-code-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/fx-r3.spec.ts:8:1 › FX-R3: New code replaces the code; the panel counts down and refreshes at expiry 
+    [chromium] › e2e/fx-r3.spec.ts:32:1 › FX-R3: during a lockout the panel says pairing is paused, counts down, then shows a code 

@@ -1,0 +1,85 @@
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r9.spec.ts
+
+Running 2 tests using 2 workers
+
+(node:21376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:21375) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/2] [chromium] › e2e/fx-r9.spec.ts:21:1 › FX-R9: the setup gate shows a neutral loading state until it knows where to go
+[2/2] [chromium] › e2e/fx-r9.spec.ts:8:1 › FX-R9: Try it right after Finish setup opens the venue, even while setup status is still reloading
+  1) [chromium] › e2e/fx-r9.spec.ts:21:1 › FX-R9: the setup gate shows a neutral loading state until it knows where to go 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByTestId('setup-gate-loading')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByTestId('setup-gate-loading') with timeout 10000ms
+      - waiting for getByTestId('setup-gate-loading')
+
+
+      24 |   await mockReady(page);
+      25 |   await expect.poll(() => page.evaluate(() => window.__vvMock.waiting("setupStatus"))).toBeGreaterThan(0);
+    > 26 |   await expect(page.getByTestId("setup-gate-loading")).toBeVisible();
+         |                                                        ^
+      27 |   await expect(page.getByRole("heading", { level: 1, name: /Venues/ })).toBeHidden();
+      28 |   await page.screenshot({ path: proof("FX-R9-gate-loading.png") });
+      29 |   await page.evaluate(() => window.__vvMock.release("setupStatus"));
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r9.spec.ts:26:56
+
+    Error Context: test-results/fx-r9-FX-R9-the-setup-gate-f1814--until-it-knows-where-to-go-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r9-FX-R9-the-setup-gate-f1814--until-it-knows-where-to-go-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r9-FX-R9-the-setup-gate-f1814--until-it-knows-where-to-go-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/fx-r9.spec.ts:8:1 › FX-R9: Try it right after Finish setup opens the venue, even while setup status is still reloading 
+
+    Error: expect(locator).not.toHaveText(expected) failed
+
+    Locator:  getByRole('heading', { level: 1 })
+    Expected: not "Set up your AI tools"
+    Received: "Set up your AI tools"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "not toHaveText" getByRole('heading', { level: 1 }) with timeout 10000ms
+      - waiting for getByRole('heading', { level: 1 })
+        24 × locator resolved to <h1 class="mt-3 font-display text-[2.9rem] leading-[0.98] tracking-[-0.01em] text-balance sm:text-6xl">Set up your AI tools</h1>
+           - unexpected value "Set up your AI tools"
+
+
+      15 |   await expect(page).toHaveURL(/\/venues\/[\w-]+$/);
+      16 |   await held.release();
+    > 17 |   await expect(page.getByRole("heading", { level: 1 })).not.toHaveText("Set up your AI tools");
+         |                                                             ^
+      18 |   await expect(page).toHaveURL(/\/venues\/[\w-]+$/);
+      19 | });
+      20 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r9.spec.ts:17:61
+
+    Error Context: test-results/fx-r9-FX-R9-Try-it-right-a-c7f0e-p-status-is-still-reloading-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r9-FX-R9-Try-it-right-a-c7f0e-p-status-is-still-reloading-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r9-FX-R9-Try-it-right-a-c7f0e-p-status-is-still-reloading-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/fx-r9.spec.ts:8:1 › FX-R9: Try it right after Finish setup opens the venue, even while setup status is still reloading 
+    [chromium] › e2e/fx-r9.spec.ts:21:1 › FX-R9: the setup gate shows a neutral loading state until it knows where to go 

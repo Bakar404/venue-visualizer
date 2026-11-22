@@ -66,3 +66,13 @@ def setup_machine(tmp_path, monkeypatch):
 
 def desktop(app=None):
     return TestClient(app or create_app(), base_url="http://localhost:8000", client=("127.0.0.1", 54321))
+
+
+def record_test(kind: str, backend_id: str, *, ok: bool) -> None:
+    """Persist a backend test result the way Setup's Test button does."""
+    from api.contracts import LastTest
+    from api.settings import save_test
+
+    with desktop() as api:
+        save_test(api.app.state.runtime.engine, kind, backend_id,
+                  LastTest(ok=ok, at="2026-11-22T10:00:00Z", seconds=3, detail="ok" if ok else "failed"))

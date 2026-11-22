@@ -3,7 +3,7 @@
 import { StatusDot } from "@/components/backend-status";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { isUsable } from "@/lib/backends";
+import { isLikely, isReady } from "@/lib/backends";
 import type { BackendStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -20,11 +20,12 @@ type Props = {
 };
 
 /**
- * Engine or brain choice. Only ready backends are listed (setup explains the rest); a ready one that can't do this
- * particular job (`usable`) stays listed, disabled, with `unusableReason` as a tooltip.
+ * Engine or brain choice. Only ready backends can be picked. One that's installed but untested (likely) is listed,
+ * disabled, with "Run Test first"; failed or signed-out ones aren't listed (setup explains them). A ready one that
+ * can't do this particular job (`usable`) stays listed, disabled, with `unusableReason` as a tooltip.
  */
 export function BackendPicker({ kind, options: all, value, onChange, className, usable, unusableReason }: Props) {
-  const options = all?.filter(isUsable);
+  const options = all?.filter((b) => isReady(b) || isLikely(b));
   const items = (options ?? []).map((b) => ({ value: b.id, label: b.label }));
   if (value !== null && !items.some((i) => i.value === value)) items.push({ value, label: value });
   const label = kind === "engine" ? "Engine" : "Brain";
@@ -39,6 +40,15 @@ export function BackendPicker({ kind, options: all, value, onChange, className, 
         <SelectGroup>
           <SelectLabel>{kind === "engine" ? "Photo engines on this machine" : "Brains on this machine"}</SelectLabel>
           {(options ?? []).map((b) => {
+            if (!isReady(b)) {
+              return (
+                <SelectItem key={b.id} value={b.id} disabled>
+                  <StatusDot backend={b} />
+                  {b.label}
+                  <span className="ml-auto text-xs text-muted-foreground">Run Test first</span>
+                </SelectItem>
+              );
+            }
             const disabled = usable ? !usable(b) : false;
             const reason = unusableReason;
             if (!disabled) {

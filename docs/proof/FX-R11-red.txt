@@ -1,0 +1,46 @@
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r11.spec.ts
+
+Running 1 test using 1 worker
+
+(node:21443) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] [chromium] › e2e/fx-r11.spec.ts:8:1 › FX-R11: the pairing field normalises to six digits and accepts a pasted code with spaces
+  1) [chromium] › e2e/fx-r11.spec.ts:8:1 › FX-R11: the pairing field normalises to six digits and accepts a pasted code with spaces 
+
+    Error: expect(locator).not.toHaveAttribute() failed
+
+    Locator:  getByLabel('Pairing code')
+    Expected: not have attribute
+    Received: have attribute
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "not toHaveAttribute" getByLabel('Pairing code') with timeout 10000ms
+      - waiting for getByLabel('Pairing code')
+        24 × locator resolved to <input value="" name="code" autofocus="" data-slot="input" inputmode="numeric" id="_R_75esne5l5rlb_" placeholder="123 456" pattern="\d{3} ?\d{3}" autocomplete="one-time-code" aria-describedby="_R_75esne5l5rlb_-hint" class="w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ri…/>
+           - unexpected value "attribute present"
+
+
+      12 |   await mockReady(page);
+      13 |   const input = page.getByLabel("Pairing code");
+    > 14 |   await expect(input).not.toHaveAttribute("pattern");
+         |                           ^
+      15 |
+      16 |   await input.fill("1a2b3c4d5e6f7");
+      17 |   await expect(input).toHaveValue("123456");
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web/e2e/fx-r11.spec.ts:14:27
+
+    Error Context: test-results/fx-r11-FX-R11-the-pairing--94ed3-s-a-pasted-code-with-spaces-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fx-r11-FX-R11-the-pairing--94ed3-s-a-pasted-code-with-spaces-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fx-r11-FX-R11-the-pairing--94ed3-s-a-pasted-code-with-spaces-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › e2e/fx-r11.spec.ts:8:1 › FX-R11: the pairing field normalises to six digits and accepts a pasted code with spaces 

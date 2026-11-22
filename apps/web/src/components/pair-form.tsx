@@ -1,23 +1,43 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2Icon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api, errorMessage } from "@/lib/api";
+import { useRetryCountdown } from "@/hooks/use-retry-countdown";
+import { api, ApiError, errorMessage } from "@/lib/api";
+import { safeNext } from "@/lib/pairing";
 import { cn } from "@/lib/utils";
 
 /** The phone half of "Open on your phone": type the 6-digit code shown in Setup on the computer. */
 export function PairForm() {
   const id = useId();
+  const router = useRouter();
+  const qc = useQueryClient();
   const [code, setCode] = useState("");
-  const pair = useMutation({ mutationFn: (c: string) => api.pairDevice(c) });
+  // Sticky: once this phone is paired, later edits or errors don't undo it.
+  const [paired, setPaired] = useState(false);
+  const retry = useRetryCountdown();
+  const pair = useMutation({
+    mutationFn: (c: string) => api.pairDevice(c),
+    onSuccess: () => {
+      setPaired(true);
+      // Everything fetched before pairing was a 403; fetch it again now.
+      void qc.invalidateQueries();
+      const next = safeNext(new URLSearchParams(window.location.search).get("next"));
+      if (next) router.replace(next);
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 429) retry.start(error.retryAfter ?? 60);
+    },
+  });
 
-  if (pair.isSuccess) {
+  if (paired) {
     return (
       <div className="grid gap-5">
         <p role="status" className="flex items-start gap-2 text-lg text-pretty">
@@ -31,13 +51,14 @@ export function PairForm() {
     );
   }
 
-  const digits = code.replace(/\D/g, "");
+  const waiting = retry.wait !== null;
+  const showError = pair.isError && !waiting;
   return (
     <form
       className="grid gap-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (digits.length === 6) pair.mutate(digits);
+        if (code.length === 6 && !pair.isPending && !waiting) pair.mutate(code);
       }}
     >
       <Label htmlFor={id} className="text-base">
@@ -48,19 +69,23 @@ export function PairForm() {
         name="code"
         value={code}
         onChange={(e) => {
-          setCode(e.target.value.replace(/[^\d\s]/g, "").slice(0, 7));
-          pair.reset();
+          // Digits only, so a pasted "12 34 56" or "123-456" works.
+          setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+          if (!pair.isPending && pair.isError) pair.reset();
         }}
         inputMode="numeric"
         autoComplete="one-time-code"
-        pattern="\d{3} ?\d{3}"
-        placeholder="123 456"
-        aria-invalid={pair.isError || undefined}
-        aria-describedby={pair.isError ? `${id}-error` : `${id}-hint`}
+        placeholder="123456"
+        aria-invalid={showError || undefined}
+        aria-describedby={waiting ? `${id}-retry` : showError ? `${id}-error` : `${id}-hint`}
         className="h-14 font-mono text-2xl! tracking-[0.3em] tabular-nums pointer-coarse:h-14"
         autoFocus
       />
-      {pair.isError ? (
+      {waiting ? (
+        <p id={`${id}-retry`} role="alert" data-testid="pair-retry" className="text-sm text-destructive tabular-nums">
+          Too many attempts. Try again in {retry.wait?.left} s.
+        </p>
+      ) : showError ? (
         <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
           {errorMessage(pair.error)} Check the code on the computer and try again.
         </p>
@@ -69,7 +94,7 @@ export function PairForm() {
           On the computer: Setup → Advanced → Open on your phone.
         </p>
       )}
-      <Button type="submit" size="lg" className="mt-2 h-12 text-base" disabled={digits.length !== 6 || pair.isPending}>
+      <Button type="submit" size="lg" className="mt-2 h-12 text-base" disabled={code.length !== 6 || pair.isPending || waiting}>
         Pair
       </Button>
     </form>

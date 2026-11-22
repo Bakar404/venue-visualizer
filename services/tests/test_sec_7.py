@@ -71,6 +71,6 @@ def test_lan_url_and_allowed_hosts_follow_the_route(setup_machine, monkeypatch):
     adapters(monkeypatch, *INTERFACES)
     _route(monkeypatch, "192.168.1.20")
     with desktop() as api:
-        assert api.get("/api/system/lan").json()["url"] == "http://192.168.1.20:3000"
+        assert api.get("/api/system/lan").json()["url"] == "http://192.168.1.20:3000/pair"
         assert phone(api.app).get("/api/health", headers={"Host": "192.168.1.20:8000"}).status_code == 200
         assert phone(api.app).get("/api/health", headers={"Host": "172.17.0.1:8000"}).status_code == 400

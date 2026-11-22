@@ -22,10 +22,17 @@ class Install:
 
 
 @dataclass(frozen=True)
+class Login:
+    """`command` is what to type (copyable); `note` is plain-text guidance for after it starts."""
+    command: str
+    note: str | None = None
+
+
+@dataclass(frozen=True)
 class Provider:
     label: str
     install: Install
-    login: str | None
+    login: Login | None
     used_for: tuple[Use, ...]
     cost_note: str
     image_setup: str = ""
@@ -38,17 +45,17 @@ def npm(package: str, docs: str) -> Install:
 
 PROVIDERS = {
     "claude": Provider("Claude Code", npm("@anthropic-ai/claude-code", "https://code.claude.com/docs/en/setup"),
-                       "claude (follow the sign-in prompt)", ("chat", "web_research", "vision"),
+                       Login("claude", "then follow the sign-in prompt"), ("chat", "web_research", "vision"),
                        "Uses your Claude plan quota"),
     "codex": Provider("Codex", npm("@openai/codex", "https://developers.openai.com/codex/cli/"),
-                      "codex login", ("chat", "web_research", "vision", "images"), "Uses ChatGPT plan quota",
+                      Login("codex login"), ("chat", "web_research", "vision", "images"), "Uses ChatGPT plan quota",
                       "codex features enable image_generation"),
     "copilot": Provider("GitHub Copilot",
                         npm("@github/copilot", "https://docs.github.com/en/copilot/how-tos/copilot-cli"),
-                        "copilot (then run /login)", ("chat", "web_research", "vision", "images"),
+                        Login("copilot", "then type /login"), ("chat", "web_research", "vision", "images"),
                         "Uses GitHub Copilot AI credits"),
     "kimi": Provider("Kimi Code", Install("", "", "https://www.kimi.com/code/docs/en/"),
-                     "kimi (then run /login)", ("chat", "web_research", "vision"), "Uses your Kimi Code plan quota"),
+                     Login("kimi", "then type /login"), ("chat", "web_research", "vision"), "Uses your Kimi Code plan quota"),
     "mflux": Provider("Local FLUX (mflux)",
                       Install("uv tool install mflux", "Not supported (Apple Silicon only)",
                               "https://github.com/filipstrand/mflux"),

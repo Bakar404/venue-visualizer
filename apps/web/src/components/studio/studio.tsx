@@ -19,7 +19,7 @@ import { PhotoStrip } from "@/components/studio/photo-strip";
 import { ReferencePhotos } from "@/components/studio/reference-photos";
 import { RenderStage } from "@/components/studio/render-stage";
 import { SpecForm } from "@/components/studio/spec-form";
-import { type StudioTab, StudioTabBar } from "@/components/studio/studio-tab-bar";
+import { type StudioTab, StudioTabBar, studioPanelId, studioTabId } from "@/components/studio/studio-tab-bar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { usePhoneLayout } from "@/hooks/use-phone-layout";
 import { api, errorMessage } from "@/lib/api";
 import { isActive, trackJobs, useLookHasActiveJobs } from "@/lib/jobs";
 import { usePreferences } from "@/lib/preferences";
@@ -78,6 +79,7 @@ function StudioLoaded({ space }: { space: Space }) {
   const [pickedPhoto, setPickedPhoto] = useState<string | null>(null);
   // A references-only space shows its reference photos (and the ways to get a base photo) in the Preview pane.
   const keyboard = useKeyboardInset();
+  const phoneLayout = usePhoneLayout();
   const [tab, setTab] = useState<Tab>(() => (usablePhotos.length || space.references?.length ? "canvas" : "photos"));
   const [check, setCheck] = useState<{ warnings: RuleWarning[]; fixed: DesignSpec } | null>(null);
   const [specOpen, setSpecOpen] = useState(false);
@@ -386,15 +388,21 @@ function StudioLoaded({ space }: { space: Space }) {
     return () => setStudioActions(null);
   }, [space.id, hasLook, compareHref]);
 
+  // On phones the panes are tab panels of the bottom tab bar; on wider screens they sit side by side as regions.
+  const panel = (of: StudioTab, label: string) =>
+    phoneLayout ? { id: studioPanelId(of), role: "tabpanel", "aria-labelledby": studioTabId(of) } : { id: studioPanelId(of), "aria-label": label };
+
   const lookItems = sortedLooks.map((l) => ({ value: l.id, label: l.name }));
   const warnings = check?.warnings ?? [];
 
   return (
-    // Fills the viewport under the site header (h-14 + 1px border); each column scrolls on its own.
-    // On phones `--kb` lifts everything above the on-screen keyboard (see useKeyboardInset).
+    // Fills the viewport under the site header (h-14 + 1px border + the top safe area); each column scrolls on its own.
+    // The bottom stops above the home indicator (bottom safe area) or, on phones, the on-screen keyboard (`--kb`, see
+    // useKeyboardInset), whichever is taller.
     <div
+      data-testid="studio"
       style={{ "--kb": `${keyboard}px` } as React.CSSProperties}
-      className="flex h-[calc(100dvh-3.5rem-1px-var(--kb))] min-h-0 flex-col overflow-hidden"
+      className="flex h-[calc(100dvh-3.5rem-1px-var(--safe-top,env(safe-area-inset-top,0px))-max(var(--kb,0px),var(--safe-bottom,env(safe-area-inset-bottom,0px))))] min-h-0 flex-col overflow-hidden"
     >
       <div className={cn("border-b", keyboard > 0 && "max-lg:hidden")}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 lg:px-6">
@@ -447,7 +455,7 @@ function StudioLoaded({ space }: { space: Space }) {
       <BackendUnavailableNotice />
 
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)_24rem] xl:grid-cols-[17rem_minmax(0,1fr)_27rem]">
-        <aside aria-label="Photos" className={cn("scrollbar-thin min-h-0 overflow-y-auto overscroll-contain p-4 lg:block lg:border-r", tab !== "photos" && "hidden")}>
+        <aside {...panel("photos", "Photos")} className={cn("scrollbar-thin min-h-0 overflow-y-auto overscroll-contain p-4 lg:block lg:border-r", tab !== "photos" && "hidden")}>
           {usablePhotos.length ? (
             <PhotoStrip
               spaceId={space.id}
@@ -472,7 +480,7 @@ function StudioLoaded({ space }: { space: Space }) {
         </aside>
 
         <section
-          aria-label="Preview"
+          {...panel("canvas", "Preview")}
           className={cn("scrollbar-thin min-h-0 overflow-y-auto overscroll-contain p-4 lg:block lg:p-6", tab !== "canvas" && "hidden")}
         >
           {selectedPhoto ? (
@@ -522,7 +530,7 @@ function StudioLoaded({ space }: { space: Space }) {
           )}
         </section>
 
-        <aside aria-label="Plan" className={cn("flex min-h-0 flex-col lg:border-l", tab !== "plan" && tab !== "chat" && "hidden lg:flex")}>
+        <aside {...panel(tab === "chat" ? "chat" : "plan", "Plan")} className={cn("flex min-h-0 flex-col lg:border-l", tab !== "plan" && tab !== "chat" && "hidden lg:flex")}>
           {copyOf && (
             <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-sm" role="status">
               <CopyIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />

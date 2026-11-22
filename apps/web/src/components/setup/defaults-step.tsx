@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { errorMessage } from "@/lib/api";
-import { isUsable } from "@/lib/backends";
+import { isLikely, isReady } from "@/lib/backends";
 import { usePreferences } from "@/lib/preferences";
 import { qk, useUpdateSettings } from "@/lib/queries";
 import type { Backends, BackendStatus, Settings } from "@/lib/types";
@@ -44,11 +44,12 @@ function Options({
         </h3>
         <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
       </div>
-      {options.length === 0 ? (
+      {!options.some(isReady) && (
         <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
           Nothing is ready yet. Get at least one ready in step 1, then press Check again.
         </p>
-      ) : (
+      )}
+      {options.length > 0 && (
         <RadioGroup aria-labelledby={id} value={value} onValueChange={(v) => onChange(v as string)} className="grid gap-2 sm:grid-cols-2">
           {options.map((b) => (
             <Radio.Root
@@ -56,10 +57,12 @@ function Options({
               value={b.id}
               aria-labelledby={`${id}-${b.id}`}
               aria-describedby={`${id}-${b.id}-note`}
+              disabled={!isReady(b)}
               className={cn(
                 "flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border bg-card p-4 text-left outline-none transition-[border-color,background-color,box-shadow] duration-150 ease-out",
                 "hover:border-foreground/25 focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:border-brand/60 data-checked:bg-brand-soft",
                 "active:scale-[0.99] motion-safe:transition-[border-color,background-color,box-shadow,scale]",
+                "data-disabled:cursor-not-allowed data-disabled:border-dashed data-disabled:bg-transparent data-disabled:hover:border-border data-disabled:active:scale-100",
               )}
             >
               <span
@@ -78,7 +81,7 @@ function Options({
                   )}
                 </span>
                 <span id={`${id}-${b.id}-note`} className="mt-1 block text-sm text-pretty text-muted-foreground">
-                  {b.cost_note ?? b.caps?.cost_note ?? b.detail}
+                  {isReady(b) ? (b.cost_note ?? b.caps?.cost_note ?? b.detail) : "Run Test first. It's installed, but not tested yet."}
                 </span>
               </span>
             </Radio.Root>
@@ -95,8 +98,11 @@ export function DefaultsStep({ backends, settings }: { backends: Backends; setti
   const { setBrain, setEngine } = usePreferences();
   const update = useUpdateSettings();
   const switchId = useId();
-  const brains = backends.brains.filter(isUsable);
-  const engines = backends.engines.filter(isUsable);
+  // Ready tools can be chosen; likely ones (installed, untested) are listed disabled; failed or signed-out ones aren't.
+  const brainOptions = backends.brains.filter((b) => isReady(b) || isLikely(b));
+  const engineOptions = backends.engines.filter((e) => isReady(e) || isLikely(e));
+  const brains = brainOptions.filter(isReady);
+  const engines = engineOptions.filter(isReady);
   const [brainChoice, setBrainChoice] = useState<string | null>(null);
   const [engineChoice, setEngineChoice] = useState<string | null>(null);
   const [web, setWeb] = useState<boolean | null>(null);
@@ -129,11 +135,11 @@ export function DefaultsStep({ backends, settings }: { backends: Backends; setti
   };
 
   return (
-    <div className="grid gap-8">
+    <div data-testid="defaults-step" className="grid gap-8">
       <Options
         label="Default brain"
         description="The AI you chat with. You can switch in the Studio at any time."
-        options={brains}
+        options={brainOptions}
         value={brain}
         recommended={recommendedBrain}
         onChange={setBrainChoice}
@@ -142,7 +148,7 @@ export function DefaultsStep({ backends, settings }: { backends: Backends; setti
       <Options
         label="Default image engine"
         description="Paints the decor into your photos. Each render uses it once per photo."
-        options={engines}
+        options={engineOptions}
         value={engine}
         recommended={recommendedEngine}
         onChange={setEngineChoice}

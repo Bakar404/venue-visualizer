@@ -101,6 +101,7 @@ export const httpApi: VVApi = {
   updateSettings: (body) => request("/api/settings", { method: "PATCH", ...json(body) }),
   setupStatus: () => request("/api/system/setup"),
   lanInfo: () => request("/api/system/lan"),
+  rotateLanCode: () => request("/api/system/lan/code", { method: "POST" }),
   pairDevice: async (code) => {
     await request("/api/system/lan/pair", { method: "POST", ...json({ code }), credentials: "include" });
   },

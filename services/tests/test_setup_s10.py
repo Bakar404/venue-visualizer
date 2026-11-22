@@ -40,7 +40,7 @@ def test_lan_off_then_pair_with_cookie_and_preserve_localhost(setup_machine, mon
     with desktop() as api:
         lan = phone(api.app)
         state = api.get("/api/system/lan").json()
-        assert state["url"] == ORIGIN and "<svg" in state["qr_svg"]
+        assert state["url"] == f"{ORIGIN}/pair" and "<svg" in state["qr_svg"]
         code = state["pairing_code"]
         assert len(code) == 6 and code.isdecimal()
         assert lan.get("/api/health").status_code == 200

@@ -392,7 +392,7 @@ function db(): DB {
   return state;
 }
 
-type GateName = "chat" | "renderLook" | "deletePhoto" | "getJob";
+type GateName = "chat" | "renderLook" | "deletePhoto" | "getJob" | "setupStatus" | "pairDevice";
 const gates = new Map<GateName, { promise: Promise<void>; release: () => void; waiting: number }>();
 const failNext = new Map<GateName, string>();
 
@@ -414,8 +414,17 @@ async function gate(name: GateName) {
   }
 }
 
+function hold(name: GateName) {
+  if (gates.has(name)) return;
+  let release = () => {};
+  const promise = new Promise<void>((resolve) => (release = resolve));
+  gates.set(name, { promise, release, waiting: 0 });
+}
+
 /** Peek at the mock database and steer requests, for end-to-end tests (`window.__vvMock`). Mock mode only. */
 if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_VV_MOCK === "1") {
+  // `?vvHold=setupStatus,…` holds those requests from the first one, before a test could call `hold()`.
+  for (const name of new URLSearchParams(window.location.search).get("vvHold")?.split(",") ?? []) hold(name as GateName);
   Object.assign(window, {
     __vvMock: {
       looks: () => clone([...db().looks.values()]),
@@ -423,12 +432,7 @@ if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_VV_MOCK === "1") {
       chat: (spaceId: string) => clone(db().chat.get(spaceId) ?? []),
       space: (spaceId: string) => clone(db().spaces.get(spaceId) ?? null),
       photos: (spaceId: string) => photosFor(spaceId),
-      hold: (name: GateName) => {
-        if (gates.has(name)) return;
-        let release = () => {};
-        const promise = new Promise<void>((resolve) => (release = resolve));
-        gates.set(name, { promise, release, waiting: 0 });
-      },
+      hold,
       release: (name: GateName) => {
         gates.get(name)?.release();
         gates.delete(name);
@@ -787,7 +791,7 @@ function engineAvailable(id: string | undefined) {
   return id;
 }
 
-export const mockApi: VVApi = {
+const endpoints: VVApi = {
   async backends() {
     await latency();
     return system.currentBackends();
@@ -797,8 +801,10 @@ export const mockApi: VVApi = {
     return system.refreshBackends();
   },
   async testBackend(kind, id, { confirm_credits }) {
+    // Claim the slot first, like the API: a second click while this one runs answers 409.
+    const run = system.beginTest(kind, id, confirm_credits === true);
     await sleep(700 + Math.random() * 400);
-    return system.testBackend(kind, id, confirm_credits === true);
+    return system.finishTest(run);
   },
   async getSettings() {
     await latency();
@@ -810,14 +816,20 @@ export const mockApi: VVApi = {
   },
   async setupStatus() {
     await latency();
+    await gate("setupStatus");
     return system.setupStatus();
   },
   async lanInfo() {
     await latency();
     return system.lanInfo();
   },
+  async rotateLanCode() {
+    await latency();
+    return system.rotateLanCode();
+  },
   async pairDevice(code) {
     await latency();
+    await gate("pairDevice");
     system.pairDevice(code, system.deviceLabel(typeof navigator === "undefined" ? "" : navigator.userAgent));
   },
   async lanDevices() {
@@ -1248,3 +1260,19 @@ export const mockApi: VVApi = {
     return URL.createObjectURL(buildTextPdf(look.name, lines));
   },
 };
+
+/**
+ * Like services/api/main.py: a phone on the LAN gets 403 "Pair this device…" from everything but pairing until it
+ * has paired. (Owner-only endpoints check the client themselves, in mock-system.)
+ */
+export const mockApi = Object.fromEntries(
+  Object.entries(endpoints).map(([name, fn]) => [
+    name,
+    name === "pairDevice"
+      ? fn
+      : async (...args: unknown[]) => {
+          system.requirePaired();
+          return (fn as (...a: unknown[]) => unknown)(...args);
+        },
+  ]),
+) as unknown as VVApi;

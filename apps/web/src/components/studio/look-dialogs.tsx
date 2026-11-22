@@ -122,7 +122,7 @@ function VariationForm({ baseName, onSubmit, pending, willRender }: { baseName: 
               key={idea}
               type="button"
               onClick={() => setPrompt(idea)}
-              className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/25 hover:text-foreground"
+              className="rounded-full border px-2.5 py-1 text-xs pointer-coarse:min-h-11 text-muted-foreground transition-colors hover:border-foreground/25 hover:text-foreground"
             >
               {idea}
             </button>

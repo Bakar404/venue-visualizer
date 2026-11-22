@@ -1,0 +1,13 @@
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r5.spec.ts
+
+Running 2 tests using 2 workers
+
+(node:38103) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:38104) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/2] [chromium] › e2e/fx-r5.spec.ts:8:1 › FX-R5: too many attempts disables Pair until Retry-After passes
+[2/2] [chromium] › e2e/fx-r5.spec.ts:31:1 › FX-R5: editing the code while Pair is in flight doesn't lose the result
+  2 passed (2.8s)

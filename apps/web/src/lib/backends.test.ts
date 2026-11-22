@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isUsable, setupPill } from "@/lib/backends";
+import { isReady, setupPill } from "@/lib/backends";
 
 const test = (ok: boolean) => ({ ok, at: "2026-11-01T09:00:00Z", seconds: 3, detail: "" });
 
@@ -18,10 +18,12 @@ describe("setupPill", () => {
   });
 });
 
-describe("isUsable", () => {
-  it("offers installed backends unless they're known to be signed out", () => {
-    expect(isUsable({ available: true, logged_in: null })).toBe(true);
-    expect(isUsable({ available: true, logged_in: false })).toBe(false);
-    expect(isUsable({ available: false, logged_in: true })).toBe(false);
+describe("isReady", () => {
+  it("offers only backends that are signed in or passed a test", () => {
+    expect(isReady({ available: true, logged_in: true })).toBe(true);
+    expect(isReady({ available: true, logged_in: null, last_test: test(true) })).toBe(true);
+    expect(isReady({ available: true, logged_in: null })).toBe(false);
+    expect(isReady({ available: true, logged_in: false })).toBe(false);
+    expect(isReady({ available: false, logged_in: true })).toBe(false);
   });
 });

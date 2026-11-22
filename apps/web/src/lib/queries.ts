@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { normalizeBackends } from "@/lib/backends";
-import { PAIRING_CODE_MINUTES, type Look, type SettingsPatch } from "@/lib/types";
+import type { Look, SettingsPatch, SetupStatus } from "@/lib/types";
 
 export const qk = {
   backends: ["backends"] as const,
@@ -77,8 +77,8 @@ export function useSetupStatus() {
 }
 
 /**
- * `GET /api/system/lan`. Every fetch issues a new one-time pairing code and retires the last, so it only refetches on
- * purpose (New code), when the code expires, or when Setup is opened again; never on window focus.
+ * `GET /api/system/lan`. Reading it never changes the code (the API issues one only when none is active); the panel
+ * refetches when the code expires or a lockout ends, and New code calls `useRotateLanCode`.
  */
 export function useLanInfo() {
   return useQuery({
@@ -88,8 +88,16 @@ export function useLanInfo() {
     gcTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    refetchInterval: (q) => (q.state.data?.enabled ? PAIRING_CODE_MINUTES * 60_000 : false),
     retry: 1,
+  });
+}
+
+/** New code: `POST /api/system/lan/code` retires the current code and returns a fresh one. */
+export function useRotateLanCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.rotateLanCode(),
+    onSuccess: (lan) => qc.setQueryData(qk.lan, lan),
   });
 }
 
@@ -130,8 +138,16 @@ export function useUpdateSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (patch: SettingsPatch) => api.updateSettings(patch),
-    onSuccess: (settings) => {
+    onSuccess: (settings, patch) => {
       qc.setQueryData(qk.settings, settings);
+      // Finishing setup with a ready brain and engine completes it; say so now so Try it doesn't bounce back to /setup
+      // while the refetch below is in flight.
+      if (patch.setup_completed_at)
+        qc.setQueryData<SetupStatus>(qk.setup, (old) =>
+          old && !old.brain.missing && !old.engine.missing
+            ? { ...old, complete: true, missing: [], steps: { ...old.steps, defaults: true, try_it: true } }
+            : old,
+        );
       // Defaults feed the backends' defaults and setup status. (Phone access is read-only; see `make dev-lan`.)
       void qc.invalidateQueries({ queryKey: qk.backends });
       void qc.invalidateQueries({ queryKey: qk.setup });

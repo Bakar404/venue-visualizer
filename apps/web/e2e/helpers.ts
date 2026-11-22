@@ -33,17 +33,36 @@ type MockPeek = {
   /** Like restarting the app with `make dev-lan` (true) or `make dev` (false). Settings can't change it. */
   setLan: (enabled: boolean) => void;
   /** Phones paired with this computer, as `GET /api/system/lan/devices` returns them. */
-  lanDevices: () => Array<{ id: string; label: string; paired_at: string; last_seen: string }>;
+  lanDevices: () => Array<{ id: string; label: string; paired_at: string; last_seen: string; expires_at: string }>;
   /** Adds a paired phone directly, as if it had paired through /pair. */
   pairPhone: (label?: string) => void;
   /** The next backend test is refused with HTTP 429 and `Retry-After: seconds`; tests stay refused until then. */
   rateLimitTests: (seconds: number) => void;
+  clearTests: () => void;
+  /** Who is calling the mock API: this computer ("owner") or a phone on the LAN, paired or not. */
+  setClient: (client: "owner" | "phone", paired?: boolean) => void;
+  client: () => { client: "owner" | "phone"; paired: boolean };
+  /** Too many wrong pairing codes: pairing is paused for `seconds` and there is no code. */
+  lockPairing: (seconds: number) => void;
+  /** The current pairing code expires now. */
+  expirePairingCode: () => void;
 };
 
 export type MockScenario = "fresh" | "signed-out" | "ready" | "demo";
 type MockProvider = "claude" | "codex" | "copilot" | "kimi" | "mflux";
 
-type MockGate = "chat" | "renderLook" | "deletePhoto" | "getJob";
+type MockGate = "chat" | "renderLook" | "deletePhoto" | "getJob" | "setupStatus" | "pairDevice";
+
+/** Turns phone access on (like `make dev-lan`) and returns the pairing code Setup shows on the computer. */
+export async function lanCode(page: Page) {
+  await page.goto("/setup");
+  await mockReady(page);
+  await page.evaluate(() => window.__vvMock.setLan(true));
+  await page.reload();
+  const code = page.getByTestId("pairing-code");
+  await expect(code).toHaveText(/^\d{3} \d{3}$/);
+  return ((await code.textContent()) ?? "").replace(/\D/g, "");
+}
 
 /** Waits until the app has loaded the mock and attached `window.__vvMock`. */
 export async function mockReady(page: Page) {

@@ -79,7 +79,7 @@ def test_lan_mode_needs_the_make_dev_lan_environment(setup_machine, tmp_path, mo
     lan_env(monkeypatch)
     with desktop() as api:
         assert api.get("/api/settings").json()["lan"] == {"enabled": True}
-        assert api.get("/api/system/lan").json()["url"] == f"http://{HOST}:3000"
+        assert api.get("/api/system/lan").json()["url"] == f"http://{HOST}:3000/pair"
         response = api.patch("/api/settings", json={"lan": {"enabled": False}})
         assert response.status_code == 422 and RESTART in response.json()["detail"]
         assert api.get("/api/settings").json()["lan"] == {"enabled": True}

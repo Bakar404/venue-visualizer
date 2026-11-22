@@ -11,7 +11,9 @@ import { TryItStep } from "@/components/setup/try-it-step";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { errorMessage } from "@/lib/api";
+import { likelyNote } from "@/lib/backends";
 import { useBackends, useSettings, useSetupStatus } from "@/lib/queries";
+import type { SetupStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function Step({ n, title, done, intro, children }: { n: number; title: string; done?: boolean; intro?: React.ReactNode; children: React.ReactNode }) {
@@ -40,9 +42,12 @@ function Step({ n, title, done, intro, children }: { n: number; title: string; d
   );
 }
 
-function missingText(missing: string[]) {
-  const parts = [missing.includes("brain") && "a brain", missing.includes("engine") && "an image engine"].filter(Boolean);
-  return parts.length ? `Still needed: ${parts.join(" and ")}.` : "You have a ready brain and a ready image engine.";
+/** The same rule as `make doctor` (services/api/readiness.py): only a sign-in or a passed test makes a tool ready. */
+function summaryText(setup: SetupStatus) {
+  const parts = [setup.brain.missing && "a brain", setup.engine.missing && "an image engine"].filter(Boolean);
+  const head = parts.length ? `Still needed: ${parts.join(" and ")}.` : "You have a ready brain and a ready image engine.";
+  const note = likelyNote([...(setup.brain.missing ? setup.brain.likely : []), ...(setup.engine.missing ? setup.engine.likely : [])]);
+  return note ? `${head} ${note}` : head;
 }
 
 /** `/setup`: get from a fresh clone to a first render (docs/onboarding-and-mobile.md, section 1). */
@@ -51,8 +56,7 @@ export function SetupPage() {
   const settings = useSettings();
   const setup = useSetupStatus();
   const advancedId = useId();
-  const missing = setup.data?.missing ?? [];
-  const toolsDone = setup.data ? !missing.includes("brain") && !missing.includes("engine") : false;
+  const toolsDone = setup.data ? !setup.data.brain.missing && !setup.data.engine.missing : false;
   const defaultsDone = Boolean(settings.data?.setup_completed_at);
 
   return (
@@ -89,7 +93,11 @@ export function SetupPage() {
           intro={
             <>
               <p>One tool can be both. You need at least one of each to be ready; most people start with one they already pay for.</p>
-              {setup.data && <p className="mt-2 font-medium text-foreground">{missingText(missing)}</p>}
+              {setup.data && (
+                <p data-testid="setup-summary" className="mt-2 font-medium text-foreground">
+                  {summaryText(setup.data)}
+                </p>
+              )}
             </>
           }
         >
@@ -133,7 +141,7 @@ export function SetupPage() {
         </Step>
 
         <Step n={3} title="Try it" done={false}>
-          <TryItStep ready={defaultsDone && toolsDone} />
+          <TryItStep ready={Boolean(setup.data?.steps.try_it)} />
         </Step>
 
         <section aria-labelledby={advancedId} className="grid gap-6 border-t pt-10">

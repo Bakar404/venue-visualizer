@@ -137,7 +137,7 @@ export function UploadVenue() {
       </section>
 
       <Collapsible>
-        <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-md py-1 text-left text-lg font-medium">
+        <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-md py-1 pointer-coarse:min-h-11 text-left text-lg font-medium">
           <span>
             House rules <span className="text-sm font-normal text-muted-foreground">(optional, editable later)</span>
           </span>

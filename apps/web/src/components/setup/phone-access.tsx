@@ -1,7 +1,7 @@
 "use client";
 
-import { RefreshCwIcon, ShieldAlertIcon, SmartphoneIcon } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { HourglassIcon, RefreshCwIcon, ShieldAlertIcon, SmartphoneIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { CopyCommand } from "@/components/setup/copy-command";
 import {
@@ -14,10 +14,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSecondsLeft } from "@/hooks/use-retry-countdown";
 import { errorMessage } from "@/lib/api";
-import { useForgetAllLanDevices, useForgetLanDevice, useLanDevices, useLanInfo } from "@/lib/queries";
-import { PAIRING_CODE_MINUTES, type LanDevice } from "@/lib/types";
+import { useForgetAllLanDevices, useForgetLanDevice, useLanDevices, useLanInfo, useRotateLanCode } from "@/lib/queries";
+import type { LanDevice } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
@@ -34,10 +37,23 @@ export function PhoneAccess() {
   // A phone that paired since this code was fetched used it up: show the next one.
   const newestPairing = devices.data?.reduce((max, d) => Math.max(max, Date.parse(d.paired_at)), 0) ?? 0;
   const { refetch } = lan;
+  const rotate = useRotateLanCode();
   const codeFetchedAt = lan.dataUpdatedAt;
   useEffect(() => {
     if (info && newestPairing > codeFetchedAt) void refetch();
   }, [info, newestPairing, codeFetchedAt, refetch]);
+
+  // Count down to the code's expiry, or to the end of a lockout, and fetch again when either runs out.
+  const expiresLeft = useSecondsLeft(info?.pairing_code && info.pairing_expires_in != null ? codeFetchedAt + info.pairing_expires_in * 1000 : null);
+  const lockedLeft = useSecondsLeft(info?.pairing_locked_for ? codeFetchedAt + info.pairing_locked_for * 1000 : null);
+  const refetchedFor = useRef(0);
+  useEffect(() => {
+    if ((expiresLeft === 0 || lockedLeft === 0) && refetchedFor.current !== codeFetchedAt) {
+      refetchedFor.current = codeFetchedAt;
+      void refetch();
+    }
+  }, [expiresLeft, lockedLeft, codeFetchedAt, refetch]);
+  const busy = lan.isFetching || rotate.isPending;
 
   return (
     <section aria-labelledby={headingId} className="grid gap-5 rounded-2xl border bg-card p-5 sm:p-6">
@@ -82,24 +98,42 @@ export function PhoneAccess() {
                   {info.url}
                 </span>
               </li>
+              {info.pairing_locked_for ? (
+                <li>
+                  <p
+                    data-testid="pairing-locked"
+                    className="flex items-start gap-2 rounded-lg border border-warning-border bg-warning p-3 text-pretty text-warning-foreground tabular-nums"
+                  >
+                    <HourglassIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+                    Pairing is paused for {lockedLeft ?? info.pairing_locked_for} s after too many wrong codes
+                  </p>
+                </li>
+              ) : null}
               {info.pairing_code && (
                 <li>
                   <span className="text-muted-foreground">2. When the phone asks, enter this pairing code</span>
                   <span
                     data-testid="pairing-code"
-                    aria-busy={lan.isFetching || undefined}
-                    className={cn("mt-1 block font-mono text-2xl tracking-[0.2em] tabular-nums", lan.isFetching && "opacity-50")}
+                    aria-busy={busy || undefined}
+                    className={cn("mt-1 block font-mono text-2xl tracking-[0.2em] tabular-nums", busy && "opacity-50")}
                   >
                     {info.pairing_code.slice(0, 3)} {info.pairing_code.slice(3)}
                   </span>
-                  <span className="mt-1 block text-pretty text-muted-foreground">
-                    It works once and expires after {PAIRING_CODE_MINUTES} minutes. Each phone needs its own code; a new
-                    code replaces this one.
+                  <span data-testid="pairing-expiry" className="mt-1 block font-medium tabular-nums">
+                    Expires in {clock(expiresLeft ?? info.pairing_expires_in ?? 0)}
                   </span>
-                  <Button type="button" variant="outline" size="sm" className="mt-2" disabled={lan.isFetching} onClick={() => void refetch()}>
-                    <RefreshCwIcon aria-hidden className={cn(lan.isFetching && "animate-spin")} />
+                  <span className="mt-1 block text-pretty text-muted-foreground">
+                    It works once. Each phone needs its own code; a new code replaces this one.
+                  </span>
+                  <Button type="button" variant="outline" size="sm" className="mt-2" disabled={busy} onClick={() => rotate.mutate()}>
+                    <RefreshCwIcon aria-hidden className={cn(busy && "animate-spin")} />
                     New code
                   </Button>
+                  {rotate.isError && (
+                    <p role="alert" className="mt-2 text-destructive">
+                      Couldn&apos;t make a new code: {errorMessage(rotate.error)}
+                    </p>
+                  )}
                 </li>
               )}
             </ol>

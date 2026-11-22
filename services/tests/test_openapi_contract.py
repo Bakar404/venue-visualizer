@@ -19,6 +19,7 @@ def test_setup_operations_are_in_the_exported_contract():
         "/api/system/backends/{kind}/{id}/test": {"post"},
         "/api/system/setup": {"get"},
         "/api/system/lan": {"get"},
+        "/api/system/lan/code": {"post"},
         "/api/system/lan/pair": {"post"},
     }
     for path, methods in expected.items():

@@ -1,0 +1,9 @@
+$ cd apps/web && pnpm exec playwright test --reporter=line e2e/fx-r11.spec.ts
+
+Running 1 test using 1 worker
+
+(node:33390) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] [chromium] › e2e/fx-r11.spec.ts:8:1 › FX-R11: the pairing field normalises to six digits and accepts a pasted code with spaces
+  1 passed (2.4s)

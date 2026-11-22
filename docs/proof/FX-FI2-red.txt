@@ -1,0 +1,161 @@
+$ cd services && uv run pytest -q tests/test_fx_fi2.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_____________ test_doctor_exits_zero_with_a_verdict_when_not_ready _____________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x111542c40>)
+capsys = <_pytest.capture.CaptureFixture object at 0x1114dd2b0>
+
+    def test_doctor_exits_zero_with_a_verdict_when_not_ready(setup_machine, capsys):  # noqa: F811
+        doctor = import_module("api.doctor")
+>       assert doctor.main([]) == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = <function main at 0x111543530>([])
+E        +    where <function main at 0x111543530> = <module 'api.doctor' from '/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/api/doctor.py'>.main
+
+tests/test_fx_fi2.py:20: AssertionError
+----------------------------- Captured stdout call -----------------------------
+Venue Visualizer doctor
+
+Prerequisites
+  ✗ Node: Runs the web app and npm-based AI CLIs
+    Install: brew install node
+  ✗ pnpm: Installs and runs the web app
+    Install: npm install -g pnpm
+  ✗ Python: Runs the API and worker
+    Install: uv python install 3.11
+  ✗ uv: Installs and runs the Python services
+    Install: brew install uv
+  ✗ ffmpeg: Turns video tours into venue photos
+    Install: brew install ffmpeg
+  ✗ Playwright Chromium: Renders guides for exact table layouts
+    Install: uv run --extra scene3d playwright install chromium
+
+AI providers
+  ✗ Claude Code installed | ? signed in — chat, web research, vision
+    Cost: Uses your Claude plan quota
+    Install: npm install -g @anthropic-ai/claude-code
+    Sign in: claude (follow the sign-in prompt)
+  ✗ Codex installed | ? signed in — chat, web research, vision, images
+    Cost: Uses ChatGPT plan quota
+    Install: npm install -g @openai/codex
+    Sign in: codex login
+    Enable images: codex features enable image_generation
+  ✗ GitHub Copilot installed | ? signed in — chat, web research, vision, images
+    Cost: Uses GitHub Copilot AI credits
+    Install: npm install -g @github/copilot
+    Sign in: copilot (then run /login)
+  ✗ Kimi Code installed | ? signed in — chat, web research, vision
+    Cost: Uses your Kimi Code plan quota
+    Install: https://www.kimi.com/code/docs/en/
+    Sign in: kimi (then run /login)
+  ✗ Local FLUX (mflux) installed | no sign-in needed — images
+    Cost: Free, runs on this Mac (Apple Silicon only)
+    Install: uv tool install mflux
+
+Do this next: npm install -g @openai/codex, then codex login; for images: codex features enable image_generation
+__________________ test_strict_doctor_keeps_the_failing_exit ___________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x111585a60>)
+capsys = <_pytest.capture.CaptureFixture object at 0x111493390>
+
+    def test_strict_doctor_keeps_the_failing_exit(setup_machine, capsys):  # noqa: F811
+        doctor = import_module("api.doctor")
+>       assert doctor.main(["--strict"]) == 1
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_fx_fi2.py:28: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+api/doctor.py:96: in main
+    args = parser.parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2009: in parse_args
+    self.error(msg)
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='pytest', usage=None, description='Print an offline checklist for this machine: uv run python -m api.doctor.', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2, message = 'pytest: error: unrecognized arguments: --strict\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: pytest [-h] [--json]
+pytest: error: unrecognized arguments: --strict
+_____________________ test_strict_doctor_passes_when_ready _____________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-25...dex'}, logged_in={'codex': True}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x111541010>)
+capsys = <_pytest.capture.CaptureFixture object at 0x111491bd0>
+
+    def test_strict_doctor_passes_when_ready(setup_machine, capsys):  # noqa: F811
+        doctor = import_module("api.doctor")
+        setup_machine.installed.add("codex")
+        setup_machine.logged_in["codex"] = True
+>       assert doctor.main(["--strict"]) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_fx_fi2.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+api/doctor.py:96: in main
+    args = parser.parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2009: in parse_args
+    self.error(msg)
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='pytest', usage=None, description='Print an offline checklist for this machine: uv run python -m api.doctor.', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2, message = 'pytest: error: unrecognized arguments: --strict\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: pytest [-h] [--json]
+pytest: error: unrecognized arguments: --strict
+______________________________ test_make_targets _______________________________
+
+    def test_make_targets():
+        assert "--strict" not in _target("doctor")
+>       assert "api.doctor --strict" in _target("doctor-ci")
+                                        ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_fx_fi2.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'doctor-ci'
+
+    def _target(name: str) -> str:
+        match = re.search(rf"^{re.escape(name)}:.*\n((?:\t.*\n?)+)", (ROOT / "Makefile").read_text(), re.MULTILINE)
+>       assert match, f"Makefile has no {name} target"
+E       AssertionError: Makefile has no doctor-ci target
+E       assert None
+
+tests/test_fx_fi2.py:14: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_fx_fi2.py::test_doctor_exits_zero_with_a_verdict_when_not_ready
+FAILED tests/test_fx_fi2.py::test_strict_doctor_keeps_the_failing_exit - Syst...
+FAILED tests/test_fx_fi2.py::test_strict_doctor_passes_when_ready - SystemExi...
+FAILED tests/test_fx_fi2.py::test_make_targets - AssertionError: Makefile has...
+4 failed, 1 warning in 0.21s

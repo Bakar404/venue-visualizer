@@ -1,4 +1,4 @@
-.PHONY: setup dev dev-lan lan doctor api worker web test schema sample
+.PHONY: setup dev dev-lan lan doctor doctor-ci api worker web test schema sample
 setup:
 	cd services && uv sync
 	pnpm install
@@ -27,6 +27,8 @@ dev-lan:
 lan: dev-lan
 doctor:
 	cd services && uv run python -m api.doctor
+doctor-ci:
+	cd services && uv run python -m api.doctor --strict
 api:
 	cd services && uv run uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
 worker:

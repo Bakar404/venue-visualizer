@@ -61,7 +61,7 @@ function VenuesLink() {
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] backdrop-blur-md supports-backdrop-filter:bg-background/70">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 pt-[var(--safe-top,env(safe-area-inset-top,0px))] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] backdrop-blur-md supports-backdrop-filter:bg-background/70">
       <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-2 px-4 sm:gap-3 sm:px-6">
         <Link href="/" className="flex min-h-11 min-w-0 shrink items-center gap-2 rounded-sm">
           <span className="truncate font-display text-[1.3rem] leading-none tracking-tight sm:text-[1.45rem]">Venue Visualizer</span>

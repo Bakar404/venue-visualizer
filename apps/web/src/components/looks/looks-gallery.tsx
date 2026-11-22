@@ -129,7 +129,7 @@ export function LooksGallery({ params }: { params: Promise<{ id: string }> }) {
                       aria-pressed={isSelected}
                       onClick={() => toggle(look.id)}
                       className={cn(
-                        "absolute top-3 right-3 z-10 flex h-8 items-center gap-1.5 rounded-full px-3 text-sm font-medium shadow-sm ring-1 backdrop-blur transition-colors",
+                        "absolute top-3 right-3 z-10 flex h-8 pointer-coarse:h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium shadow-sm ring-1 backdrop-blur transition-colors",
                         isSelected ? "bg-brand text-brand-foreground ring-brand" : "bg-background/85 ring-border hover:bg-background",
                       )}
                     >
@@ -166,7 +166,7 @@ export function LooksGallery({ params }: { params: Promise<{ id: string }> }) {
                         <TooltipContent>Includes credits for any photos from the web</TooltipContent>
                       </Tooltip>
                       <Popover>
-                        <PopoverTrigger render={<Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" aria-label={`Delete ${look.name}`} />}>
+                        <PopoverTrigger render={<Button variant="ghost" size="icon-sm" className="ml-auto text-muted-foreground" aria-label={`Delete ${look.name}`} />}>
                           <Trash2Icon />
                         </PopoverTrigger>
                         <PopoverContent className="w-64">
