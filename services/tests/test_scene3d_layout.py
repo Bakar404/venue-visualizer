@@ -179,6 +179,7 @@ def fake_playwright(monkeypatch):
         on=Mock(),
         goto=AsyncMock(return_value=SimpleNamespace(ok=True)),
         wait_for_function=AsyncMock(),
+        evaluate=AsyncMock(return_value=None),
         locator=Mock(return_value=canvas),
     )
     browser = SimpleNamespace(new_page=AsyncMock(return_value=page), close=AsyncMock())
@@ -228,7 +229,9 @@ async def test_render_captures_ready_canvas_at_requested_size(
     assert result.path.is_file()
     assert (result.width, result.height) == dimensions
     assert result.engine == "scene3d"
-    fake_playwright.page.wait_for_function.assert_awaited_once_with("window.__VV_SCENE_READY === true")
+    fake_playwright.page.wait_for_function.assert_awaited_once_with(
+        "window.__VV_SCENE_READY === true || typeof window.__VV_SCENE_ERROR === 'string'"
+    )
     fake_playwright.page.locator.assert_called_once_with("canvas")
     fake_playwright.browser.new_page.assert_awaited_once_with(
         viewport={"width": width, "height": height},
@@ -255,3 +258,14 @@ async def test_render_failures_close_browser_without_screenshot(fake_playwright,
     fake_playwright.browser.close.assert_awaited_once()
     fake_playwright.canvas.screenshot.assert_not_awaited()
     assert not req.out_path.exists()
+
+
+
+@pytest.mark.asyncio
+async def test_render_fails_fast_on_scene_error(fake_playwright, tmp_path):
+    fake_playwright.page.evaluate.return_value = "Tables overflow the room"
+    engine = Scene3DEngine()
+    with pytest.raises(EngineError, match="overflow"):
+        await engine.generate(
+            GenerateRequest(prompt="x", out_path=tmp_path / "g.png", design_spec={"tables": {"count": 12}})
+        )

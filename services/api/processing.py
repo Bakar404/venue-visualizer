@@ -90,7 +90,7 @@ async def _render(runtime: Runtime, job: Job, work: Path) -> Outcome:
                     timeout_s=60,
                 )
             )
-        except Exception as exc:  # the guide is an optional aid; render without it
+        except (EngineError, OSError, RuntimeError, TimeoutError) as exc:  # optional aid; render without it
             logger.warning("Layout guide skipped for render %s: %s", render.id, exc)
         else:
             refs.append(pipeline_output(guide_result.path, work))
