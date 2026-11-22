@@ -1,0 +1,20 @@
+{
+  "name": "@vv/schema",
+  "version": "0.1.0",
+  "private": true,
+  "description": "JSON Schemas (source of truth) for DesignSpec and VenueSpec, plus generated TypeScript types.",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./design-spec.schema.json": "./design-spec.schema.json",
+    "./venue.schema.json": "./venue.schema.json"
+  },
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "devDependencies": {
+    "json-schema-to-typescript": "^16.0.0"
+  }
+}
