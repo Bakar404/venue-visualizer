@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import copy
+from functools import partial
 
+import httpx
 import pytest
 
+from pipeline import fetch
+from pipeline import research as research_module
 from pipeline.brains.mock import canned_research
 from pipeline.models import VenueSpec
 from pipeline.research import (
@@ -12,6 +17,23 @@ from pipeline.research import (
     research_venue,
     validation_errors,
 )
+
+
+@pytest.fixture(autouse=True)
+def mock_photos(monkeypatch):
+    async def resolve(host, port):
+        assert host == "example.com"
+        return ["93.184.215.14"]
+
+    image_response = fetch._image_response
+
+    def install(handler):
+        transport = httpx.MockTransport(handler)
+        monkeypatch.setattr(fetch, "_image_response", partial(image_response, transport=transport))
+
+    monkeypatch.setattr(fetch, "resolve_host", resolve)
+    install(lambda _: httpx.Response(200, headers={"content-type": "image/jpeg"}))
+    return install
 
 
 class FakeBrain:
@@ -60,6 +82,95 @@ async def test_research_uses_web_and_maps_to_preview():
     assert preview["provided_items"] == ["60-inch round tables", "chiavari chairs"]
     with pytest.raises(IndexError):
         research_to_import_preview(research, 1)
+
+
+async def test_research_drops_dead_links_without_reading_bodies(mock_photos):
+    class UnreadBody(httpx.AsyncByteStream):
+        closed = False
+
+        def __aiter__(self):
+            pytest.fail("A photo check must not read the response body")
+
+        async def aclose(self):
+            self.closed = True
+
+    r = _research()
+    [space] = r["matches"][0]["spaces"]
+    [photo] = space["photos"]
+    base = "https://example.com"
+    paths = ["/missing.jpg", "/range.jpg", "/page", "/redirect", "/compressed.jpg"]
+    space["photos"].extend({**photo, "url": base + path} for path in paths)
+    space["photos"].append({**photo, "caption": "Duplicate"})
+    second = {"name": "Terrace", "photos": [dict(photo)]}
+    r["matches"][0]["spaces"].append(second)
+    methods = []
+    bodies = []
+
+    def respond(request):
+        assert request.url.host == "93.184.215.14"
+        assert request.headers["host"] == request.extensions["sni_hostname"] == "example.com"
+        assert request.headers["accept-encoding"] == "identity"
+        path = request.url.path
+        methods.append((request.method, path))
+        if request.method == "GET":
+            assert path == "/range.jpg" and request.headers["range"] == "bytes=0-0"
+            status, headers = 206, {"content-type": "image/jpeg", "content-range": "bytes 0-0/100"}
+        else:
+            assert request.method == "HEAD" and "range" not in request.headers
+            status, headers = {
+                "/missing.jpg": (404, {}),
+                "/range.jpg": (405, {}),
+                "/page": (200, {"content-type": "text/html"}),
+                "/redirect": (302, {"location": "http://192.168.0.1/image.jpg"}),
+                "/compressed.jpg": (200, {"content-type": "image/jpeg", "content-encoding": "gzip"}),
+            }.get(path, (200, {"content-type": "image/jpeg; charset=binary"}))
+        body = UnreadBody()
+        bodies.append(body)
+        return httpx.Response(status, headers=headers, stream=body)
+
+    mock_photos(respond)
+    result = await research_venue("Harbor Hall", FakeBrain(r))
+    ballroom, terrace = result["matches"][0]["spaces"]
+    assert ballroom["photos"] == [photo, {**photo, "url": base + "/range.jpg"}]
+    assert terrace["photos"] == [photo]
+    assert methods.count(("HEAD", "/venue/ballroom.jpg")) == 1
+    assert ("GET", "/range.jpg") in methods and len(methods) == 7
+    assert all(body.closed for body in bodies)
+    assert result["notes"].startswith(r["notes"] + "\nDropped 4 photo links that did not load: ")
+    for path, reason in zip(
+        ("/missing.jpg", "/page", "/redirect", "/compressed.jpg"),
+        ("HTTP 404", "text/html", "non-public address", "compressed response"),
+        strict=True,
+    ):
+        assert base + path in result["notes"] and reason in result["notes"]
+
+
+async def test_photo_checks_limit_concurrency_and_keep_completed_checks(monkeypatch, mock_photos):
+    monkeypatch.setattr(research_module, "PHOTO_CHECK_BUDGET_S", 0.2)
+    r = _research()
+    [space] = r["matches"][0]["spaces"]
+    [photo] = space["photos"]
+    space["photos"].extend({**photo, "url": f"https://example.com/stall-{i}.jpg"} for i in range(10))
+    active = peak = 0
+    blocked = asyncio.Event()
+
+    async def respond(request):
+        nonlocal active, peak
+        if request.url.path == "/venue/ballroom.jpg":
+            return httpx.Response(200, headers={"content-type": "image/jpeg"})
+        active += 1
+        peak = max(peak, active)
+        try:
+            await blocked.wait()
+        finally:
+            active -= 1
+
+    mock_photos(respond)
+    result = await research_venue("Harbor Hall", FakeBrain(r))
+    assert peak == 8 and active == 0
+    assert result["matches"][0]["spaces"][0]["photos"] == [photo]
+    assert "Dropped 10 photo links that did not load" in result["notes"]
+    assert "exceeded the 0.2s research budget" in result["notes"]
 
 
 async def test_invalid_then_valid_retries_once_with_errors():

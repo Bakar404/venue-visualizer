@@ -4,6 +4,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 
+from pipeline import verify
+
 from .contracts import BackendsOut, JobOut
 from .db import write_session
 from .deps import RuntimeDep, require
@@ -24,7 +26,9 @@ def health() -> dict[str, bool]:
 
 @system.get("/api/system/backends")
 def backends(runtime: RuntimeDep) -> BackendsOut:
-    return BackendsOut.model_validate(backend_report(runtime.settings))
+    return BackendsOut.model_validate(
+        {**backend_report(runtime.settings), "thresholds": {"structure_ok": verify.STRUCTURE_OK}}
+    )
 
 
 @jobs.get("")

@@ -9,7 +9,7 @@ import { venueSpecFromResearch } from "@/lib/import-payload";
 import { buildPrompt, mockBrain } from "@/lib/mock-brain";
 import { buildTextPdf } from "@/lib/mock-pdf";
 import { SAMPLE_SIZE, SAMPLES, type SampleLook, type SampleScene } from "@/lib/samples";
-import { applyRules, colorFor, defaultRules, defaultSpec, diffSpecs } from "@/lib/spec";
+import { LOW_STRUCTURE_SCORE, applyRules, colorFor, defaultRules, defaultSpec, diffSpecs } from "@/lib/spec";
 import type {
   Backends,
   ChatMessage,
@@ -109,6 +109,7 @@ const BACKENDS: Backends = {
     },
   ],
   defaults: { brain: "claude", engine: "mock" },
+  thresholds: { structure_ok: LOW_STRUCTURE_SCORE },
   internal: {
     layout_guide: { available: true, detail: "Places each table exactly before the photo edit." },
   },
@@ -989,7 +990,7 @@ export const mockApi: VVApi = {
         });
       }
     }
-    return venueOut(venue);
+    return { ...venueOut(venue), skipped_photos: [] };
   },
   async uploadVideo(venueId, file, { onProgress, signal } = {}) {
     if (signal?.aborted) throw new DOMException("Upload cancelled", "AbortError");

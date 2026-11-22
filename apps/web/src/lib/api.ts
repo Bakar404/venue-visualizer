@@ -1,6 +1,6 @@
 import { ApiError } from "@/lib/errors";
 import { mockApi } from "@/lib/mock-api";
-import type { Job, VVApi } from "@/lib/types";
+import type { Job, VenueImportResult, VVApi } from "@/lib/types";
 
 export { ApiError };
 
@@ -128,7 +128,7 @@ export const httpApi: VVApi = {
   getJob: (id) => request(`/api/jobs/${enc(id)}`),
   cancelJob: (id) => request(`/api/jobs/${enc(id)}/cancel`, { method: "POST" }),
   research: (body) => request("/api/venues/research", { method: "POST", ...json(body) }),
-  importVenue: (body) => request("/api/venues/import", { method: "POST", ...json(body) }),
+  importVenue: (body) => request<VenueImportResult>("/api/venues/import", { method: "POST", ...json(body) }),
   uploadVideo: (venueId, file, { brain, onProgress, signal } = {}) => {
     const form = new FormData();
     form.append("file", file, file.name);

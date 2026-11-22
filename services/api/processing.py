@@ -113,15 +113,15 @@ async def _render(runtime: Runtime, job: Job, work: Path) -> Outcome:
         processed = await invoke(
             clean_image, pipeline_output(edited.path, work), work / f"clean-{index}", None
         )
-        score = await invoke(verify.structure_score, original, processed.path)
-        aspect_matches = await invoke(verify.aspect_ok, original, processed.path)
+        report = await invoke(verify.structure_report, original, processed.path)
+        score = float(report["score"])
         progress(runtime, job, 0.65 + index * 0.15)
-        if score >= verify.STRUCTURE_OK and aspect_matches:
+        if score >= verify.STRUCTURE_OK:
             break
-    qa = {}
+    qa = {"structure": report}
     if warnings:
         qa["rule_warnings"] = [warning.to_dict() for warning in warnings]
-    if score < verify.STRUCTURE_OK or not aspect_matches:
+    if score < verify.STRUCTURE_OK:
         qa["structure_warning"] = "This render may have altered the room or changed the framing."
     if render.brain:
         try:
@@ -144,7 +144,7 @@ async def _render(runtime: Runtime, job: Job, work: Path) -> Outcome:
             "prompt": prompt,
             "path": f"venues/{venue.id}/renders/{render.id}{processed.path.suffix}",
             "structure_score": score,
-            "qa_json": qa or None,
+            "qa_json": qa,
             "raw_log": "\n".join(logs),
         },
     )

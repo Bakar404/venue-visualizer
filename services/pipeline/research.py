@@ -3,10 +3,11 @@
 `research_venue(query, brain)` returns a schema-valid `VenueResearch` dict
 (`packages/schema/venue-research.schema.json`); `research_to_import_preview(research, i)` maps one match onto
 what the import screen shows. Nothing here is authoritative: rules found online are *suggestions* until the
-user ticks them, and photos are only downloaded later (see `pipeline.fetch`) after the user confirms.
+user ticks them, and photo bodies are only downloaded later (see `pipeline.fetch`) after the user confirms.
 """
 from __future__ import annotations
 
+import asyncio
 import copy
 import ipaddress
 import json
@@ -18,11 +19,14 @@ from urllib.parse import urlsplit
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
+from .fetch import check_image_url
 from .models import VenueSpec, load_schema
 from .prompts import DATA_NOTE, VENUE_QUERY_END, VENUE_QUERY_START, data_block
 
 RESEARCH_TIMEOUT_S = 420
 MAX_MATCHES = 5
+PHOTO_CHECK_BUDGET_S = 45.0
+PHOTO_CHECK_CONCURRENCY = 8
 
 RESEARCH_SYSTEM_PROMPT = """You are the venue-finder inside Venue Visualizer, a local tool that helps a planner \
 visualize event decor in a real venue. Use your web search and web fetch tools to research the venue the planner \
@@ -181,6 +185,48 @@ def validation_errors(research: Any, schema: dict | None = None) -> list[str]:
     return errors
 
 
+async def _drop_unavailable_photos(research: dict) -> None:
+    spaces = [space for match in research["matches"] for space in match.get("spaces", []) if space.get("photos")]
+    unchecked = (False, f"photo checks exceeded the {PHOTO_CHECK_BUDGET_S:g}s research budget")
+    results: dict[str, tuple[bool, str]] = {}
+    for space in spaces:
+        unique = {}
+        for photo in space["photos"]:
+            unique.setdefault(photo["url"], photo)
+            results[photo["url"]] = unchecked
+        space["photos"] = list(unique.values())
+    if not results:
+        return
+
+    semaphore = asyncio.Semaphore(PHOTO_CHECK_CONCURRENCY)
+
+    async def check(url: str) -> None:
+        async with semaphore:
+            results[url] = await check_image_url(url)
+
+    try:
+        async with asyncio.timeout(PHOTO_CHECK_BUDGET_S):
+            await asyncio.gather(*(check(url) for url in results))
+    except TimeoutError:
+        pass  # Keep completed checks; report the unfinished ones below.
+
+    dropped = []
+    for space in spaces:
+        kept = []
+        for photo in space["photos"]:
+            url = photo["url"]
+            ok, reason = results[url]
+            if ok:
+                kept.append(photo)
+            else:
+                dropped.append(f"{url} ({reason})")
+        space["photos"] = kept
+    if dropped:
+        note = f"Dropped {len(dropped)} photo links that did not load: " + "; ".join(dropped)
+        existing = research.get("notes")
+        research["notes"] = f"{existing}\n{note}" if existing else note
+
+
 async def research_venue(query: str, brain, *, timeout_s: int = RESEARCH_TIMEOUT_S) -> dict:
     """Research `query` on the web with `brain` (web tools on); retry once with the validation errors."""
     query = (query or "").strip()
@@ -192,23 +238,22 @@ async def research_venue(query: str, brain, *, timeout_s: int = RESEARCH_TIMEOUT
     if isinstance(result, dict):
         result.setdefault("query", query)
     errors = validation_errors(result, schema)
-    if not errors:
-        drop_unsourced_details(result)
-        return result
-    retry = (
-        f"{user}\n\nYour previous answer failed validation:\n"
-        + "\n".join(f"- {e}" for e in errors[:20])
-        + "\n\nPrevious answer:\n" + json.dumps(result, ensure_ascii=False)[:20_000]
-        + "\n\nReturn a corrected JSON object. Fix the problems; drop any fact you cannot source "
-          "(use null or remove it) rather than inventing a value or URL."
-    )
-    result = await brain.complete_json(RESEARCH_SYSTEM_PROMPT, retry, schema, timeout_s=timeout_s, web=True)
-    if isinstance(result, dict):
-        result.setdefault("query", query)
-    errors = validation_errors(result, schema)
     if errors:
-        raise ResearchError("venue research is still invalid after a retry: " + "; ".join(errors[:5]))
+        retry = (
+            f"{user}\n\nYour previous answer failed validation:\n"
+            + "\n".join(f"- {e}" for e in errors[:20])
+            + "\n\nPrevious answer:\n" + json.dumps(result, ensure_ascii=False)[:20_000]
+            + "\n\nReturn a corrected JSON object. Fix the problems; drop any fact you cannot source "
+              "(use null or remove it) rather than inventing a value or URL."
+        )
+        result = await brain.complete_json(RESEARCH_SYSTEM_PROMPT, retry, schema, timeout_s=timeout_s, web=True)
+        if isinstance(result, dict):
+            result.setdefault("query", query)
+        errors = validation_errors(result, schema)
+        if errors:
+            raise ResearchError("venue research is still invalid after a retry: " + "; ".join(errors[:5]))
     drop_unsourced_details(result)
+    await _drop_unavailable_photos(result)
     return result
 
 

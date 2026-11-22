@@ -13,8 +13,9 @@ from api.contracts import ImportPreview
 from api.db import database, initialize, write_session
 from api.main import create_app
 from api.models import Photo, Space, Venue
-from pipeline import registry, research, verify
-from pipeline.engines.base import EngineStatus
+from pipeline import fetch, registry, research, verify
+from pipeline.brains.mock import canned_research
+from pipeline.engines.base import EngineStatus, ImageResult
 from pipeline.engines.mock import MockEngine
 from pipeline.models import RuleWarning, default_spec
 
@@ -329,6 +330,7 @@ def test_research_import_uses_only_selected_rules_and_downloads_rights_confirmed
     assert not calls and not _json(client.get("/api/venues"))
     default = _json(client.post("/api/venues/import", json={**data, "photos": []}), 201)
     assert default["rules"] == {"live_candles": False}
+    assert default["skipped_photos"] == []
     data["accepted_provided_items"] = ["Ivory tablecloths"]
     venue = _json(client.post("/api/venues/import", json=data), 201)
     assert venue["rules"] == {"live_candles": False, "provided_items": ["Ivory tablecloths"]}
@@ -352,6 +354,46 @@ def test_research_import_uses_only_selected_rules_and_downloads_rights_confirmed
         pdf.status_code == 200 and b"Marigold Photography" in pdf.content and source.encode() in pdf.content
     )
     assert calls == [imported]
+
+
+def test_import_skips_a_photo_that_no_longer_downloads(client, monkeypatch):
+    research_data = canned_research("The Elm")
+    [ballroom] = research_data["matches"][0]["spaces"]
+    [photo] = ballroom["photos"]
+    missing = "https://example.com/venue/missing.jpg"
+    ballroom["photos"].insert(0, {**photo, "url": missing})
+
+    async def research_venue(query, brain):
+        return research_data
+
+    async def download_image(url, folder):
+        if url == missing:
+            raise fetch.FetchError("HTTP 404")
+        assert url == photo["url"]
+        return make_room(folder / "room.png")
+
+    monkeypatch.setattr(research, "research_venue", research_venue)
+    monkeypatch.setattr(fetch, "download_image", download_image)
+    job = _json(client.post("/api/venues/research", json={"query": "The Elm"}), 202)
+    imported = _json(
+        client.post("/api/venues/import", json={
+            "research_job_id": job["id"],
+            "match_index": 0,
+            "space_names": [ballroom["name"]],
+            "photos": [
+                {"url": url, "mode": "import", "rights_confirmed": True}
+                for url in (missing, photo["url"])
+            ],
+        }),
+        201,
+    )
+    assert imported["name"] == "The Elm"
+    assert imported["skipped_photos"] == [{"url": missing, "reason": "HTTP 404"}]
+    saved = _json(client.get(f"/api/venues/{imported['id']}"))
+    assert saved == {key: value for key, value in imported.items() if key != "skipped_photos"}
+    [saved_photo] = saved["spaces"][0]["photos"]
+    assert saved_photo["source_url"] == photo["url"]
+    assert client.get(saved_photo["url"]).status_code == 200
 
 
 def test_video_review_apply_and_missing_modules(client, monkeypatch):
@@ -492,6 +534,48 @@ def test_upload_mpo_saves_only_first_frame_as_jpeg(client):
         assert image.format == "JPEG" and image.size == first.size and not image.getexif()
 
 
+@pytest.mark.parametrize("scores", [(0.8,), (0.2, 0.35)])
+def test_render_qa_uses_alignment_not_aspect_ratio(client, monkeypatch, tmp_path, scores):
+    space = _space(client, _venue(client))
+    _upload(client, space, [make_room(tmp_path / "original.png", (384, 288))])
+    look = _look(client, space)
+    assert _json(client.get("/api/system/backends"))["thresholds"] == {"structure_ok": 0.70}
+    calls = []
+    reports = []
+    remaining = iter(scores)
+
+    async def edit(self, request):
+        calls.append(request)
+        with Image.open(request.input_image) as image:
+            image.crop((0, 0, 384, 256)).resize((1536, 1024)).save(request.out_path)
+        return ImageResult(request.out_path, 1536, 1024, "mock", 0)
+
+    def structure_report(original, render):
+        assert verify.image_size(original) == (384, 288)
+        assert verify.image_size(render) == (1536, 1024)
+        score = next(remaining)
+        aligned = score == 0.8
+        report = {
+            "score": score, "method": "aligned" if aligned else "misaligned", "aligned": aligned,
+            "inliers": 36 if aligned else 0, "scale": 1.0 if aligned else None,
+            "rotation": 0.0 if aligned else None, "coverage": 0.95 if aligned else None,
+            "edge_density": 0.1, "flat": False,
+        }
+        reports.append(report)
+        return report
+
+    monkeypatch.setattr(MockEngine, "edit", edit)
+    monkeypatch.setattr(verify, "structure_report", structure_report)
+    batch = _render(client, look)
+    assert batch["jobs"][0]["status"] == "done"
+    [render] = _json(client.get(f"/api/looks/{look['id']}"))["renders"]
+    assert len(calls) == len(scores)
+    assert render["structure_score"] == scores[-1] and render["qa"]["structure"] == reports[-1]
+    assert render["qa"]["structure_warning"] == (
+        None if len(scores) == 1 else "This render may have altered the room or changed the framing."
+    )
+
+
 def test_generated_base_approval_and_regeneration_uses_original(client, monkeypatch):
     venue = _venue(client)
     space = _space(client, venue)
@@ -545,7 +629,8 @@ def test_generated_base_approval_and_regeneration_uses_original(client, monkeypa
     monkeypatch.setattr(registry, "engines", engines)
     monkeypatch.setattr(MockEngine, "edit", tracking_edit)
     scores = iter((0.2, 0.95, 0.97))
-    monkeypatch.setattr(verify, "structure_score", lambda *_: next(scores))
+    structure_report = verify.structure_report
+    monkeypatch.setattr(verify, "structure_report", lambda *paths: {**structure_report(*paths), "score": next(scores)})
     [render] = _render(client, look)["renders"]
     assert render["structure_score"] == 0.95 and len(calls) == 2
     rerun = _json(client.post(f"/api/renders/{render['id']}/regenerate", headers=JSON_HEADERS), 202)

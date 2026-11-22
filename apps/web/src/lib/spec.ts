@@ -260,7 +260,7 @@ export function progressFraction(progress: number | null | undefined): number {
   return Math.min(1, Math.max(0, p));
 }
 
-export const LOW_STRUCTURE_SCORE = 0.55;
+export const LOW_STRUCTURE_SCORE = 0.70;
 
 export function latestRenderFor<T extends { photo_id: string; created_at: string }>(
   renders: T[] | undefined,

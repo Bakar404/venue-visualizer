@@ -445,6 +445,7 @@ function StudioLoaded({ space }: { space: Space }) {
                 photoLabel={photoLabel(selectedPhoto.id)}
                 look={activeLook}
                 render={activeRender}
+                structureThreshold={backends.data?.thresholds?.structure_ok}
                 onRegenerate={() => regenerate.mutate()}
                 regenerating={regenerate.isPending}
                 regenerateDisabled={!engine}

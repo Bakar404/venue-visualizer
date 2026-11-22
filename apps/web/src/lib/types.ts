@@ -40,6 +40,7 @@ export type Backends = {
   engines: BackendStatus[];
   /** `engine` is null when no public image engine is available (see docs/api.md). */
   defaults: { brain: string; engine: string | null };
+  thresholds?: { structure_ok: number };
   /** Internal helpers the pipeline uses on its own; never offered as an output choice. */
   internal?: {
     layout_guide?: { available: boolean; detail?: string | null };
@@ -77,6 +78,20 @@ export type Venue = {
   spaces: Space[];
 };
 
+export type VenueImportResult = Venue & { skipped_photos: { url: string; reason: string }[] };
+
+export type StructureReport = {
+  score: number;
+  method: string;
+  aligned: boolean;
+  inliers: number;
+  scale: number | null;
+  rotation: number | null;
+  coverage: number | null;
+  edge_density?: number | null;
+  flat?: boolean | null;
+};
+
 export type Render = {
   id: string;
   look_id: string;
@@ -86,7 +101,12 @@ export type Render = {
   url: string | null;
   prompt: string;
   structure_score: number | null;
-  qa: { tables_seen?: number; notes?: string } | null;
+  qa: {
+    tables_seen?: number | null;
+    notes?: string | null;
+    structure?: StructureReport | null;
+    structure_warning?: string | null;
+  } | null;
   error: string | null;
   created_at: string;
 };
@@ -224,7 +244,7 @@ export interface VVApi {
   /** Starts the venue finder: a web-capable brain researches the venue. Job kind "venue_research". */
   research(body: { query: string; brain?: string }): Promise<Job>;
   /** Turns a reviewed research match into a Venue with spaces, accepted rules and photos. */
-  importVenue(body: ImportVenueBody): Promise<Venue>;
+  importVenue(body: ImportVenueBody): Promise<VenueImportResult>;
   /** Uploads a video tour and starts frame extraction. Job kind "video_ingest". */
   uploadVideo(
     venueId: string,

@@ -8,10 +8,12 @@ from pydantic import ValidationError
 from sqlmodel import Session, select
 
 from .contracts import (
+    ImportOut,
     ImportPreview,
     JobOut,
     Name,
     ResearchIn,
+    SkippedPhoto,
     SpaceCreate,
     SpaceOut,
     VenueCreate,
@@ -37,6 +39,7 @@ from .storage import (
     MAX_PHOTOS,
     MAX_WEB_PHOTOS,
     VIDEO_SUFFIXES,
+    InvalidMedia,
     clean_image,
     media_path,
     photo_path,
@@ -113,7 +116,7 @@ def _import_choices(body: VenueImport, preview: ImportPreview):
 
 
 @router.post("/import", status_code=201)
-def import_venue(body: VenueImport, runtime: RuntimeDep) -> VenueOut:
+def import_venue(body: VenueImport, runtime: RuntimeDep) -> ImportOut:
     module = pipeline_module("research", "research_to_import_preview")
     with Session(runtime.engine) as session:
         job = require(session, Job, str(body.research_job_id))
@@ -139,6 +142,7 @@ def import_venue(body: VenueImport, runtime: RuntimeDep) -> VenueOut:
     with staging(root) as work:
         new_spaces = []
         imported = []
+        skipped: dict[str, str] = {}
         for suggested in spaces:
             space = new_space(venue.id, suggested.name, suggested.venue_spec.to_dict())
             space.capacity_seated = suggested.capacity_seated
@@ -150,7 +154,7 @@ def import_venue(body: VenueImport, runtime: RuntimeDep) -> VenueOut:
             if len({p.url for p in photos}) > MAX_WEB_PHOTOS:
                 raise HTTPException(422, f"Select at most {MAX_WEB_PHOTOS} web photos per space")
             for entry in photos:
-                if entry.url in seen:
+                if entry.url in seen or entry.url in skipped:
                     continue
                 seen.add(entry.url)
                 if selections[entry.url].mode == "reference":
@@ -162,9 +166,10 @@ def import_venue(body: VenueImport, runtime: RuntimeDep) -> VenueOut:
                 folder.mkdir()
                 try:
                     path = asyncio.run(invoke(fetch.download_image, entry.url, folder))
-                except fetch.FetchError as exc:
-                    raise IntegrationError(502, f"Could not download a selected venue photo: {exc}") from exc
-                image = clean_image(pipeline_output(path, folder), folder / "clean")
+                    image = clean_image(pipeline_output(path, folder), folder / "clean")
+                except (fetch.FetchError, InvalidMedia) as exc:
+                    skipped[entry.url] = str(exc)
+                    continue
                 photo = Photo(
                     id=key,
                     venue_id=venue.id,
@@ -188,7 +193,10 @@ def import_venue(body: VenueImport, runtime: RuntimeDep) -> VenueOut:
                 publish_image(root, image.path, photo.path, published)
                 session.add(photo)
             session.flush()
-            return venue_out(session, venue)
+            return ImportOut(
+                **dict(venue_out(session, venue)),
+                skipped_photos=[SkippedPhoto(url=url, reason=reason) for url, reason in skipped.items()],
+            )
 
 
 @router.get("/{venue_id}")

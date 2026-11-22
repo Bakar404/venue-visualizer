@@ -1,4 +1,4 @@
-"""SSRF-safe image download for venue photos found on the web (only after the user confirms an import).
+"""SSRF-safe image probes and downloads for venue photos found on the web.
 
 Guards: http/https only; no credentials in URLs; every hostname is resolved and *every* address must be public
 (private, loopback, link-local, multicast, reserved, unspecified, shared/CGNAT, IPv4-mapped/6to4/NAT64 forms
@@ -18,6 +18,8 @@ import ipaddress
 import socket
 import uuid
 import warnings
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
@@ -40,6 +42,7 @@ ALLOWED_CONTENT_TYPES = {
 }
 _DECODED_FORMATS = {"JPEG", "MPO", "PNG", "WEBP", "HEIF", "AVIF"}
 _REDIRECTS = {301, 302, 303, 307, 308}
+_HEAD_FALLBACKS = {403, 405, 501}
 _USER_AGENT = "VenueVisualizer/0.1 (local personal planning tool; image import)"
 
 IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
@@ -129,11 +132,14 @@ def _host_header(url: httpx.URL) -> str:
     return host if url.port is None else f"{host}:{url.port}"
 
 
-def _pinned_request(client: httpx.AsyncClient, url: httpx.URL, ip: str) -> httpx.Request:
+def _pinned_request(client: httpx.AsyncClient, url: httpx.URL, ip: str, method: str, *,
+                    range_probe: bool = False) -> httpx.Request:
     headers = {"Host": _host_header(url), "User-Agent": _USER_AGENT, "Accept-Encoding": "identity",
                "Accept": "image/avif,image/webp,image/png,image/jpeg,image/heic;q=0.9"}
+    if range_probe:
+        headers["Range"] = "bytes=0-0"
     extensions = {"sni_hostname": url.raw_host.decode("ascii")} if url.scheme == "https" else {}
-    return client.build_request("GET", url.copy_with(host=ip), headers=headers, extensions=extensions)
+    return client.build_request(method, url.copy_with(host=ip), headers=headers, extensions=extensions)
 
 
 def _media_type(content_type: str | None) -> str:
@@ -141,10 +147,7 @@ def _media_type(content_type: str | None) -> str:
 
 
 async def _read_capped(resp: httpx.Response, max_bytes: int) -> bytes:
-    """Read the body with a cap on the bytes received from the wire (identity encoding only)."""
-    encoding = resp.headers.get("content-encoding", "").strip().lower()
-    if encoding not in ("", "identity"):
-        raise FetchError(f"refusing compressed response (Content-Encoding: {encoding})")
+    """Read the identity-encoded body with a cap on the bytes received from the wire."""
     length = resp.headers.get("content-length")
     if length and length.isdigit() and int(length) > max_bytes:
         raise FetchError(f"image is too large ({int(length):,} bytes > {max_bytes:,})")
@@ -251,36 +254,78 @@ async def download_image(url: str, dest_dir: Path, max_bytes: int = 20_000_000, 
 
 async def _download_image(url: str, dest_dir: Path, max_bytes: int, *,
                           transport: httpx.AsyncBaseTransport | None, timeout_s: float) -> Path:
+    async with _image_response(url, timeout_s, transport=transport) as (resp, current):
+        try:
+            data = await _read_capped(resp, max_bytes)
+        except httpx.TimeoutException as e:
+            raise FetchError(f"timed out downloading {current} (>{timeout_s:g}s)") from e
+        except httpx.HTTPError as e:
+            raise FetchError(f"download of {current} failed: {e}") from e
+    return await _save_cancellable(data, Path(dest_dir))
+
+
+async def check_image_url(url: str, timeout_s: float = 8.0) -> tuple[bool, str]:
+    """Check the final image response headers without reading the body."""
+    try:
+        async with asyncio.timeout(timeout_s):
+            async with _image_response(url, timeout_s, probe=True):
+                return True, "ok"
+    except FetchError as e:
+        return False, str(e)
+    except TimeoutError:
+        return False, f"image check exceeded {timeout_s:g}s total"
+
+
+@asynccontextmanager
+async def _image_response(
+    url: str, timeout_s: float, *, probe: bool = False, transport: httpx.AsyncBaseTransport | None = None
+) -> AsyncIterator[tuple[httpx.Response, str]]:
     current = url
-    async with httpx.AsyncClient(transport=transport, timeout=httpx.Timeout(timeout_s),
-                                 follow_redirects=False, trust_env=False) as client:
-        for _hop in range(MAX_REDIRECTS + 1):
+    method = "HEAD" if probe else "GET"
+    redirects = 0
+    async with httpx.AsyncClient(
+        transport=transport,
+        timeout=httpx.Timeout(timeout_s),
+        follow_redirects=False,
+        trust_env=False,
+        # A redirect to a different hostname on the same IP still needs its own TLS handshake.
+        limits=httpx.Limits(max_keepalive_connections=0),
+    ) as client:
+        while True:
             parsed, ip = await validate_url(current)
             try:
-                resp = await client.send(_pinned_request(client, parsed, ip), stream=True)
+                request = _pinned_request(client, parsed, ip, method, range_probe=probe and method == "GET")
+                resp = await client.send(request, stream=True)
             except httpx.TimeoutException as e:
                 raise FetchError(f"timed out fetching {current} (>{timeout_s:g}s)") from e
-            except httpx.HTTPError as e:
+            except (httpx.HTTPError, httpx.InvalidURL) as e:
                 raise FetchError(f"could not fetch {current}: {e}") from e
             try:
                 if resp.status_code in _REDIRECTS:
                     location = resp.headers.get("location")
                     if not location:
                         raise FetchError(f"redirect from {current} without a Location header")
-                    current = urljoin(str(parsed), location)
+                    redirects += 1
+                    if redirects > MAX_REDIRECTS:
+                        raise FetchError(f"too many redirects (> {MAX_REDIRECTS}) starting from {url}")
+                    try:
+                        current = urljoin(str(parsed), location)
+                    except ValueError as e:
+                        raise FetchError(f"invalid redirect from {current}: {e}") from e
                     continue
-                if resp.status_code != 200:
+                if method == "HEAD" and resp.status_code in _HEAD_FALLBACKS:
+                    method = "GET"
+                    continue
+                accepted = resp.is_success if probe else resp.status_code == 200
+                if not accepted:
                     raise FetchError(f"{current} returned HTTP {resp.status_code}")
                 ctype = _media_type(resp.headers.get("content-type"))
                 if ctype not in ALLOWED_CONTENT_TYPES:
                     raise FetchError(f"{current} is not a supported image (content-type {ctype or 'missing'!r})")
-                try:
-                    data = await _read_capped(resp, max_bytes)
-                except httpx.TimeoutException as e:
-                    raise FetchError(f"timed out downloading {current} (>{timeout_s:g}s)") from e
-                except httpx.HTTPError as e:
-                    raise FetchError(f"download of {current} failed: {e}") from e
+                encoding = resp.headers.get("content-encoding", "").strip().lower()
+                if encoding not in ("", "identity"):
+                    raise FetchError(f"refusing compressed response (Content-Encoding: {encoding})")
+                yield resp, current
+                return
             finally:
                 await resp.aclose()
-            return await _save_cancellable(data, Path(dest_dir))
-    raise FetchError(f"too many redirects (> {MAX_REDIRECTS}) starting from {url}")

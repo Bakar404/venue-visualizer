@@ -106,7 +106,7 @@ export function ImportReview({ jobId, matchIndex, match, onBack }: { jobId: stri
         photos: s.photos.map((p) => ({ url: p.photo.url, use: p.use })),
         suggestedUrls: (s.source.photos ?? []).map((p) => p.url),
       }));
-      let venue = await api.importVenue(
+      const { skipped_photos: skippedPhotos = [], ...importedVenue } = await api.importVenue(
         buildImportPayload({
           researchJobId: jobId,
           matchIndex: matchIndex,
@@ -116,23 +116,34 @@ export function ImportReview({ jobId, matchIndex, match, onBack }: { jobId: stri
           rightsConfirmed: rights,
         }),
       );
+      let venue = importedVenue;
       // The import uses the suggested names and details; apply the review edits on top.
       const followUps: Promise<unknown>[] = spacePatches(drafts, venue.spaces).map((p) => api.updateSpace(p.id, p.body));
       const wantedName = name.trim();
       if (wantedName && wantedName !== venue.name) followUps.push(api.updateVenue(venue.id, { name: wantedName }));
       const failed = (await Promise.allSettled(followUps)).find((r): r is PromiseRejectedResult => r.status === "rejected");
       if (followUps.length) venue = await api.getVenue(venue.id).catch(() => venue);
-      return { venue, failed: failed ? (failed.reason as unknown) : null };
+      return { venue, skippedPhotos, failed: failed ? (failed.reason as unknown) : null };
     },
-    onSuccess: ({ venue, failed }) => {
+    onSuccess: ({ venue, skippedPhotos, failed }) => {
       void qc.invalidateQueries({ queryKey: qk.venues });
       qc.setQueryData(qk.venue(venue.id), venue);
       if (failed) {
         toast.warning("Venue added, but some edits weren't saved", {
           description: `${errorMessage(failed)} You can rename spaces and fix room details from the venue page.`,
         });
-      } else {
+      } else if (!skippedPhotos.length) {
         toast.success("Venue added", { description: venue.name });
+      }
+      if (skippedPhotos.length) {
+        toast.warning("Venue added, but some photos were skipped", {
+          description: (
+            <ul className="grid max-h-48 gap-1 overflow-y-auto break-all">
+              {skippedPhotos.map(({ url, reason }) => <li key={url}>{url}: {reason}</li>)}
+            </ul>
+          ),
+          duration: 10_000,
+        });
       }
       router.push(`/venues/${venue.id}`);
     },

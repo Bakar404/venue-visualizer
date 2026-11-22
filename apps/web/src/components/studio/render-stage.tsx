@@ -19,6 +19,7 @@ type Props = {
   photoLabel: string;
   look: Look | undefined;
   render: Render | undefined;
+  structureThreshold?: number;
   onRegenerate: () => void;
   regenerating: boolean;
   /** E.g. no image engine available. */
@@ -27,7 +28,7 @@ type Props = {
   toolbar?: React.ReactNode;
 };
 
-export function RenderStage({ photo, photoLabel, look, render, onRegenerate, regenerating, regenerateDisabled, toolbar }: Props) {
+export function RenderStage({ photo, photoLabel, look, render, structureThreshold = LOW_STRUCTURE_SCORE, onRegenerate, regenerating, regenerateDisabled, toolbar }: Props) {
   const jobId = useRenderJobId(render?.id);
   const job = useJob(jobId);
   // The job settles before the Look refetches; trust it over a stale "queued/running" render row.
@@ -36,7 +37,7 @@ export function RenderStage({ photo, photoLabel, look, render, onRegenerate, reg
   const progress = job.data && isActive(job.data.status) ? progressFraction(job.data.progress) : status === "running" ? null : 0;
   const busy = status === "queued" || status === "running";
   const done = status === "done" && render?.url;
-  const lowScore = done && render.structure_score !== null && render.structure_score < LOW_STRUCTURE_SCORE;
+  const lowScore = done && render.structure_score !== null && render.structure_score < structureThreshold;
 
   const announcement = !look
     ? ""

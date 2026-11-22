@@ -115,6 +115,15 @@ class VenueOut(BaseModel):
     spaces: list[SpaceOut]
 
 
+class SkippedPhoto(BaseModel):
+    url: HttpUrl
+    reason: str
+
+
+class ImportOut(VenueOut):
+    skipped_photos: list[SkippedPhoto]
+
+
 class GenerateBase(Input):
     engine: Name | None = None
     angle_hint: Name | None = None
@@ -158,9 +167,22 @@ class LookCreate(Input):
     parent_look_id: UUID | None = None
 
 
+class StructureReport(BaseModel):
+    score: float
+    method: str
+    aligned: bool
+    inliers: int
+    scale: float | None
+    rotation: float | None
+    coverage: float | None
+    edge_density: float | None = None
+    flat: bool | None = None
+
+
 class RenderQA(BaseModel):
     tables_seen: int | None = None
     notes: str | None = None
+    structure: StructureReport | None = None
     structure_warning: str | None = None
     rule_warnings: list[RuleWarning] = Field(default_factory=list)
 
@@ -344,8 +366,13 @@ class BackendDefaults(BaseModel):
     engine: str | None
 
 
+class BackendThresholds(BaseModel):
+    structure_ok: float
+
+
 class BackendsOut(BaseModel):
     brains: list[BackendStatus]
     engines: list[BackendStatus]
     defaults: BackendDefaults
+    thresholds: BackendThresholds
     internal: dict[str, BackendStatus] = {}
