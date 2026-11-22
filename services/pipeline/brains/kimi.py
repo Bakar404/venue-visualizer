@@ -2,9 +2,11 @@
 
 argv: kimi --prompt=<user+schema> --output-format stream-json --agent-file <tmp>/agent.md [-m $VV_KIMI_MODEL]
 Print mode auto-approves tool calls, so a throwaway agent file (YAML frontmatter + system prompt body)
-disables every tool (`tools: []`). For vision QA only the read-only `Read` tool is enabled and the image
-directories are added with --add-dir. stream-json emits one message per line; the reply is the last
-assistant message without tool calls. Plain-text output is accepted as a fallback.
+disables every tool (`tools: []`). For vision QA images are copied into the temp cwd and only the read-only
+`ReadMediaFile` tool is enabled. Web research (`web=True`): Kimi has no search flag; its built-in `WebSearch` and
+`FetchURL` tools are enabled through the agent file instead (Kimi Code CLI docs, "Built-in Tools").
+stream-json emits one message per line; the reply is the last assistant message without tool calls.
+Plain-text output is accepted as a fallback.
 """
 from __future__ import annotations
 
@@ -16,7 +18,10 @@ from typing import Any
 
 from .._proc import ProcTimeout, extract_json, probe_version, run_cli, tail, which
 from .base import BrainError, BrainStatus
+from .claude import stage_images
 from .copilot import json_instructions
+
+WEB_TOOLS = ["WebSearch", "FetchURL"]
 
 
 def _content_text(content: Any) -> str:
@@ -54,6 +59,10 @@ def parse_stream(stdout: str) -> str:
     return "" if saw_json else stdout
 
 
+def agent_tools(images: bool, web: bool) -> list[str]:
+    return [*(WEB_TOOLS if web else []), *(["ReadMediaFile"] if images else [])]
+
+
 def agent_file_text(system: str, tools: list[str]) -> str:
     front = {"name": "venue-visualizer", "description": "Venue Visualizer JSON brain", "tools": tools}
     header = "\n".join(f"{k}: {json.dumps(v)}" for k, v in front.items())
@@ -78,32 +87,31 @@ class KimiBrain:
         except Exception as e:  # noqa: BLE001
             return BrainStatus(available=False, detail=f"detect failed: {e}")
 
-    def build_argv(self, path: str, prompt: str, agent_file: Path, image_dirs: list[str]) -> list[str]:
+    def build_argv(self, path: str, prompt: str, agent_file: Path) -> list[str]:
         argv = [path, f"--prompt={prompt}", "--output-format", "stream-json", "--agent-file", str(agent_file)]
         model = os.environ.get("VV_KIMI_MODEL")
         if model:
             argv += ["-m", model]
-        for d in image_dirs:
-            argv += ["--add-dir", d]
         return argv
 
     async def complete_json(
-        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180
+        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180,
+        *, web: bool = False,
     ) -> dict:
         path = which(self.binary)
         if not path:
             raise BrainError(f"{self.binary} (Kimi Code CLI) is not installed")
-        imgs = [Path(i).resolve() for i in images or []]
         prompt = f"{user}\n\n{json_instructions(schema)}"
-        if imgs:
-            prompt += "\n\nImages to inspect (open each with the Read tool):\n" + "\n".join(f"- {p}" for p in imgs)
         with tempfile.TemporaryDirectory(prefix="vv-kimi-") as tmp:
-            cwd = Path(tmp)
+            cwd = Path(tmp).resolve()
+            imgs = stage_images(images, cwd)
+            if imgs:
+                prompt += ("\n\nImages to inspect (open each with the ReadMediaFile tool):\n"
+                           + "\n".join(f"- {p}" for p in imgs))
             agent = cwd / "agent.md"
-            agent.write_text(agent_file_text(system, ["Read"] if imgs else []))
-            dirs = sorted({str(p.parent) for p in imgs})
+            agent.write_text(agent_file_text(system, agent_tools(bool(imgs), web)))
             try:
-                res = await run_cli(self.build_argv(path, prompt, agent, dirs), cwd=cwd, timeout_s=timeout_s)
+                res = await run_cli(self.build_argv(path, prompt, agent), cwd=cwd, timeout_s=timeout_s)
             except ProcTimeout as e:
                 raise BrainError(str(e)) from e
         obj = extract_json(parse_stream(res.stdout))

@@ -3,18 +3,33 @@
 argv: claude -p --system-prompt <system> --output-format json --json-schema <schema> --tools "" ...
 The user prompt goes through stdin (no argv length limits, no flag-parsing ambiguity). The result JSON's
 `structured_output` field holds the schema-validated object (verified with Claude Code 2.1.x).
-Vision QA: when images are passed, only the read-only `Read` tool is enabled, scoped with --add-dir to
-the images' directories, and the prompt lists the absolute image paths.
+Vision: images are copied into the temp cwd and only the read-only `Read` tool is enabled, allowed for that
+cwd alone (`Read(./**)`; reads elsewhere are denied by --permission-mode dontAsk). The prompt lists the paths.
+Web research (`web=True`): the built-in WebSearch and WebFetch tools are enabled and pre-approved, nothing else.
 """
 from __future__ import annotations
 
 import json
 import os
+import shutil
 import tempfile
 from pathlib import Path
 
 from .._proc import ProcTimeout, extract_json, probe_version, run_cli, tail, which
 from .base import BrainError, BrainStatus
+
+WEB_TOOLS = ["WebSearch", "WebFetch"]
+
+
+def stage_images(images: list[Path] | None, cwd: Path) -> list[Path]:
+    """Copy images into the call's temp cwd (the only directory the CLI may read)."""
+    staged = []
+    for i, img in enumerate(images or []):
+        src = Path(img)
+        dst = cwd / f"image-{i}{src.suffix.lower() or '.png'}"
+        shutil.copyfile(src, dst)
+        staged.append(dst)
+    return staged
 
 
 class ClaudeBrain:
@@ -32,7 +47,7 @@ class ClaudeBrain:
         except Exception as e:  # noqa: BLE001
             return BrainStatus(available=False, detail=f"detect failed: {e}")
 
-    def build_argv(self, path: str, system: str, schema: dict, images: list[Path]) -> list[str]:
+    def build_argv(self, path: str, system: str, schema: dict, images: list[Path], web: bool = False) -> list[str]:
         argv = [
             path, "-p",
             "--system-prompt", system,
@@ -45,11 +60,16 @@ class ClaudeBrain:
         model = os.environ.get("VV_CLAUDE_MODEL")
         if model:
             argv += ["--model", model]
+        tools, allowed = [], []
+        if web:
+            tools += WEB_TOOLS
+            allowed += WEB_TOOLS
         if images:
-            dirs = sorted({str(Path(i).resolve().parent) for i in images})
-            argv += ["--tools", "Read", "--allowedTools", "Read", "--permission-mode", "dontAsk"]
-            for d in dirs:
-                argv += ["--add-dir", d]
+            tools.append("Read")
+            allowed.append("Read(./**)")  # the temp cwd only; images are staged there
+        if tools:
+            argv += ["--tools", ",".join(tools), "--allowed-tools", ",".join(allowed),
+                     "--permission-mode", "dontAsk"]
         else:
             argv += ["--tools", ""]
         return argv
@@ -78,19 +98,21 @@ class ClaudeBrain:
         raise BrainError("claude returned an unexpected JSON value")
 
     async def complete_json(
-        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180
+        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180,
+        *, web: bool = False,
     ) -> dict:
         path = which(self.binary)
         if not path:
             raise BrainError("claude CLI is not installed")
-        images = [Path(i).resolve() for i in images or []]
-        prompt = user
-        if images:
-            listed = "\n".join(f"- {p}" for p in images)
-            prompt += f"\n\nImages to inspect (open each with the Read tool):\n{listed}"
         with tempfile.TemporaryDirectory(prefix="vv-claude-") as tmp:
+            cwd = Path(tmp).resolve()
+            staged = stage_images(images, cwd)
+            prompt = user
+            if staged:
+                listed = "\n".join(f"- {p}" for p in staged)
+                prompt += f"\n\nImages to inspect (open each with the Read tool):\n{listed}"
             try:
-                res = await run_cli(self.build_argv(path, system, schema, images), cwd=Path(tmp),
+                res = await run_cli(self.build_argv(path, system, schema, staged, web=web), cwd=cwd,
                                     timeout_s=timeout_s, stdin_text=prompt)
             except ProcTimeout as e:
                 raise BrainError(str(e)) from e

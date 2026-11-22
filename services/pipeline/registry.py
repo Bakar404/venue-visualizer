@@ -5,6 +5,7 @@ from .engines.registry import (  # noqa: F401
     BackendUnavailable,
     backend_report,
     brains,
+    dev_mode,
     engines,
     pick_brain,
     pick_engine,
