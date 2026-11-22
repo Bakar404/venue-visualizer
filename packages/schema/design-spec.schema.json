@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://venue-visualizer.local/schema/design-spec.schema.json",
+  "title": "DesignSpec",
+  "description": "Structured description of event decor for one space. Produced by a brain from natural language, editable in the UI, enforced against venue rules by deterministic code.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "space", "palette", "tables", "linens", "chairs", "centerpieces", "lighting", "extras"],
+  "properties": {
+    "version": { "const": 1 },
+    "space": { "type": "string", "description": "Space name, e.g. 'ballroom'." },
+    "event_type": { "type": "string", "enum": ["wedding", "corporate", "birthday", "gala", "shower", "other"], "default": "wedding" },
+    "guest_count": { "type": ["integer", "null"], "minimum": 1, "maximum": 2000 },
+    "palette": { "type": "array", "items": { "type": "string" }, "maxItems": 8 },
+    "tables": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "shape"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0, "maximum": 300 },
+        "shape": { "type": "string", "enum": ["round", "banquet", "square", "oval", "cocktail", "mixed"] },
+        "size_in": { "type": ["integer", "null"], "minimum": 24, "maximum": 120 },
+        "seats": { "type": ["integer", "null"], "minimum": 1, "maximum": 24 }
+      }
+    },
+    "linens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["color"],
+      "properties": {
+        "color": { "type": "string" },
+        "pattern": { "type": ["string", "null"] },
+        "length": { "type": "string", "enum": ["floor", "lap", "none"], "default": "floor" },
+        "runner": { "type": ["string", "null"] }
+      }
+    },
+    "napkins": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "color": { "type": ["string", "null"] }, "fold": { "type": ["string", "null"] } }
+    },
+    "chairs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["style", "color"],
+      "properties": {
+        "style": { "type": "string", "description": "e.g. chiavari, cross-back, ghost, folding, banquet" },
+        "color": { "type": "string" },
+        "cushion": { "type": ["string", "null"] },
+        "sash": { "type": ["string", "null"] }
+      }
+    },
+    "centerpieces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["height"],
+      "properties": {
+        "height": { "type": "string", "enum": ["none", "low", "medium", "tall", "mixed"] },
+        "flowers": { "type": "array", "items": { "type": "string" } },
+        "colors": { "type": "array", "items": { "type": "string" } },
+        "greenery": { "type": ["string", "null"] },
+        "container": { "type": ["string", "null"] },
+        "candles": { "type": "string", "enum": ["none", "flameless", "live"], "default": "none" }
+      }
+    },
+    "lighting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "uplighting": { "type": ["string", "null"], "description": "Color/temperature, e.g. 'warm amber'. null = none." },
+        "pin_spots": { "type": "boolean", "default": false },
+        "string_lights": { "type": "boolean", "default": false },
+        "ambient": { "type": "string", "enum": ["daylight", "evening_warm", "dim", "colored"], "default": "evening_warm" }
+      }
+    },
+    "extras": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Free-form items, e.g. 'sweetheart table', 'flower wall backdrop', 'dance floor'. Items that touch venue rules (fog, confetti, live candles) are normalized by the rules engine."
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fog": { "type": "boolean", "default": false },
+        "confetti": { "type": "boolean", "default": false },
+        "sparklers": { "type": "boolean", "default": false }
+      }
+    },
+    "install": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How decor is attached; checked against venue rules.",
+      "properties": {
+        "uses_adhesives": { "type": "boolean", "default": false },
+        "uses_nails": { "type": "boolean", "default": false },
+        "ceiling_draping": { "type": "boolean", "default": false }
+      }
+    },
+    "notes": { "type": ["string", "null"], "maxLength": 2000 }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://venue-visualizer.local/schema/venue.schema.json",
+  "title": "VenueSchemas",
+  "$defs": {
+    "VenueRules": {
+      "title": "VenueRules",
+      "description": "Entered by the user. Authoritative. A brain may never add or relax rules.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "live_candles": { "type": "boolean", "default": true, "description": "false = flameless only" },
+        "fog": { "type": "boolean", "default": true },
+        "confetti": { "type": "boolean", "default": true },
+        "sparklers": { "type": "boolean", "default": true },
+        "adhesives": { "type": "boolean", "default": true, "description": "false = no tape/adhesives" },
+        "nails": { "type": "boolean", "default": true },
+        "ceiling_draping": { "type": "boolean", "default": true },
+        "provided_items": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "e.g. 'ivory linens', 'gold chiavari chairs'. Informational defaults for the brain."
+        },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "VenueSpec": {
+      "title": "VenueSpec",
+      "description": "Describes an empty space. Used for the no-photo path and as context for edits.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "style": { "type": ["string", "null"], "description": "e.g. 'rustic barn', 'modern loft', 'classic ballroom'" },
+        "length_ft": { "type": ["number", "null"], "minimum": 5, "maximum": 1000 },
+        "width_ft": { "type": ["number", "null"], "minimum": 5, "maximum": 1000 },
+        "ceiling_ft": { "type": ["number", "null"], "minimum": 6, "maximum": 120 },
+        "walls": { "type": ["string", "null"] },
+        "floor": { "type": ["string", "null"] },
+        "windows": { "type": ["string", "null"] },
+        "fixtures": { "type": "array", "items": { "type": "string" }, "description": "e.g. 'two crystal chandeliers', 'exposed beams'" },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "RuleWarning": {
+      "title": "RuleWarning",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "message", "field"],
+      "properties": {
+        "rule": { "type": "string" },
+        "field": { "type": "string", "description": "JSON pointer into DesignSpec, e.g. /centerpieces/candles" },
+        "message": { "type": "string" },
+        "fix": { "type": ["string", "null"], "description": "Human description of the automatic fix applied" }
+      }
+    }
+  }
+}
