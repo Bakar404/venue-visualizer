@@ -80,6 +80,13 @@ export interface DesignSpec {
     ceiling_draping?: boolean;
   };
   notes?: string | null;
+  /**
+   * Time of day and what the windows show. Maps phrases like '7pm', 'dark outside', 'golden hour'.
+   */
+  scene?: {
+    time_of_day?: "daylight" | "golden_hour" | "evening" | "night";
+    windows?: "as_photographed" | "dark" | "sheer_draped";
+  };
 }
 
 // ---- venue.schema.json ----

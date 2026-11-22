@@ -89,3 +89,33 @@ Scores below `thresholds.structure_ok` (currently `0.70`) trigger one retry; if 
 An aspect-ratio change on its own does not trigger a retry or warning.
 
 State-changing requests that create records or enqueue work do not deduplicate retries. Use job polling instead of re-submitting an accepted render, generation, research, or video request.
+
+## Chat response v2 (user-test session 1: UT2, UT3, UT5)
+
+`POST /api/spaces/{id}/chat` now returns:
+
+```ts
+{
+  reply: string;
+  spec: DesignSpec;
+  warnings: RuleWarning[];
+  rule_notes: string[];
+  intent: "edit" | "render" | "question" | "none";   // "render" = the user wants to see it (UI offers Render now)
+  spec_changed: boolean;                              // server-computed: spec differs from the request's spec
+  look_name: string | null;                           // short human name for the current plan, e.g. "Moody night, blue uplighting"
+  ambiguities: { question: string; options: string[] }[];  // options are what quick-reply chips send
+  brain: string;
+}
+```
+`ambiguities` items used to be plain strings. Clients must send an **option**, never the question.
+
+## Reference photos → base photo (UT6)
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | `/api/spaces/{id}` | | `Space` now includes `references: {url, source_page, caption, credit}[]` |
+| POST | `/api/spaces/{id}/references/import` | `{url, rights_confirmed: true}` (url must be one of the space's references) | `Photo` (kind `web`, approved, with credit). 422 without `rights_confirmed` or if the url isn't a reference. Download failures return 502 with a reason. |
+| POST | `/api/spaces/{id}/generate-base` | `{engine, reference_url?}` | `Job`: when `reference_url` is given, the reference image is passed to the engine as a reference to generate an empty base view of that room |
+
+## Render QA reason (UT7)
+`Render.qa.structure` includes `method` (`aligned` / `misaligned` / `unverifiable`) and `reason`.
