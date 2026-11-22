@@ -187,3 +187,10 @@ Design references: [Aceternity UI](https://ui.aceternity.com/) (spotlight hero),
 [OpenAI Codex CLI](https://github.com/openai/codex), [GitHub Copilot CLI](https://github.com/features/copilot/cli)
 (including its image tool), [Kimi Code](https://www.kimi.com/code), and [mflux](https://github.com/mflux-community/mflux)
 for local FLUX on Apple Silicon.
+
+## License
+
+[MIT](LICENSE). Vendored third-party code keeps its own license: `.claude/skills/` is from
+[emilkowalski/skills](https://github.com/emilkowalski/skills) (MIT). The sample images in `samples/` and
+`apps/web/public/samples/photoreal/` are AI-generated for this project (see their `CREDITS.md`/`README.md`).
+Using the app with a vendor's CLI is subject to that vendor's terms of service.
