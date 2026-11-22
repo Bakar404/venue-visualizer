@@ -24,7 +24,7 @@ All notable changes to Venue Visualizer are documented here. The format is based
 ### Changed
 
 - Added proof-driven regression testing: reproduce findings with a failing test, then save red and green evidence
-  and UI screenshots in [docs/proof/](docs/proof/).
+  and UI screenshots in [docs/proof/](https://github.com/Bakar404/venue-visualizer/tree/main/docs/proof).
 - Clarified when renders could not be verified or when the displayed render no longer reflects the current plan.
 
 ### Security
