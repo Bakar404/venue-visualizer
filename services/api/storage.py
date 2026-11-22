@@ -1,6 +1,9 @@
+import json
 import logging
+import math
 import os
 import re
+import subprocess
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -11,13 +14,16 @@ from typing import BinaryIO
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pillow_heif import register_heif_opener
 
+from .integrations import IntegrationError
+
 log = logging.getLogger(__name__)
 MAX_IMAGE_BYTES = 20_000_000
 MAX_VIDEO_BYTES = 1_000_000_000
+MAX_VIDEO_SECONDS = 300
 MAX_PHOTOS = 30
 MAX_WEB_PHOTOS = 12
 VIDEO_SUFFIXES = {".mp4", ".mov", ".webm", ".hevc", ".m4v"}
-IMAGE_SUFFIX = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp", "HEIF": ".jpg"}
+IMAGE_SUFFIX = {"JPEG": ".jpg", "MPO": ".jpg", "PNG": ".png", "WEBP": ".webp", "HEIF": ".jpg"}
 MEDIA_TYPES = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
 _ID = r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}"
 _MEDIA = re.compile(rf"venues/{_ID}/(?:photos|renders)/{_ID}\.(?:jpg|png|webp)")
@@ -81,6 +87,42 @@ def atomic_file(path: Path):
 def save_video(source: BinaryIO, path: Path) -> None:
     with atomic_file(path) as output:
         read_bounded(source, output, MAX_VIDEO_BYTES)
+
+
+def validate_video_duration(path: Path) -> None:
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "error", "-protocol_whitelist", "file",
+                "-format_whitelist", "mov,matroska,webm,m4v,hevc", "-select_streams", "V:0",
+                "-show_entries", "format=duration:stream=duration", "-of", "json", "-i", str(path),
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=True,
+            timeout=30,
+        )
+    except FileNotFoundError as exc:
+        raise IntegrationError(503, "ffprobe is required to validate venue tours; install ffmpeg") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise InvalidMedia("Timed out checking the video duration") from exc
+    except subprocess.CalledProcessError as exc:
+        raise InvalidMedia("File could not be decoded as a video") from exc
+    try:
+        info = json.loads(result.stdout)
+        streams = info.get("streams", [])
+        durations = [
+            float(value)
+            for entry in [*streams, info.get("format", {})]
+            if (value := entry.get("duration")) not in (None, "N/A")
+        ]
+    except (ValueError, TypeError) as exc:
+        raise InvalidMedia("Could not determine the video duration") from exc
+    if not streams or not durations or not all(math.isfinite(value) and value > 0 for value in durations):
+        raise InvalidMedia("Could not determine the video duration; use a video container such as MP4")
+    if max(durations) > MAX_VIDEO_SECONDS:
+        raise InvalidMedia("Venue tours must be at most five minutes long")
 
 
 def clean_image(source: BinaryIO | Path, stem: Path, max_bytes: int | None = MAX_IMAGE_BYTES) -> CleanImage:

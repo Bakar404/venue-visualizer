@@ -184,6 +184,10 @@ def chat(space_id: UUID, body: ChatIn, runtime: RuntimeDep) -> ChatOut:
         )
     except BrainError as exc:
         raise IntegrationError(502, str(exc)) from exc
+    reply = result.reply
+    rule_notes = getattr(result, "rule_notes", [])
+    if result.warnings and not hasattr(result, "rule_notes"):
+        reply += "\n\nAdjusted for venue rules: " + "; ".join(warning.message for warning in result.warnings)
     with write_session(runtime.engine) as session:
         saved = require(session, Space, space.id)
         if body.spec is None and saved.current_spec_json != space.current_spec_json:
@@ -198,7 +202,7 @@ def chat(space_id: UUID, body: ChatIn, runtime: RuntimeDep) -> ChatOut:
                 ChatMessage(
                     space_id=space.id,
                     role="assistant",
-                    content=result.reply,
+                    content=reply,
                     spec_patch_json=result.spec_patch,
                     spec_after_json=result.spec.to_dict(),
                     warnings_json=[w.to_dict() for w in result.warnings],
@@ -207,7 +211,8 @@ def chat(space_id: UUID, body: ChatIn, runtime: RuntimeDep) -> ChatOut:
         )
     return ChatOut(
         brain=chosen.id,
-        reply=result.reply,
+        reply=reply,
+        rule_notes=rule_notes,
         spec=result.spec,
         warnings=result.warnings,
         ambiguities=result.ambiguities,

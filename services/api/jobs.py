@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from collections.abc import Iterator
+from collections.abc import Collection, Iterable, Iterator
 from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -19,6 +19,7 @@ from .storage import VIDEO_SUFFIXES, remove_files
 
 log = logging.getLogger(__name__)
 HEARTBEAT_SECONDS = 10
+CANCEL_POLL_SECONDS = 0.25
 STALE_AFTER = timedelta(seconds=60)
 MAX_ATTEMPTS = 2
 ACTIVE = ("queued", "running")
@@ -86,12 +87,13 @@ def cleanup_video(runtime: Runtime, job: Job) -> None:
         remove_files([video_input(runtime, job)])
 
 
-def reset_stale_jobs(runtime: Runtime) -> int:
+def reset_stale_jobs(runtime: Runtime, active_job_ids: Collection[str] = ()) -> int:
     cutoff = now() - STALE_AFTER
     with write_session(runtime.engine) as session:
         stale = session.exec(
             select(Job).where(
                 Job.status == "running",
+                Job.id.not_in(active_job_ids),
                 Job.lease_id.is_(None)
                 | (Job.heartbeat_at < cutoff)
                 | (Job.heartbeat_at.is_(None) & ((Job.started_at < cutoff) | Job.started_at.is_(None))),
@@ -100,10 +102,14 @@ def reset_stale_jobs(runtime: Runtime) -> int:
         for job in stale:
             if job.cancel_requested:
                 _end_lease(job, "cancelled")
+                job.error = job.error_status = None
+            elif job.attempts >= MAX_ATTEMPTS:
+                _end_lease(job, "failed")
+                job.error = "worker crashed repeatedly on this job"
+                job.error_status = None
             else:
-                job.attempts = max(0, job.attempts - 1)
                 _end_lease(job, "queued")
-            _render_status(session, job, job.status)
+            _render_status(session, job, job.status, job.error)
     for job in stale:
         cleanup_video(runtime, job)
     return len(stale)
@@ -167,22 +173,61 @@ def _fail(runtime: Runtime, claimed: Job, exc: Exception) -> None:
     cleanup_video(runtime, job)
 
 
-async def _heartbeat(runtime: Runtime, claimed: Job) -> None:
-    while True:
-        await asyncio.sleep(HEARTBEAT_SECONDS)
-        try:
-            progress(runtime, claimed)
-        except JobCancelled:
-            return
+def refresh_leases(runtime: Runtime, claims: Iterable[Job]) -> None:
+    with write_session(runtime.engine) as session:
+        for claim in claims:
+            try:
+                job = _owned(session, claim)
+            except JobCancelled:
+                continue
+            job.heartbeat_at = now()
+
+
+def _cancel_requested(runtime: Runtime, claimed: Job) -> bool:
+    with Session(runtime.engine) as session:
+        job = _owned(session, claimed)
+        cancelled = job.cancel_requested
+        refresh = job.heartbeat_at is None or (now() - job.heartbeat_at).total_seconds() >= HEARTBEAT_SECONDS
+    if refresh:
+        # A cancelled job still owns its slot while its process exits.
+        refresh_leases(runtime, (claimed,))
+    return cancelled
+
+
+async def _process_with_lease(runtime: Runtime, claimed: Job) -> None:
+    from .processing import process
+
+    work = asyncio.create_task(process(runtime, claimed))
+    cancel_sent = False
+    try:
+        while not work.done():
+            done, _ = await asyncio.wait((work,), timeout=CANCEL_POLL_SECONDS)
+            if done:
+                break
+            try:
+                should_cancel = _cancel_requested(runtime, claimed)
+            except JobCancelled:
+                should_cancel = True
+            if should_cancel and not cancel_sent:
+                work.cancel()
+                cancel_sent = True
+        if not work.cancelled():
+            work.result()
+        elif not cancel_sent:
+            raise RuntimeError("Job processing was unexpectedly cancelled")
+        if cancel_sent:
+            raise JobCancelled()
+    finally:
+        if not work.done():
+            if not cancel_sent:
+                work.cancel()
+            await asyncio.gather(work, return_exceptions=True)
 
 
 async def run_claimed(runtime: Runtime, claimed: Job) -> None:
-    from .processing import process
-
-    heartbeat = asyncio.create_task(_heartbeat(runtime, claimed))
     try:
         progress(runtime, claimed, 0.05)
-        await process(runtime, claimed)
+        await _process_with_lease(runtime, claimed)
     except JobCancelled as exc:
         _fail(runtime, claimed, exc)
     except Exception as exc:
@@ -191,9 +236,6 @@ async def run_claimed(runtime: Runtime, claimed: Job) -> None:
     else:
         claimed.status = "done"
         cleanup_video(runtime, claimed)
-    finally:
-        heartbeat.cancel()
-        await asyncio.gather(heartbeat, return_exceptions=True)
 
 
 def dispatch(runtime: Runtime, jobs: list[Job]) -> list[JobOut]:

@@ -1,28 +1,35 @@
 import asyncio
 import logging
 import signal
+from datetime import timedelta
 from time import monotonic
 
 from .config import Settings
 from .db import database, initialize
 from .deps import Runtime
-from .jobs import HEARTBEAT_SECONDS, claim_job, reset_stale_jobs, run_claimed
+from .jobs import HEARTBEAT_SECONDS, claim_job, refresh_leases, reset_stale_jobs, run_claimed
+from .models import Job, now
 
 
 async def serve(runtime: Runtime, stop: asyncio.Event) -> None:
-    active: set[asyncio.Task] = set()
+    active: dict[asyncio.Task[None], Job] = {}
     next_recovery = 0.0
+    last_tick = now()
     try:
         while not stop.is_set():
-            done = {task for task in active if task.done()}
-            active.difference_update(done)
-            for task in done:
+            for task in [task for task in active if task.done()]:
+                del active[task]
                 task.result()
-            if monotonic() >= next_recovery:
-                reset_stale_jobs(runtime)
+            tick = now()
+            resumed = tick - last_tick >= timedelta(seconds=HEARTBEAT_SECONDS)
+            last_tick = tick
+            if resumed and active:
+                refresh_leases(runtime, active.values())
+            if resumed or monotonic() >= next_recovery:
+                reset_stale_jobs(runtime, {job.id for job in active.values()})
                 next_recovery = monotonic() + HEARTBEAT_SECONDS
             if job := claim_job(runtime):
-                active.add(asyncio.create_task(run_claimed(runtime, job)))
+                active[asyncio.create_task(run_claimed(runtime, job))] = job
                 await asyncio.sleep(0)
                 continue
             try:

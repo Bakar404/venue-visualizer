@@ -26,6 +26,7 @@ from .jobs import completing, progress, video_input
 from .models import Job, Look, Photo, Render, Space, Venue, new_id
 from .storage import (
     MAX_PHOTOS,
+    MAX_VIDEO_SECONDS,
     CleanImage,
     clean_image,
     media_path,
@@ -227,7 +228,7 @@ async def _video(runtime: Runtime, job: Job, work: Path) -> Outcome:
     result = (
         await invoke(module.ingest_video, video_input(runtime, job), work, brain=brain, max_frames=12)
     ).to_dict()
-    if result["duration_s"] > 300:
+    if result["duration_s"] > MAX_VIDEO_SECONDS:
         raise IntegrationError(422, "Venue tours must be at most five minutes long")
     if len(result["frames"]) > 12:
         raise IntegrationError(502, "The video pipeline returned more than 12 frames")

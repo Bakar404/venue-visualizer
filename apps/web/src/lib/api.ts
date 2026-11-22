@@ -8,7 +8,8 @@ export const isMockMode = process.env.NEXT_PUBLIC_VV_MOCK === "1";
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  if (init.body && !(init.body instanceof FormData)) {
+  const method = (init.method ?? "GET").toUpperCase();
+  if (!["GET", "HEAD", "OPTIONS"].includes(method) && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
   headers.set("Accept", "application/json");

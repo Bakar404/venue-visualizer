@@ -45,6 +45,7 @@ from .storage import (
     remove_files,
     save_video,
     staging,
+    validate_video_duration,
 )
 
 router = APIRouter(prefix="/api/venues", tags=["venues"])
@@ -96,8 +97,10 @@ def _import_choices(body: VenueImport, preview: ImportPreview):
         if len(values) != 1:
             raise HTTPException(422, f"No unambiguous suggested value for rule {key!r}")
         selected_rules[key] = values.pop()
-    if preview.provided_items:
-        selected_rules["provided_items"] = preview.provided_items
+    if set(body.accepted_provided_items) - set(preview.provided_items):
+        raise HTTPException(422, "Each accepted provided item must match a suggested item")
+    if body.accepted_provided_items:
+        selected_rules["provided_items"] = list(dict.fromkeys(body.accepted_provided_items))
     available = {photo.url for space in spaces for photo in space.photos}
     selections = {}
     for choice in body.photos:
@@ -138,6 +141,9 @@ def import_venue(body: VenueImport, runtime: RuntimeDep) -> VenueOut:
         imported = []
         for suggested in spaces:
             space = new_space(venue.id, suggested.name, suggested.venue_spec.to_dict())
+            space.capacity_seated = suggested.capacity_seated
+            space.capacity_standing = suggested.capacity_standing
+            space.source = suggested.source
             new_spaces.append(space)
             seen = set()
             photos = [p for p in suggested.photos if p.url in selections]
@@ -259,6 +265,7 @@ def upload_video(
     target = video_input(runtime, job)
     try:
         save_video(file.file, target)
+        validate_video_duration(target)
         with write_session(runtime.engine) as session:
             require(session, Venue, str(venue_id))
             session.add(job)
