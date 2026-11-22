@@ -26,8 +26,6 @@ from .integrations import (
 from .jobs import completing, progress, video_input
 from .models import Job, Look, Photo, Render, Space, Venue, new_id
 from .storage import (
-
-logger = logging.getLogger(__name__)
     MAX_PHOTOS,
     MAX_VIDEO_SECONDS,
     CleanImage,
@@ -38,6 +36,8 @@ logger = logging.getLogger(__name__)
     publish_image,
     staging,
 )
+
+logger = logging.getLogger(__name__)
 
 _PHOTO_REAL = (
     "A real photograph by a professional event photographer, 24mm, eye level, realistic materials, no CGI."
