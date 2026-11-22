@@ -5,6 +5,7 @@ import { ImagePlusIcon, Trash2Icon } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { CameraCapture } from "@/components/camera-capture";
 import { PhotoCredit } from "@/components/photo-credit";
 import { BaseCandidate } from "@/components/studio/base-candidate";
 import { Button } from "@/components/ui/button";
@@ -88,7 +89,8 @@ export function PhotoDropzone({ spaceId, existing, onUploaded, large }: { spaceI
       <label htmlFor={id} className="cursor-pointer text-sm font-medium after:absolute after:inset-0">
         {upload.isPending ? "Uploading…" : large ? "Add photos of the empty room" : "Add photos"}
       </label>
-      <p className="text-xs text-muted-foreground">Drop here or browse. JPG, PNG, WebP or HEIC.</p>
+      <p className="text-sm text-muted-foreground pointer-coarse:hidden">Drop here or browse. JPG, PNG, WebP or HEIC.</p>
+      <CameraCapture kind="photos" onFiles={handle} disabled={upload.isPending} className="relative z-10 mt-1.5" />
       <input
         id={id}
         type="file"

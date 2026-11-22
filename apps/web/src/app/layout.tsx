@@ -17,6 +17,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Edge to edge on phones with a notch; the header, sheets and Studio tab bar pad themselves with the safe-area insets.
+  viewportFit: "cover",
+  // The on-screen keyboard shrinks the layout instead of covering it; Studio also follows `visualViewport`.
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f8f5ee" },
     { media: "(prefers-color-scheme: dark)", color: "#1d1b19" },

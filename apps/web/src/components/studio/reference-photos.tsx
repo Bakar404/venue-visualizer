@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { CameraCapture } from "@/components/camera-capture";
 import { JobOverdueNotice } from "@/components/job-overdue";
 import { PhotoCredit } from "@/components/photo-credit";
 import { BaseCandidate } from "@/components/studio/base-candidate";
@@ -195,6 +196,15 @@ export function ReferencePhotos({ space, onReady, onDescribe }: { space: Space; 
           <ImagePlusIcon />
           {upload.isPending ? "Uploading…" : "Upload photos"}
         </Button>
+        <CameraCapture
+          kind="photos"
+          size="sm"
+          disabled={upload.isPending}
+          onFiles={(list) => {
+            const files = list ? filterFiles(list, space.photos.length) : [];
+            if (files.length) upload.mutate(files);
+          }}
+        />
         <input
           ref={fileInput}
           id={fileId}

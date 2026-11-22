@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { CameraCapture } from "@/components/camera-capture";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -249,10 +250,12 @@ function SpaceDraft({
                     URL.revokeObjectURL(f.url);
                     onChange({ files: space.files.filter((x) => x.url !== f.url) });
                   }}
-                  className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-black/60 text-white transition-transform duration-150 ease-out active:scale-[0.94]"
+                  className="group/remove absolute top-0 right-0 grid size-11 place-items-start justify-items-end p-1"
                   aria-label={`Remove ${f.file.name}`}
                 >
-                  <XIcon aria-hidden className="size-3.5" />
+                  <span className="grid size-6 place-items-center rounded-full bg-black/60 text-white transition-transform duration-150 ease-out group-active/remove:scale-[0.94]">
+                    <XIcon aria-hidden className="size-3.5" />
+                  </span>
                 </button>
               </li>
             ))}
@@ -262,7 +265,8 @@ function SpaceDraft({
           <Button type="button" variant="outline" size="sm" onClick={() => input.current?.click()}>
             <ImagePlusIcon aria-hidden /> {space.files.length ? "Add more photos" : "Choose photos"}
           </Button>
-          <p className="text-xs text-muted-foreground">
+          <CameraCapture kind="photos" size="sm" onFiles={add} />
+          <p className="text-sm text-muted-foreground sm:text-xs">
             {space.files.length ? `${space.files.length} photo${space.files.length === 1 ? "" : "s"} ready. ` : "Or drop them here. "}
             JPG, PNG, WebP or HEIC, up to 20 MB each.
           </p>

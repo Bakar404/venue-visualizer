@@ -1,10 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { normalizeBackends } from "@/lib/backends";
-import type { Look } from "@/lib/types";
+import type { Look, SettingsPatch } from "@/lib/types";
 
 export const qk = {
   backends: ["backends"] as const,
@@ -16,6 +16,9 @@ export const qk = {
   chat: (spaceId: string) => ["chat", spaceId] as const,
   job: (id: string) => ["job", id] as const,
   defaultSpec: ["default-spec"] as const,
+  settings: ["settings"] as const,
+  setup: ["setup"] as const,
+  lan: ["lan"] as const,
 };
 
 export function useBackends() {
@@ -61,4 +64,43 @@ export function useChatHistory(spaceId: string) {
 
 export function useDefaultSpec() {
   return useQuery({ queryKey: qk.defaultSpec, queryFn: api.defaultSpec, staleTime: Infinity, retry: 0 });
+}
+
+export function useSettings() {
+  return useQuery({ queryKey: qk.settings, queryFn: api.getSettings });
+}
+
+/** Whether first-run setup is done (`GET /api/system/setup`). */
+export function useSetupStatus() {
+  return useQuery({ queryKey: qk.setup, queryFn: api.setupStatus, staleTime: 30_000, retry: 1 });
+}
+
+export function useLanInfo(enabled = true) {
+  return useQuery({ queryKey: qk.lan, queryFn: api.lanInfo, enabled });
+}
+
+/** Check again: re-detects the AI tools now, without restarting the API. */
+export function useRefreshBackends() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => normalizeBackends(await api.refreshBackends()),
+    onSuccess: (data) => {
+      qc.setQueryData(qk.backends, data);
+      void qc.invalidateQueries({ queryKey: qk.setup });
+    },
+  });
+}
+
+export function useUpdateSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: SettingsPatch) => api.updateSettings(patch),
+    onSuccess: (settings) => {
+      qc.setQueryData(qk.settings, settings);
+      // Defaults and phone access feed the backends' defaults, setup status and LAN info.
+      void qc.invalidateQueries({ queryKey: qk.backends });
+      void qc.invalidateQueries({ queryKey: qk.setup });
+      void qc.invalidateQueries({ queryKey: qk.lan });
+    },
+  });
 }

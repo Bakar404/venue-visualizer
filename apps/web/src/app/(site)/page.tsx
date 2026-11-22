@@ -162,7 +162,7 @@ function DemoCredit({ className }: { className?: string }) {
   return (
     <a
       href={SAMPLE_CREDITS_URL}
-      className={cn("text-xs text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground", className)}
+      className={cn("text-xs text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center pointer-coarse:text-sm", className)}
     >
       AI-generated demo images
     </a>

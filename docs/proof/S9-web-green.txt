@@ -1,0 +1,6 @@
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/s9.spec.ts:45:1 › S9: desktop shows only the file pickers
+[2/2] [mobile] › e2e/s9.spec.ts:17:1 › S9: camera inputs sit next to the file pickers on a phone @mobile
+  2 passed (5.0s)

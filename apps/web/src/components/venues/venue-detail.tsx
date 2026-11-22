@@ -50,7 +50,7 @@ export function VenueDetail({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-10 sm:px-6 lg:py-14">
       <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
-        <Link href="/venues" className="rounded-sm hover:text-foreground">
+        <Link href="/venues" className="rounded-sm hover:text-foreground pointer-coarse:-my-3 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
           Venues
         </Link>
       </nav>

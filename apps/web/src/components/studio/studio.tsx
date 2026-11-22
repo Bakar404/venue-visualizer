@@ -9,6 +9,7 @@ import { use, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { BackendPicker } from "@/components/backend-picker";
+import { BackendUnavailableNotice } from "@/components/backend-unavailable-notice";
 import { NoEngineNotice } from "@/components/no-engine-notice";
 import { QueryError } from "@/components/query-error";
 import { ChatPanel, WarningCallout } from "@/components/studio/chat-panel";
@@ -18,13 +19,14 @@ import { PhotoStrip } from "@/components/studio/photo-strip";
 import { ReferencePhotos } from "@/components/studio/reference-photos";
 import { RenderStage } from "@/components/studio/render-stage";
 import { SpecForm } from "@/components/studio/spec-form";
+import { type StudioTab, StudioTabBar } from "@/components/studio/studio-tab-bar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { api, errorMessage } from "@/lib/api";
 import { isActive, trackJobs, useLookHasActiveJobs } from "@/lib/jobs";
 import { usePreferences } from "@/lib/preferences";
@@ -57,7 +59,7 @@ export function Studio({ params }: { params: Promise<{ id: string }> }) {
   return <StudioLoaded space={space.data} />;
 }
 
-type Tab = "photos" | "canvas" | "plan";
+type Tab = StudioTab;
 
 function renderJobs(res: RenderResponse) {
   return res.jobs.map((job, i) => ({ job, renderId: res.renders[i]?.id }));
@@ -75,6 +77,7 @@ function StudioLoaded({ space }: { space: Space }) {
   const [localSpec, setLocalSpec] = useState<DesignSpec | null>(null);
   const [pickedPhoto, setPickedPhoto] = useState<string | null>(null);
   // A references-only space shows its reference photos (and the ways to get a base photo) in the Preview pane.
+  const keyboard = useKeyboardInset();
   const [tab, setTab] = useState<Tab>(() => (usablePhotos.length || space.references?.length ? "canvas" : "photos"));
   const [check, setCheck] = useState<{ warnings: RuleWarning[]; fixed: DesignSpec } | null>(null);
   const [specOpen, setSpecOpen] = useState(false);
@@ -388,12 +391,16 @@ function StudioLoaded({ space }: { space: Space }) {
 
   return (
     // Fills the viewport under the site header (h-14 + 1px border); each column scrolls on its own.
-    <div className="flex h-[calc(100dvh-3.5rem-1px)] min-h-0 flex-col overflow-hidden">
-      <div className="border-b">
+    // On phones `--kb` lifts everything above the on-screen keyboard (see useKeyboardInset).
+    <div
+      style={{ "--kb": `${keyboard}px` } as React.CSSProperties}
+      className="flex h-[calc(100dvh-3.5rem-1px-var(--kb))] min-h-0 flex-col overflow-hidden"
+    >
+      <div className={cn("border-b", keyboard > 0 && "max-lg:hidden")}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 lg:px-6">
           <div className="min-w-0">
             <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
-              <Link href={`/venues/${space.venue_id}`} className="rounded-sm hover:text-foreground">
+              <Link href={`/venues/${space.venue_id}`} className="rounded-sm hover:text-foreground pointer-coarse:-my-3 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
                 {venue.data?.name ?? "Venue"}
               </Link>
             </nav>
@@ -436,14 +443,8 @@ function StudioLoaded({ space }: { space: Space }) {
             </Tooltip>
           </div>
         </div>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="px-4 pb-3 lg:hidden">
-          <TabsList className="w-full">
-            <TabsTrigger value="photos">Photos</TabsTrigger>
-            <TabsTrigger value="canvas">Preview</TabsTrigger>
-            <TabsTrigger value="plan">Plan</TabsTrigger>
-          </TabsList>
-        </Tabs>
       </div>
+      <BackendUnavailableNotice />
 
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)_24rem] xl:grid-cols-[17rem_minmax(0,1fr)_27rem]">
         <aside aria-label="Photos" className={cn("scrollbar-thin min-h-0 overflow-y-auto overscroll-contain p-4 lg:block lg:border-r", tab !== "photos" && "hidden")}>
@@ -521,7 +522,7 @@ function StudioLoaded({ space }: { space: Space }) {
           )}
         </section>
 
-        <aside aria-label="Plan" className={cn("flex min-h-0 flex-col lg:border-l", tab !== "plan" && "hidden lg:flex")}>
+        <aside aria-label="Plan" className={cn("flex min-h-0 flex-col lg:border-l", tab !== "plan" && tab !== "chat" && "hidden lg:flex")}>
           {copyOf && (
             <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-sm" role="status">
               <CopyIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
@@ -544,7 +545,7 @@ function StudioLoaded({ space }: { space: Space }) {
             rendering={rendering}
             onLookName={setChatLookName}
           />
-          <Collapsible open={specOpen} onOpenChange={setSpecOpen} className="border-t">
+          <Collapsible open={specOpen} onOpenChange={setSpecOpen} className={cn("border-t", tab === "chat" && "max-lg:hidden")}>
             <CollapsibleTrigger className="group flex w-full items-center gap-3 px-4 py-3 text-left">
               <span className="text-sm font-medium">Plan details</span>
               {warnings.length > 0 && (
@@ -572,11 +573,11 @@ function StudioLoaded({ space }: { space: Space }) {
               <SpecForm spec={draft} onChange={(spec) => updateSpec(spec)} rules={venue.data?.rules} />
             </CollapsibleContent>
           </Collapsible>
-          <div className="grid gap-2 border-t p-3">
+          <div className={cn("grid gap-2 border-t p-3", tab === "chat" && "max-lg:hidden")}>
             {noEngine && <NoEngineNotice />}
             <Button
               size="lg"
-              className="h-10 bg-brand text-brand-foreground hover:bg-brand/90"
+              className="h-10 bg-brand text-brand-foreground hover:bg-brand/90 max-lg:hidden"
               onClick={renderAllIfIdle}
               disabled={renderDisabled}
               aria-busy={backends.isPending || lookRendering || undefined}
@@ -586,10 +587,10 @@ function StudioLoaded({ space }: { space: Space }) {
               {usablePhotos.length > 0 && <span className="tabular opacity-75">({usablePhotos.length})</span>}
             </Button>
             {noBasePhoto && (
-              <p className="text-center text-xs text-muted-foreground">Add or approve a base photo to render</p>
+              <p className="text-center text-sm text-muted-foreground lg:text-xs">Add or approve a base photo to render</p>
             )}
             {backends.data?.internal?.layout_guide?.available && (
-              <p className="text-center text-xs text-muted-foreground" title={backends.data.internal.layout_guide.detail ?? undefined}>
+              <p className="text-center text-sm text-muted-foreground lg:text-xs" title={backends.data.internal.layout_guide.detail ?? undefined}>
                 Exact table layout guide on
               </p>
             )}
@@ -606,6 +607,17 @@ function StudioLoaded({ space }: { space: Space }) {
           </div>
         </aside>
       </div>
+
+      <StudioTabBar
+        className={cn("lg:hidden", keyboard > 0 && "hidden")}
+        tab={tab}
+        onTab={setTab}
+        onRender={renderAllIfIdle}
+        renderDisabled={renderDisabled}
+        rendering={lookRendering}
+        busy={backends.isPending || lookRendering}
+        photoCount={usablePhotos.length}
+      />
 
       <SaveLookDialog
         open={saveOpen}

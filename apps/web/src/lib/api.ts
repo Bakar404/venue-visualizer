@@ -94,6 +94,16 @@ const enc = encodeURIComponent;
 
 export const httpApi: VVApi = {
   backends: () => request("/api/system/backends"),
+  refreshBackends: () => request("/api/system/backends/refresh", { method: "POST" }),
+  testBackend: (kind, id, body) =>
+    request(`/api/system/backends/${enc(kind)}/${enc(id)}/test`, { method: "POST", ...json(body) }),
+  getSettings: () => request("/api/settings"),
+  updateSettings: (body) => request("/api/settings", { method: "PATCH", ...json(body) }),
+  setupStatus: () => request("/api/system/setup"),
+  lanInfo: () => request("/api/system/lan"),
+  pairDevice: async (code) => {
+    await request("/api/system/lan/pair", { method: "POST", ...json({ code }), credentials: "include" });
+  },
   listVenues: () => request("/api/venues"),
   createVenue: (body) => request("/api/venues", { method: "POST", ...json(body) }),
   getVenue: (id) => request(`/api/venues/${enc(id)}`),

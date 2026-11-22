@@ -1,0 +1,1035 @@
+
+Running 23 tests using 4 workers
+
+[1/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: home fits a phone @mobile
+[2/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: setup-advanced fits a phone @mobile
+[3/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: setup fits a phone @mobile
+[4/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: setup-credit-dialog fits a phone @mobile
+[WebServer] [browser] Image with src "/samples/photoreal/ballroom-a-empty.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+
+  1) [mobile] › e2e/s7.spec.ts:103:3 › S7: home fits a phone @mobile ───────────────────────────────
+
+    Error: home: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "AI-generated demo images" 148.1×16.0
+    a "AI-generated demo images" 148.1×16.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"AI-generated demo images\" 148.1×16.0",
+    +   "a \"AI-generated demo images\" 148.1×16.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-home-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-home-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-home-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[5/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: pair fits a phone @mobile
+  2) [mobile] › e2e/s7.spec.ts:103:3 › S7: setup-advanced fits a phone @mobile ─────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('main')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('main') with timeout 10000ms
+      - waiting for locator('main')
+
+
+      107 |       await page.waitForLoadState("networkidle");
+      108 |     }
+    > 109 |     await expect(page.locator("main")).toBeVisible();
+          |                                        ^
+      110 |     await route.ready?.(page);
+      111 |     await page.waitForLoadState("networkidle");
+      112 |     await settled(page);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:109:40
+
+    Error Context: test-results/s7-S7-setup-advanced-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-setup-advanced-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-setup-advanced-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  3) [mobile] › e2e/s7.spec.ts:103:3 › S7: setup-credit-dialog fits a phone @mobile ────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('main')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('main') with timeout 10000ms
+      - waiting for locator('main')
+
+
+      107 |       await page.waitForLoadState("networkidle");
+      108 |     }
+    > 109 |     await expect(page.locator("main")).toBeVisible();
+          |                                        ^
+      110 |     await route.ready?.(page);
+      111 |     await page.waitForLoadState("networkidle");
+      112 |     await settled(page);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:109:40
+
+    Error Context: test-results/s7-S7-setup-credit-dialog-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-setup-credit-dialog-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-setup-credit-dialog-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  4) [mobile] › e2e/s7.spec.ts:103:3 › S7: setup fits a phone @mobile ──────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('main')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('main') with timeout 10000ms
+      - waiting for locator('main')
+
+
+      107 |       await page.waitForLoadState("networkidle");
+      108 |     }
+    > 109 |     await expect(page.locator("main")).toBeVisible();
+          |                                        ^
+      110 |     await route.ready?.(page);
+      111 |     await page.waitForLoadState("networkidle");
+      112 |     await settled(page);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:109:40
+
+    Error Context: test-results/s7-S7-setup-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-setup-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-setup-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[6/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues fits a phone @mobile
+[7/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-find fits a phone @mobile
+[8/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-upload fits a phone @mobile
+  5) [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-find fits a phone @mobile ────────────────────
+
+    Error: venues-new-find: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-venues-new-find-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venues-new-find-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venues-new-find-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  6) [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-upload fits a phone @mobile ──────────────────
+
+    Error: venues-new-upload: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-venues-new-upload-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venues-new-upload-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venues-new-upload-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[9/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-video fits a phone @mobile
+[10/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-describe fits a phone @mobile
+  7) [mobile] › e2e/s7.spec.ts:103:3 › S7: venues fits a phone @mobile ─────────────────────────────
+
+    Error: venues: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-venues-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venues-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venues-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[11/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venue fits a phone @mobile
+  8) [mobile] › e2e/s7.spec.ts:103:3 › S7: pair fits a phone @mobile ───────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('main')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('main') with timeout 10000ms
+      - waiting for locator('main')
+
+
+      107 |       await page.waitForLoadState("networkidle");
+      108 |     }
+    > 109 |     await expect(page.locator("main")).toBeVisible();
+          |                                        ^
+      110 |     await route.ready?.(page);
+      111 |     await page.waitForLoadState("networkidle");
+      112 |     await settled(page);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:109:40
+
+    Error Context: test-results/s7-S7-pair-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-pair-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-pair-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[12/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venue-edit-dialog fits a phone @mobile
+  9) [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-video fits a phone @mobile ───────────────────
+
+    Error: venues-new-video: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-venues-new-video-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venues-new-video-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venues-new-video-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  10) [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-describe fits a phone @mobile ───────────────
+
+    Error: venues-new-describe: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-venues-new-describe-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venues-new-describe-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venues-new-describe-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[13/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: venue-add-room-dialog fits a phone @mobile
+[14/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-photos fits a phone @mobile
+  11) [mobile] › e2e/s7.spec.ts:103:3 › S7: venue fits a phone @mobile ─────────────────────────────
+
+    Error: venue: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Venues" 47.3×18.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 7
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Venues\" 47.3×18.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-venue-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venue-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venue-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  12) [mobile] › e2e/s7.spec.ts:103:3 › S7: venue-edit-dialog fits a phone @mobile ─────────────────
+
+    Error: venue-edit-dialog: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Venues" 47.3×18.0
+    span[role=switch] "" 32.0×18.4
+    span[role=switch] "" 32.0×18.4
+    span[role=switch] "" 32.0×18.4
+    span[role=switch] "" 32.0×18.4
+    span[role=switch] "" 32.0×18.4
+    span[role=switch] "" 32.0×18.4
+    span[role=switch] "" 32.0×18.4
+    button "Remove Ivory floor-length linens" 16.0×16.0
+    button "Remove Gold chiavari chairs" 16.0×16.0
+    button "Remove 60-inch round tables" 16.0×16.0
+    button "Close" 28.0×28.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 18
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Venues\" 47.3×18.0",
+    +   "span[role=switch] \"\" 32.0×18.4",
+    +   "span[role=switch] \"\" 32.0×18.4",
+    +   "span[role=switch] \"\" 32.0×18.4",
+    +   "span[role=switch] \"\" 32.0×18.4",
+    +   "span[role=switch] \"\" 32.0×18.4",
+    +   "span[role=switch] \"\" 32.0×18.4",
+    +   "span[role=switch] \"\" 32.0×18.4",
+    +   "button \"Remove Ivory floor-length linens\" 16.0×16.0",
+    +   "button \"Remove Gold chiavari chairs\" 16.0×16.0",
+    +   "button \"Remove 60-inch round tables\" 16.0×16.0",
+    +   "button \"Close\" 28.0×28.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-venue-edit-dialog-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venue-edit-dialog-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venue-edit-dialog-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  13) [mobile] › e2e/s7.spec.ts:103:3 › S7: venue-add-room-dialog fits a phone @mobile ─────────────
+
+    Error: venue-add-room-dialog: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Venues" 47.3×18.0
+    button "Close" 28.0×28.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Venues\" 47.3×18.0",
+    +   "button \"Close\" 28.0×28.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-venue-add-room-dialog-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-venue-add-room-dialog-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-venue-add-room-dialog-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[15/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-preview fits a phone @mobile
+[16/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-chat fits a phone @mobile
+[17/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-plan fits a phone @mobile
+  14) [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-photos fits a phone @mobile ─────────────────────
+
+    Error: studio-photos: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Larkspur House" 101.0×18.0
+    button "Delete Photo 1" 24.0×24.0
+    button "Delete Photo 2" 24.0×24.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 9
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Larkspur House\" 101.0×18.0",
+    +   "button \"Delete Photo 1\" 24.0×24.0",
+    +   "button \"Delete Photo 2\" 24.0×24.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-studio-photos-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-studio-photos-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-studio-photos-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[18/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-save-look-dialog fits a phone @mobile
+  15) [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-plan fits a phone @mobile ───────────────────────
+
+    Error: studio-plan: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Larkspur House" 101.0×18.0
+    button "Send" 32.0×32.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Larkspur House\" 101.0×18.0",
+    +   "button \"Send\" 32.0×32.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-studio-plan-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-studio-plan-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-studio-plan-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  16) [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-preview fits a phone @mobile ────────────────────
+
+    Error: studio-preview: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Larkspur House" 101.0×18.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 7
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Larkspur House\" 101.0×18.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-studio-preview-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-studio-preview-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-studio-preview-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[19/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-variation-dialog fits a phone @mobile
+[20/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-describe fits a phone @mobile
+  17) [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-save-look-dialog fits a phone @mobile ───────────
+
+    Error: studio-save-look-dialog: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Larkspur House" 101.0×18.0
+    button "Send" 32.0×32.0
+    button "Close" 28.0×28.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 9
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Larkspur House\" 101.0×18.0",
+    +   "button \"Send\" 32.0×32.0",
+    +   "button \"Close\" 28.0×28.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-studio-save-look-dialog-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-studio-save-look-dialog-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-studio-save-look-dialog-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[21/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: looks fits a phone @mobile
+  18) [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-describe fits a phone @mobile ───────────────────
+
+    Error: studio-describe: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Wren Hall" 61.7×18.0
+    button "Remove crystal chandeliers" 16.0×16.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Wren Hall\" 61.7×18.0",
+    +   "button \"Remove crystal chandeliers\" 16.0×16.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-studio-describe-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-studio-describe-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-studio-describe-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  19) [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-variation-dialog fits a phone @mobile ───────────
+
+    Error: studio-variation-dialog: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Larkspur House" 101.0×18.0
+    button "Send" 32.0×32.0
+    button "Close" 28.0×28.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 9
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Larkspur House\" 101.0×18.0",
+    +   "button \"Send\" 32.0×32.0",
+    +   "button \"Close\" 28.0×28.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-studio-variation-dialog-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-studio-variation-dialog-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-studio-variation-dialog-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[22/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: compare fits a phone @mobile
+[23/23] [mobile] › e2e/s7.spec.ts:103:3 › S7: command-palette fits a phone @mobile
+  20) [mobile] › e2e/s7.spec.ts:103:3 › S7: looks fits a phone @mobile ─────────────────────────────
+
+    Error: looks: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Grand Ballroom" 99.1×18.0
+    button "Delete Evergreen" 36.0×28.0
+    button "Delete Blush, gold & ivory" 36.0×28.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 9
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Grand Ballroom\" 99.1×18.0",
+    +   "button \"Delete Evergreen\" 36.0×28.0",
+    +   "button \"Delete Blush, gold & ivory\" 36.0×28.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-looks-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-looks-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-looks-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  21) [mobile] › e2e/s7.spec.ts:103:3 › S7: compare fits a phone @mobile ───────────────────────────
+
+    Error: compare: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "Grand Ballroom Looks" 140.8×18.0
+    span[role=switch] "" 32.0×18.4
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"Grand Ballroom Looks\" 140.8×18.0",
+    +   "span[role=switch] \"\" 32.0×18.4",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-compare-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-compare-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-compare-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  22) [mobile] › e2e/s7.spec.ts:103:3 › S7: command-palette fits a phone @mobile ───────────────────
+
+    Error: command-palette: touch targets under 44×24 px:
+    a "Skip to content" 24.0×16.0
+    a "Venue Visualizer" 123.5×23.2
+    button "Search or run⌘KOpen command palette" 36.0×28.0
+    button "Toggle light and dark theme" 32.0×32.0
+    a "AI-generated demo images" 148.1×16.0
+    a "AI-generated demo images" 148.1×16.0
+    input[role=combobox] "" 316.0×20.0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 9
+
+    - Array []
+    + Array [
+    +   "a \"Skip to content\" 24.0×16.0",
+    +   "a \"Venue Visualizer\" 123.5×23.2",
+    +   "button \"Search or run⌘KOpen command palette\" 36.0×28.0",
+    +   "button \"Toggle light and dark theme\" 32.0×32.0",
+    +   "a \"AI-generated demo images\" 148.1×16.0",
+    +   "a \"AI-generated demo images\" 148.1×16.0",
+    +   "input[role=combobox] \"\" 316.0×20.0",
+    + ]
+
+      115 |     await page.screenshot({ path: proof(`S7-${route.name}.png`), fullPage: true });
+      116 |     expect(result.scrollWidth, `${route.name}: no horizontal overflow`).toBeLessThanOrEqual(result.innerWidth);
+    > 117 |     expect(result.offenders, `${route.name}: touch targets under 44×24 px:\n${result.offenders.join("\n")}`).toEqual([]);
+          |                                                                                                              ^
+      118 |   });
+      119 | }
+      120 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:117:110
+
+    Error Context: test-results/s7-S7-command-palette-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-command-palette-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-command-palette-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  23) [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-chat fits a phone @mobile ───────────────────────
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('tab', { name: 'Chat', exact: true })
+
+
+       9 |
+      10 | const tab = (name: string) => async (page: Page) => {
+    > 11 |   await page.getByRole("tab", { name, exact: true }).click();
+         |                                                      ^
+      12 |   await expect(page.getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");
+      13 | };
+      14 | const dialog = (button: string, before?: (page: Page) => Promise<void>) => async (page: Page) => {
+        at Object.call (/Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:11:54)
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s7.spec.ts:110:11
+
+    Error Context: test-results/s7-S7-studio-chat-fits-a-phone-mobile-mobile/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s7-S7-studio-chat-fits-a-phone-mobile-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s7-S7-studio-chat-fits-a-phone-mobile-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  23 failed
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: home fits a phone @mobile ────────────────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: setup fits a phone @mobile ───────────────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: setup-advanced fits a phone @mobile ──────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: setup-credit-dialog fits a phone @mobile ─────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: pair fits a phone @mobile ────────────────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: venues fits a phone @mobile ──────────────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-find fits a phone @mobile ─────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-upload fits a phone @mobile ───────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-video fits a phone @mobile ────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: venues-new-describe fits a phone @mobile ─────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: venue fits a phone @mobile ───────────────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: venue-edit-dialog fits a phone @mobile ───────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: venue-add-room-dialog fits a phone @mobile ───────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-photos fits a phone @mobile ───────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-preview fits a phone @mobile ──────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-chat fits a phone @mobile ─────────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-plan fits a phone @mobile ─────────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-save-look-dialog fits a phone @mobile ─────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-variation-dialog fits a phone @mobile ─────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: studio-describe fits a phone @mobile ─────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: looks fits a phone @mobile ───────────────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: compare fits a phone @mobile ─────────────────────────────
+    [mobile] › e2e/s7.spec.ts:103:3 › S7: command-palette fits a phone @mobile ─────────────────────

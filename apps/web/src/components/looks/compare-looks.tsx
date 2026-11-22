@@ -76,7 +76,7 @@ function Comparison({ a, b, photos, spaceId, spaceName }: { a: Look; b: Look; ph
   return (
     <Shell>
       <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
-        <Link href={`/spaces/${spaceId}/looks`} className="rounded-sm hover:text-foreground">
+        <Link href={`/spaces/${spaceId}/looks`} className="rounded-sm hover:text-foreground pointer-coarse:-my-3 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
           {spaceName} Looks
         </Link>
       </nav>

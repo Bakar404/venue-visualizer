@@ -18,7 +18,22 @@ type MockPeek = {
   waiting: (name: MockGate) => number;
   /** The next request of this kind fails with a 500 and this message. */
   failNext: (name: MockGate, message: string) => void;
+  /** Resets the simulated machine and settings (also `?vvScenario=` on any URL). Kept for the tab's session. */
+  setScenario: (name: MockScenario) => void;
+  /** Changes a tool on the simulated machine, like running its install or sign-in command. Seen after Check again. */
+  install: (provider: MockProvider, state?: "ready" | "signed-out" | "missing") => void;
+  settings: () => {
+    default_brain: string | null;
+    default_engine: string | null;
+    allow_web_research: boolean;
+    setup_completed_at: string | null;
+    providers: Record<string, Record<string, string | null> | undefined>;
+    lan: { enabled: boolean };
+  };
 };
+
+export type MockScenario = "fresh" | "signed-out" | "ready" | "demo";
+type MockProvider = "claude" | "codex" | "copilot" | "kimi" | "mflux";
 
 type MockGate = "chat" | "renderLook" | "deletePhoto" | "getJob";
 

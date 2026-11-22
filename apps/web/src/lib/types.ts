@@ -17,12 +17,65 @@ export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 type Schemas = components["schemas"];
 
 export type BackendCaps = Schemas["BackendCaps"];
-export type BackendStatus = Schemas["BackendStatus"];
+
+// First-run setup additions from docs/onboarding-and-mobile.md, section 3. Written from the spec because the backend is
+// being built in parallel. TODO(openapi): switch these to `Schemas[...]` once packages/schema/openapi.json has them.
+
+export type UsedFor = "chat" | "web_research" | "vision" | "images";
+export type InstallCommands = { macos: string; linux: string; docs_url: string };
+export type BackendTest = { ok: boolean; at: string; seconds: number; detail: string };
+/** Optional here so older APIs (without these fields) still type-check against the OpenAPI document. */
+export type BackendSetupInfo = {
+  install?: InstallCommands;
+  /** The sign-in command, or null when there's nothing to sign in to. */
+  login?: string | null;
+  used_for?: UsedFor[];
+  cost_note?: string;
+  last_test?: BackendTest | null;
+};
+export type BackendStatus = Schemas["BackendStatus"] & BackendSetupInfo;
 /**
  * `engines`: user-facing photoreal engines, plus "mock" in dev. `internal`: helpers the pipeline uses on its own,
  * never offered as an output choice. `defaults.engine` is null when no public image engine is available.
  */
-export type Backends = Schemas["BackendsOut"];
+export type Backends = Omit<Schemas["BackendsOut"], "brains" | "engines" | "internal"> & {
+  brains: BackendStatus[];
+  engines: BackendStatus[];
+  internal: Record<string, BackendStatus>;
+};
+
+export type Settings = {
+  default_brain: string | null;
+  default_engine: string | null;
+  allow_web_research: boolean;
+  setup_completed_at: string | null;
+  providers: {
+    claude?: { config_dir?: string | null };
+    copilot?: { model?: string | null };
+    kimi?: { bin?: string | null };
+  };
+  lan: { enabled: boolean };
+};
+export type SettingsPatch = Partial<Omit<Settings, "providers" | "lan">> & {
+  providers?: Settings["providers"];
+  lan?: Partial<Settings["lan"]>;
+};
+
+export type BackendTestResult = { ok: boolean; seconds: number; detail: string; sample_url?: string | null };
+export type SetupMissing = "brain" | "engine" | "defaults";
+/** The spec leaves `steps` open, so it's read loosely. */
+export type SetupStatus = { complete: boolean; missing: SetupMissing[]; steps: Record<string, unknown> };
+/**
+ * `pairing_code` isn't in the spec's table; the setup page needs it to show the code on the computer. Assumed name,
+ * to confirm with the backend.
+ */
+export type LanInfo = {
+  enabled: boolean;
+  url: string | null;
+  qr_svg: string | null;
+  pairing_required: true;
+  pairing_code?: string | null;
+};
 
 /** Web photos carry `source_url` (the image), `source_page` (where it was found) and `credit` (printed on exports). */
 export type Photo = Schemas["PhotoOut"];
@@ -182,6 +235,16 @@ export type RenderResponse = { jobs: Job[]; renders: Render[] };
 
 export interface VVApi {
   backends(): Promise<Backends>;
+  /** Re-detects the CLIs now (Check again). */
+  refreshBackends(): Promise<Backends>;
+  /** A tiny real call. Image tests need `confirm_credits: true` (except mock and mflux), else 422. */
+  testBackend(kind: "brain" | "engine", id: string, body: { confirm_credits?: boolean }): Promise<BackendTestResult>;
+  getSettings(): Promise<Settings>;
+  updateSettings(body: SettingsPatch): Promise<Settings>;
+  setupStatus(): Promise<SetupStatus>;
+  lanInfo(): Promise<LanInfo>;
+  /** A phone on the LAN pairs with the 6-digit code shown on the computer; the API sets a device cookie. */
+  pairDevice(code: string): Promise<void>;
   listVenues(): Promise<Venue[]>;
   createVenue(body: { name: string; rules?: VenueRules }): Promise<Venue>;
   getVenue(id: string): Promise<Venue>;

@@ -9,11 +9,11 @@ import { ApiError } from "@/lib/errors";
 import { venueSpecFromResearch } from "@/lib/import-payload";
 import { buildPrompt, mockBrain } from "@/lib/mock-brain";
 import { buildTextPdf } from "@/lib/mock-pdf";
+import * as system from "@/lib/mock-system";
 import { SAMPLE_SIZE, SAMPLES, type SampleLook, type SampleScene } from "@/lib/samples";
 import { withoutNulls } from "@/lib/stable-json";
-import { LOW_STRUCTURE_SCORE, applyRules, colorFor, defaultRules, defaultSpec, diffSpecs, specEquals } from "@/lib/spec";
+import { applyRules, colorFor, defaultRules, defaultSpec, diffSpecs, specEquals } from "@/lib/spec";
 import type {
-  Backends,
   ChatMessage,
   DesignSpec,
   Job,
@@ -68,56 +68,6 @@ type DB = {
 const QUEUED_MS = 350;
 const DONE_MS = 2000;
 const AGENT_MS = 3200;
-
-const BACKENDS: Backends = {
-  brains: [
-    {
-      id: "claude", label: "Claude Code", kind: "brain", available: true, logged_in: true, version: "2.4.0", detail: null,
-    },
-    {
-      id: "codex", label: "Codex", kind: "brain", available: false, logged_in: null, version: null, detail: "`codex` was not found on your PATH.",
-    },
-    {
-      id: "copilot", label: "Copilot CLI", kind: "brain", available: true, logged_in: true, version: "1.0.115", detail: null,
-    },
-    {
-      id: "kimi", label: "Kimi Code", kind: "brain", available: true, logged_in: false, version: "0.9.2", detail: "Installed but signed out. Run `kimi login`.",
-    },
-    {
-      id: "mock", label: "Mock brain", kind: "brain", available: true, logged_in: null, version: null,
-      detail: "Keyword parser for offline use. In demo mode it also returns a sample venue.",
-    },
-  ],
-  engines: [
-    {
-      id: "copilot", label: "Copilot image", kind: "engine", available: true, logged_in: true, version: "1.0.115", detail: null,
-      caps: { can_generate: true, can_edit: true, typical_seconds: 30, cost_note: "Uses Copilot AI credits", photoreal: true, max_refs: 3 },
-    },
-    {
-      id: "codex", label: "Codex image", kind: "engine", available: false, logged_in: null, version: null,
-      detail: "Needs Codex with the image_generation feature enabled and a ChatGPT login.",
-      caps: { can_generate: true, can_edit: true, typical_seconds: 40, cost_note: "Uses your ChatGPT plan quota", photoreal: true, max_refs: 3 },
-    },
-    {
-      id: "mflux", label: "Local FLUX (mflux)", kind: "engine", available: false, logged_in: null, version: null,
-      detail: "mflux is not installed. It runs on Apple Silicon: `uv tool install mflux`.",
-      caps: { can_generate: true, can_edit: true, typical_seconds: 180, cost_note: "Free, runs on your Mac", photoreal: true, max_refs: 2 },
-    },
-    {
-      id: "mock", label: "Mock (dev)", kind: "engine", available: true, logged_in: null, version: null,
-      detail: "Returns the matching demo photograph. Nothing is generated.",
-      caps: { can_generate: true, can_edit: true, typical_seconds: 2, cost_note: "Free, for testing", photoreal: true, max_refs: 0 },
-    },
-  ],
-  defaults: { brain: "claude", engine: "mock" },
-  thresholds: { structure_ok: LOW_STRUCTURE_SCORE },
-  internal: {
-    layout_guide: {
-      id: "scene3d", label: "Layout guide", kind: "engine", available: true, logged_in: null, version: null,
-      detail: "Places each table exactly before the photo edit.",
-    },
-  },
-};
 
 let state: DB | null = null;
 
@@ -485,6 +435,7 @@ if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_VV_MOCK === "1") {
       },
       waiting: (name: GateName) => gates.get(name)?.waiting ?? 0,
       failNext: (name: GateName, message: string) => failNext.set(name, message),
+      ...system.systemHooks,
     },
   });
 }
@@ -823,20 +774,51 @@ function requireLook(id: string) {
 }
 
 function engineAvailable(id: string | undefined) {
+  const backends = system.currentBackends();
   if (!id) {
-    if (!BACKENDS.defaults.engine) throw new ApiError(409, "No image engine is available.");
-    return BACKENDS.defaults.engine;
+    if (!backends.defaults.engine) throw new ApiError(409, "No image engine is available.");
+    return backends.defaults.engine;
   }
-  const engine = BACKENDS.engines.find((e) => e.id === id);
+  const engine = backends.engines.find((e) => e.id === id);
   if (!engine) throw new ApiError(400, `Unknown engine “${id}”.`);
-  if (!engine.available) throw new ApiError(409, `${engine.label} isn't available: ${engine.detail ?? "not detected"}`);
+  if (!engine.available || engine.logged_in === false) {
+    throw new ApiError(409, `${engine.label} isn't available: ${engine.detail ?? "not detected"}`);
+  }
   return id;
 }
 
 export const mockApi: VVApi = {
   async backends() {
     await latency();
-    return clone(BACKENDS);
+    return system.currentBackends();
+  },
+  async refreshBackends() {
+    await sleep(500 + Math.random() * 300);
+    return system.refreshBackends();
+  },
+  async testBackend(kind, id, { confirm_credits }) {
+    await sleep(700 + Math.random() * 400);
+    return system.testBackend(kind, id, confirm_credits === true);
+  },
+  async getSettings() {
+    await latency();
+    return system.getSettings();
+  },
+  async updateSettings(body) {
+    await latency();
+    return system.updateSettings(body);
+  },
+  async setupStatus() {
+    await latency();
+    return system.setupStatus();
+  },
+  async lanInfo() {
+    await latency();
+    return system.lanInfo();
+  },
+  async pairDevice(code) {
+    await latency();
+    system.pairDevice(code);
   },
   async listVenues() {
     await latency();
@@ -926,7 +908,7 @@ export const mockApi: VVApi = {
       throw new ApiError(422, "That photo isn't one of this space's references.");
     }
     const engineId = engineAvailable(engine);
-    const info = BACKENDS.engines.find((e) => e.id === engineId);
+    const info = system.currentBackends().engines.find((e) => e.id === engineId);
     // Same check as the API: only engines that take reference images can work from a reference photo.
     if (reference_url && (info?.caps?.max_refs ?? 0) < 1) {
       throw new ApiError(422, `${info?.label ?? engineId} can't use a reference photo; pick Copilot, Codex or mflux.`);
@@ -1070,7 +1052,8 @@ export const mockApi: VVApi = {
   async research({ query, brain }) {
     await latency();
     if (!query.trim()) throw new ApiError(422, "Type the venue's name, and the room and city if you know them.");
-    const b = BACKENDS.brains.find((x) => x.id === (brain ?? BACKENDS.defaults.brain));
+    const backends = system.currentBackends();
+    const b = backends.brains.find((x) => x.id === (brain ?? backends.defaults.brain));
     if (!b) throw new ApiError(400, `Unknown brain “${brain}”.`);
     if (!b.available || b.logged_in === false) throw new ApiError(409, `${b.label} isn't ready: ${b.detail ?? "not detected"}`);
     if (!canBrowse(b)) throw new ApiError(409, `${b.label} can't search the web.`);

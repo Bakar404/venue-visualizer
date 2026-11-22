@@ -3,6 +3,7 @@
 import { StatusDot } from "@/components/backend-status";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { isUsable } from "@/lib/backends";
 import type { BackendStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +19,12 @@ type Props = {
   unusableReason?: string;
 };
 
-/** Engine or brain choice. Unavailable backends stay listed, disabled, with the API's `detail` as a tooltip. */
-export function BackendPicker({ kind, options, value, onChange, className, usable, unusableReason }: Props) {
+/**
+ * Engine or brain choice. Only ready backends are listed (setup explains the rest); a ready one that can't do this
+ * particular job (`usable`) stays listed, disabled, with `unusableReason` as a tooltip.
+ */
+export function BackendPicker({ kind, options: all, value, onChange, className, usable, unusableReason }: Props) {
+  const options = all?.filter(isUsable);
   const items = (options ?? []).map((b) => ({ value: b.id, label: b.label }));
   if (value !== null && !items.some((i) => i.value === value)) items.push({ value, label: value });
   const label = kind === "engine" ? "Engine" : "Brain";
@@ -34,8 +39,8 @@ export function BackendPicker({ kind, options, value, onChange, className, usabl
         <SelectGroup>
           <SelectLabel>{kind === "engine" ? "Photo engines on this machine" : "Brains on this machine"}</SelectLabel>
           {(options ?? []).map((b) => {
-            const disabled = !b.available || (usable ? !usable(b) : false);
-            const reason = !b.available ? (b.detail ?? "Not detected on this machine.") : unusableReason;
+            const disabled = usable ? !usable(b) : false;
+            const reason = unusableReason;
             if (!disabled) {
               return (
                 <SelectItem key={b.id} value={b.id}>
