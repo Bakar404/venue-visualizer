@@ -1,5 +1,6 @@
 import { GlobeIcon } from "lucide-react";
 
+import { safeHttpUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
 
 type Credited = { credit?: string | null; source_url?: string | null };
@@ -19,8 +20,9 @@ export function hostOf(url: string): string {
 export function PhotoCredit({ photo, asLink = true, className }: { photo: Credited; asLink?: boolean; className?: string }) {
   if (!photo.credit && !photo.source_url) return null;
   const label = photo.credit ?? hostOf(photo.source_url!);
+  const href = safeHttpUrl(photo.source_url);
   const chip = "inline-flex max-w-full items-center gap-1 truncate rounded-full bg-black/55 px-2 py-0.5 text-[11px] leading-4 text-white backdrop-blur-sm";
-  if (!asLink || !photo.source_url) {
+  if (!asLink || !href) {
     return (
       <span className={cn(chip, className)} title={photo.source_url ? `Source: ${photo.source_url}` : undefined}>
         <GlobeIcon aria-hidden className="size-3 shrink-0" />
@@ -33,7 +35,7 @@ export function PhotoCredit({ photo, asLink = true, className }: { photo: Credit
   }
   return (
     <a
-      href={photo.source_url}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className={cn(

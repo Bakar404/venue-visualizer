@@ -37,8 +37,10 @@ function subscribe(l: () => void) {
 }
 
 type PreferencesValue = {
-  engine: string;
-  brain: string;
+  /** Null while backends load, or when no usable engine exists. Never falls back to "mock". */
+  engine: string | null;
+  /** Null while backends load, or when no brain is available. */
+  brain: string | null;
   setEngine: (id: string) => void;
   setBrain: (id: string) => void;
 };
@@ -51,15 +53,17 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const { data } = useBackends();
 
   const engine = useMemo(() => {
-    const available = data?.engines.filter((e) => e.available).map((e) => e.id) ?? [];
-    if (stored.engine && (!data || available.includes(stored.engine))) return stored.engine;
-    return data?.defaults.engine ?? "mock";
+    if (!data) return null;
+    const available = data.engines.filter((e) => e.available).map((e) => e.id);
+    if (stored.engine && available.includes(stored.engine)) return stored.engine;
+    return data.defaults.engine && available.includes(data.defaults.engine) ? data.defaults.engine : null;
   }, [data, stored.engine]);
 
   const brain = useMemo(() => {
-    const available = data?.brains.filter((b) => b.available).map((b) => b.id) ?? [];
-    if (stored.brain && (!data || available.includes(stored.brain))) return stored.brain;
-    return data?.defaults.brain ?? "mock";
+    if (!data) return null;
+    const available = data.brains.filter((b) => b.available).map((b) => b.id);
+    if (stored.brain && available.includes(stored.brain)) return stored.brain;
+    return available.includes(data.defaults.brain) ? data.defaults.brain : (available[0] ?? null);
   }, [data, stored.brain]);
 
   const setEngine = useCallback((id: string) => write({ ...read(), engine: id }), []);

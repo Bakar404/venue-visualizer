@@ -5,6 +5,7 @@
  * research and video tours take about 3 s. Everything lives in browser memory and resets on reload.
  */
 import { ApiError } from "@/lib/errors";
+import { venueSpecFromResearch } from "@/lib/import-payload";
 import { buildPrompt, mockBrain } from "@/lib/mock-brain";
 import { buildTextPdf } from "@/lib/mock-pdf";
 import { SAMPLE_SIZE, SAMPLES, type SampleLook, type SampleScene } from "@/lib/samples";
@@ -703,7 +704,10 @@ function requireLook(id: string) {
 }
 
 function engineAvailable(id: string | undefined) {
-  if (!id) return BACKENDS.defaults.engine;
+  if (!id) {
+    if (!BACKENDS.defaults.engine) throw new ApiError(409, "No image engine is available.");
+    return BACKENDS.defaults.engine;
+  }
   const engine = BACKENDS.engines.find((e) => e.id === id);
   if (!engine) throw new ApiError(400, `Unknown engine “${id}”.`);
   if (!engine.available) throw new ApiError(409, `${engine.label} isn't available: ${engine.detail ?? "not detected"}`);
@@ -820,7 +824,14 @@ export const mockApi: VVApi = {
     history.push({ id: uid(), role: "user", content: message, created_at: now() });
     history.push({ id: uid(), role: "assistant", content: reply, created_at: now() });
     db().chat.set(spaceId, history);
-    return { reply, spec: ruled.spec, warnings: ruled.warnings, ambiguities: result.ambiguities, brain: brain ?? "mock" };
+    return {
+      reply,
+      spec: ruled.spec,
+      warnings: ruled.warnings,
+      rule_notes: ruled.warnings.map((w) => `${w.message} ${w.fix}`),
+      ambiguities: result.ambiguities,
+      brain: brain ?? "mock",
+    };
   },
   async chatHistory(spaceId) {
     await latency();
@@ -928,26 +939,37 @@ export const mockApi: VVApi = {
     await sleep(600);
     const research = db().research.get(body.research_job_id) ?? notFound("Research");
     const match = research.matches[body.match_index] ?? notFound("Match");
-    if (!body.name.trim()) throw new ApiError(422, "A venue needs a name.");
-    if (body.spaces.length === 0) throw new ApiError(422, "Pick at least one space to import.");
-    const importing = body.photos.filter((p) => p.mode === "import");
-    if (importing.length > 0 && !body.rights_confirmed) {
+    const suggested = new Map((match.spaces ?? []).map((s) => [s.name, s]));
+    if (body.space_names.length === 0) throw new ApiError(422, "Pick at least one space to import.");
+    if (new Set(body.space_names).size !== body.space_names.length) throw new ApiError(422, "Space names must be unique.");
+    const unknownSpace = body.space_names.find((n) => !suggested.has(n));
+    if (unknownSpace) throw new ApiError(422, `“${unknownSpace}” isn't one of the suggested spaces.`);
+    const unknownItem = body.accepted_provided_items.find((i) => !(match.provided_items ?? []).includes(i));
+    if (unknownItem) throw new ApiError(422, `“${unknownItem}” isn't one of the suggested provided items.`);
+    if (body.photos.some((p) => p.mode === "import" && !p.rights_confirmed)) {
       throw new ApiError(422, "Confirm you're using these photos for personal planning before importing them.");
     }
-    const rules: VenueRules = { ...defaultRules(), provided_items: body.provided_items };
+    const rules: VenueRules = { ...defaultRules(), provided_items: [...body.accepted_provided_items] };
     const sourced: string[] = [];
-    for (const r of body.accepted_rules) {
-      if (r.maps_to && r.allowed !== null) rules[r.maps_to] = r.allowed;
-      sourced.push(`${r.text} (${r.source})`);
+    for (const key of body.accepted_rules) {
+      const found = (match.rules_found ?? []).filter((r) => r.maps_to === key && r.allowed !== null);
+      const values = new Set(found.map((r) => r.allowed));
+      if (values.size !== 1) throw new ApiError(422, `The published rules for ${key} are ambiguous.`);
+      rules[key] = found[0].allowed as boolean;
+      sourced.push(...found.map((r) => `${r.text} (${r.source})`));
     }
     if (sourced.length) rules.notes = `From the venue's published policies:\n${sourced.join("\n")}`;
-    const venue: VenueRow = { id: uid(), name: body.name.trim(), rules, created_at: now() };
+    const venue: VenueRow = { id: uid(), name: match.name, rules, created_at: now() };
     db().venues.set(venue.id, venue);
-    const known = new Set((match.spaces ?? []).flatMap((s) => (s.photos ?? []).map((p) => p.url)));
-    for (const sp of body.spaces) {
-      const space: SpaceRow = { id: uid(), venue_id: venue.id, name: sp.name.trim() || sp.source_name, venue_spec: clone(sp.venue_spec), current_spec: null };
+    const byUrl = new Map(body.photos.map((p) => [p.url, p]));
+    for (const name of body.space_names) {
+      const source = suggested.get(name)!;
+      const space: SpaceRow = { id: uid(), venue_id: venue.id, name, venue_spec: venueSpecFromResearch(source, match.style), current_spec: null };
       db().spaces.set(space.id, space);
-      const mine = body.photos.filter((p) => p.space === sp.source_name && known.has(p.url));
+      const mine = (source.photos ?? []).flatMap((p) => {
+        const picked = byUrl.get(p.url);
+        return picked ? [{ ...p, mode: picked.mode }] : [];
+      });
       for (const p of mine.filter((x) => x.mode === "import")) {
         const sample = (Object.keys(SAMPLES) as SampleScene[]).find((k) => SAMPLES[k].empty === p.url) ?? null;
         const id = uid();
@@ -960,7 +982,7 @@ export const mockApi: VVApi = {
       // Reference-only spaces get a base view drawn from the real photos, waiting for approval.
       if (mine.length > 0 && mine.every((x) => x.mode === "reference")) {
         const ref = mine[0];
-        const sample = (Object.keys(SAMPLES) as SampleScene[]).find((k) => SAMPLES[k].empty === ref.url) ?? sceneForStyle(sp.venue_spec.style);
+        const sample = (Object.keys(SAMPLES) as SampleScene[]).find((k) => SAMPLES[k].empty === ref.url) ?? sceneForStyle(space.venue_spec.style);
         const id = uid();
         db().photos.set(id, {
           id, space_id: space.id, url: SAMPLES[sample].empty, kind: "generated_base", approved: false, sample, created_at: now(), ...SAMPLE_SIZE,
@@ -969,7 +991,8 @@ export const mockApi: VVApi = {
     }
     return venueOut(venue);
   },
-  async uploadVideo(venueId, file, onProgress, signal) {
+  async uploadVideo(venueId, file, { onProgress, signal } = {}) {
+    if (signal?.aborted) throw new DOMException("Upload cancelled", "AbortError");
     requireVenue(venueId);
     if (!VIDEO_TYPES.test(file.type) && !VIDEO_EXT.test(file.name)) {
       throw new ApiError(415, `${file.name} isn't an MP4, MOV, WebM or HEVC video.`);
@@ -1034,6 +1057,17 @@ export const mockApi: VVApi = {
     await sleep(60);
     await tick();
     const row = db().jobs.get(id) ?? notFound("Job");
+    return clone(row.job);
+  },
+  async cancelJob(id) {
+    await latency();
+    const row = db().jobs.get(id) ?? notFound("Job");
+    if (!row.finalized && (row.job.status === "queued" || row.job.status === "running")) {
+      row.finalized = true;
+      row.job = { ...row.job, status: "cancelled", message: null };
+      const render = row.renderId ? db().renders.get(row.renderId) : undefined;
+      if (render) render.status = "cancelled";
+    }
     return clone(row.job);
   },
   async listJobs(spaceId) {

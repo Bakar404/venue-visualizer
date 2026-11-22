@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layoutTables, tableDimensions } from "./layout";
+import { layoutBounds, layoutTables, tableDimensions } from "./layout";
 import type { DesignSpec, FloorPlacement } from "./types";
 
 const spec: DesignSpec = {
@@ -100,11 +100,60 @@ describe("layoutTables", () => {
     }
   });
 
-  it("warns when reserved decor cannot fit and rejects invalid dimensions", () => {
+  it("warns when reserved decor cannot fit", () => {
     const layout = layoutTables({ ...spec, extras: ["dance floor", "head table"] }, { length_ft: 10, width_ft: 10 });
     expect(layout.warnings.join(" ")).toContain("Reserved decor");
     expect(layout.warnings.join(" ")).toContain("overlap");
-    expect(() => layoutTables(spec, { length_ft: NaN })).toThrow(RangeError);
-    expect(() => layoutTables({ ...spec, tables: { count: -1, shape: "round" } })).toThrow(RangeError);
+    expect(layout.overflow).toBe(true);
+  });
+
+  it("clamps invalid input instead of throwing", () => {
+    const nanRoom = layoutTables(spec, { length_ft: NaN, width_ft: -5, ceiling_ft: 5000 });
+    expect(Number.isFinite(nanRoom.room.lengthFt) && nanRoom.room.lengthFt > 0).toBe(true);
+    expect(nanRoom.room.widthFt).toBeGreaterThan(0);
+    expect(nanRoom.room.ceilingFt).toBe(1000);
+    expect(nanRoom.warnings.join(" ")).toContain("venue.length_ft");
+
+    expect(layoutTables({ ...spec, tables: { count: -1, shape: "round" } }).tables).toEqual([]);
+    expect(layoutTables({ ...spec, tables: { count: 1000, shape: "round" } }).tables).toHaveLength(300);
+    expect(layoutTables({ ...spec, tables: { count: 2.6, shape: "round" } }).tables).toHaveLength(3);
+
+    const seats = layoutTables({ ...spec, tables: { count: 1, shape: "round", seats: 99 } });
+    expect(seats.tables[0].chairs).toHaveLength(24);
+    expect(seats.warnings.join(" ")).toContain("tables.seats");
+
+    const huge = layoutTables({ ...spec, tables: { count: 1, shape: "round", size_in: 9999 } });
+    expect(huge.tables[0]).toMatchObject({ diameterFt: 10 });
+  });
+
+  it("flags only real overflow", () => {
+    expect(layoutTables(spec).overflow).toBe(false);
+    expect(layoutTables(spec, { length_ft: 5, width_ft: 5 }).overflow).toBe(true);
+  });
+});
+
+describe("layoutBounds", () => {
+  it("is the room when everything fits", () => {
+    const layout = layoutTables(spec, { length_ft: 80, width_ft: 60 });
+    expect(layoutBounds(layout)).toEqual({ minX: -30, maxX: 30, minZ: -40, maxZ: 40 });
+  });
+
+  it("includes tables and chairs placed outside the room", () => {
+    const layout = layoutTables(spec, { length_ft: 5, width_ft: 5 });
+    const bounds = layoutBounds(layout);
+    const farthest = Math.max(...layout.tables.flatMap(t => t.chairs.map(c => c.z)));
+    expect(bounds.maxZ).toBeGreaterThanOrEqual(farthest + 0.9);
+    expect(bounds.maxZ).toBeGreaterThan(2.5);
+    for (const t of layout.tables) {
+      expect(t.x).toBeGreaterThanOrEqual(bounds.minX);
+      expect(t.x).toBeLessThanOrEqual(bounds.maxX);
+    }
+  });
+
+  it("includes an oversized dance floor and head table", () => {
+    const layout = layoutTables({ ...spec, tables: { count: 0, shape: "round" }, extras: ["dance floor", "head table"] }, { length_ft: 10, width_ft: 10 });
+    const bounds = layoutBounds(layout);
+    expect(bounds.maxX - bounds.minX).toBeGreaterThanOrEqual(layout.danceFloor!.widthFt);
+    expect(bounds.maxX - bounds.minX).toBeGreaterThanOrEqual(layout.headTable!.widthFt);
   });
 });

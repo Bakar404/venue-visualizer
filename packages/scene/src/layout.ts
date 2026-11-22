@@ -4,6 +4,19 @@ import type {
 } from "./types";
 
 const CHAIR_REACH = 2.1;
+const MAX_ROOM_FT = 1000;
+
+/** Rounds into [min, max]; anything non-numeric becomes `fallback`. */
+function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+/** A usable room dimension in feet, or `fallback` when missing or invalid. */
+function roomDimension(value: number | null | undefined, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return fallback;
+  return Math.min(MAX_ROOM_FT, value);
+}
 
 export function tableDimensions(table: TablePlacement): { width: number; length: number } {
   return "diameterFt" in table
@@ -36,9 +49,13 @@ function chairsFor(table: TablePlacement, seats: number): ChairPlacement[] {
   });
 }
 
+const SHAPES = new Set(["round", "banquet", "square", "oval", "cocktail", "mixed"]);
+
 function makeTable(spec: DesignSpec, index: number): TablePlacement {
-  const shape = spec.tables.shape === "mixed" ? (index % 2 ? "banquet" : "round") : spec.tables.shape;
-  const size = (spec.tables.size_in ?? (shape === "banquet" || shape === "oval" ? 96 : 60)) / 12;
+  const requested = SHAPES.has(spec.tables.shape) ? spec.tables.shape : "round";
+  const shape = requested === "mixed" ? (index % 2 ? "banquet" : "round") : requested;
+  const fallback = shape === "banquet" || shape === "oval" ? 96 : 60;
+  const size = (spec.tables.size_in == null ? fallback : clampInt(spec.tables.size_in, 24, 120, fallback)) / 12;
   if (shape === "round" || shape === "cocktail") {
     return { x: 0, z: 0, shape, diameterFt: size, chairs: [] };
   }
@@ -78,24 +95,33 @@ function grid(
   return positions;
 }
 
-/** Feet, with x across the room, z along its length, and the far wall at negative z. */
+/**
+ * Feet, with x across the room, z along its length, and the far wall at negative z.
+ * Out-of-range input is clamped to the schema's bounds (never thrown), so a bad spec still draws.
+ */
 export function layoutTables(spec: DesignSpec, venue?: VenueSpec): Layout {
-  const count = spec.tables.count;
-  if (!Number.isInteger(count) || count < 0 || count > 300) throw new RangeError("tables.count must be 0..300");
-  const seats = spec.tables.seats ?? (spec.tables.shape === "cocktail" ? 2 : 8);
-  if (!Number.isInteger(seats) || seats < 1 || seats > 24) throw new RangeError("tables.seats must be 1..24");
-  const guests = spec.guest_count ?? count * seats;
+  const warnings: string[] = [];
+  const count = clampInt(spec.tables?.count, 0, 300, 0);
+  if (count !== spec.tables?.count) warnings.push(`tables.count must be 0..300; using ${count}.`);
+  const defaultSeats = spec.tables?.shape === "cocktail" ? 2 : 8;
+  const seats = spec.tables?.seats == null ? defaultSeats : clampInt(spec.tables.seats, 1, 24, defaultSeats);
+  if (spec.tables?.seats != null && seats !== spec.tables.seats) warnings.push(`tables.seats must be 1..24; using ${seats}.`);
+  const guestCount = spec.guest_count;
+  const guests = typeof guestCount === "number" && Number.isFinite(guestCount) && guestCount > 0 ? Math.min(guestCount, 2000) : count * seats;
   const area = Math.max(1200, guests * 12);
   const room = {
-    lengthFt: venue?.length_ft ?? Math.max(40, Math.sqrt(area * 4 / 3)),
-    widthFt: venue?.width_ft ?? Math.max(30, Math.sqrt(area * 3 / 4)),
-    ceilingFt: venue?.ceiling_ft ?? 12,
+    lengthFt: roomDimension(venue?.length_ft, Math.max(40, Math.sqrt(area * 4 / 3))),
+    widthFt: roomDimension(venue?.width_ft, Math.max(30, Math.sqrt(area * 3 / 4))),
+    ceilingFt: roomDimension(venue?.ceiling_ft, 12),
   };
-  if (Object.values(room).some(value => !Number.isFinite(value) || value <= 0)) {
-    throw new RangeError("Room dimensions must be positive finite numbers");
+  for (const key of ["length_ft", "width_ft", "ceiling_ft"] as const) {
+    const value = venue?.[key];
+    if (value != null && !(Number.isFinite(value) && value > 0 && value <= MAX_ROOM_FT)) {
+      warnings.push(`venue.${key} must be a positive number up to ${MAX_ROOM_FT}; using a fallback.`);
+    }
   }
-  const warnings: string[] = [];
-  const extras = spec.extras.join(" ").toLowerCase();
+  let overflow = false;
+  const extras = (Array.isArray(spec.extras) ? spec.extras : []).filter(e => typeof e === "string").join(" ").toLowerCase();
   const danceSize = Math.max(12, Math.sqrt(guests * 1.5));
   const danceFloor: FloorPlacement | null = /dance[\s-]+floor/.test(extras)
     ? { x: 0, z: 0, lengthFt: danceSize, widthFt: danceSize } : null;
@@ -118,13 +144,14 @@ export function layoutTables(spec: DesignSpec, venue?: VenueSpec): Layout {
     if (Math.abs(obstacle.x) + obstacle.widthFt / 2 > room.widthFt / 2
       || Math.abs(obstacle.z) + obstacle.lengthFt / 2 > room.lengthFt / 2) {
       warnings.push("Reserved decor extends beyond the room; increase the venue dimensions.");
+      overflow = true;
     }
   }
   if (obstacles.length === 2 && intersects(obstacles[0], obstacles[1], 0)) {
     warnings.push("The dance floor and head table overlap in this room.");
   }
   const tables = Array.from({ length: count }, (_, i) => makeTable(spec, i));
-  if (count === 0) return { tables, danceFloor, headTable, room, warnings };
+  if (count === 0) return { tables, danceFloor, headTable, room, warnings, overflow };
   const cellWidth = Math.max(...tables.map(table => tableDimensions(table).width)) + CHAIR_REACH * 2;
   const cellLength = Math.max(...tables.map(table => tableDimensions(table).length)) + CHAIR_REACH * 2;
   let positions: { x: number; z: number }[] = [];
@@ -137,6 +164,7 @@ export function layoutTables(spec: DesignSpec, venue?: VenueSpec): Layout {
   if (positions.length < count) {
     // Never silently drop tables or shrink their geometry when the request is physically impossible.
     warnings.push(`${count} tables don't fit even without walkways; overflow tables are outside the room.`);
+    overflow = true;
     const columns = Math.max(1, Math.floor(room.widthFt / cellWidth));
     for (let i = 0; positions.length < count; i++) {
       const x = (i % columns - (columns - 1) / 2) * (cellWidth + 5);
@@ -151,5 +179,35 @@ export function layoutTables(spec: DesignSpec, venue?: VenueSpec): Layout {
     Object.assign(table, positions[index]);
     table.chairs = chairsFor(table, seats);
   });
-  return { tables, danceFloor, headTable, room, warnings };
+  return { tables, danceFloor, headTable, room, warnings, overflow };
+}
+
+export interface Bounds {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+/** Floor-plan box around the room and everything placed in (or spilling out of) it, chairs included. */
+export function layoutBounds(layout: Layout): Bounds {
+  const b: Bounds = {
+    minX: -layout.room.widthFt / 2, maxX: layout.room.widthFt / 2,
+    minZ: -layout.room.lengthFt / 2, maxZ: layout.room.lengthFt / 2,
+  };
+  const add = (x: number, z: number, halfWidth: number, halfLength: number) => {
+    b.minX = Math.min(b.minX, x - halfWidth);
+    b.maxX = Math.max(b.maxX, x + halfWidth);
+    b.minZ = Math.min(b.minZ, z - halfLength);
+    b.maxZ = Math.max(b.maxZ, z + halfLength);
+  };
+  const tables: TablePlacement[] = [...layout.tables, ...(layout.headTable ? [layout.headTable] : [])];
+  for (const table of tables) {
+    const { width, length } = tableDimensions(table);
+    add(table.x, table.z, width / 2, length / 2);
+    // Chairs sit about 1.2ft out; their seat reaches a little further.
+    for (const chair of table.chairs) add(chair.x, chair.z, 0.9, 0.9);
+  }
+  if (layout.danceFloor) add(layout.danceFloor.x, layout.danceFloor.z, layout.danceFloor.widthFt / 2, layout.danceFloor.lengthFt / 2);
+  return b;
 }

@@ -15,7 +15,7 @@ import { labelForPointer } from "@/lib/spec";
 import type { ChatMessage, DesignSpec, RuleWarning } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Meta = { warnings: RuleWarning[]; ambiguities: string[] };
+type Meta = { notes: string[]; warnings: RuleWarning[]; ambiguities: string[] };
 
 const STARTERS = [
   "Blush and gold for 120 guests on round tables",
@@ -37,11 +37,22 @@ export function WarningCallout({ warning, className }: { warning: RuleWarning; c
   );
 }
 
+/** A plain-language rule note from the brain (`rule_notes`), styled like a rule warning. */
+export function RuleNoteCallout({ note, className }: { note: string; className?: string }) {
+  return (
+    <div role="note" className={cn("flex gap-2.5 rounded-lg border border-warning-border bg-warning px-3 py-2 text-sm text-warning-foreground", className)}>
+      <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
+      <p className="min-w-0">{note}</p>
+    </div>
+  );
+}
+
 type Props = {
   spaceId: string;
   spec: DesignSpec;
-  onSpec: (spec: DesignSpec) => void;
-  brain: string;
+  /** `sent` is the spec the request was made with, so the caller can tell if the draft changed meanwhile. */
+  onSpec: (spec: DesignSpec, sent: DesignSpec) => void;
+  brain: string | null;
   onBrain: (id: string) => void;
 };
 
@@ -56,17 +67,18 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const send = useMutation({
-    mutationFn: (message: string) => api.chat(spaceId, { message, spec, brain }),
-    onMutate: (message) => setPendingText(message),
-    onSuccess: (res, message) => {
+    mutationFn: ({ message, sent }: { message: string; sent: DesignSpec }) =>
+      api.chat(spaceId, { message, spec: sent, brain: brain ?? undefined }),
+    onMutate: ({ message }) => setPendingText(message),
+    onSuccess: (res, { message, sent }) => {
       const stamp = new Date().toISOString();
       const user: ChatMessage = { id: crypto.randomUUID(), role: "user", content: message, created_at: stamp };
       const reply: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: res.reply, created_at: stamp };
       qc.setQueryData<ChatMessage[]>(qk.chat(spaceId), (old) => [...(old ?? []), user, reply]);
-      setMeta((m) => ({ ...m, [reply.id]: { warnings: res.warnings, ambiguities: res.ambiguities } }));
-      onSpec(res.spec);
+      setMeta((m) => ({ ...m, [reply.id]: { notes: res.rule_notes ?? [], warnings: res.warnings, ambiguities: res.ambiguities } }));
+      onSpec(res.spec, sent);
     },
-    onError: (e, message) => {
+    onError: (e, { message }) => {
       setDraft(message);
       toast.error("The brain didn't answer", { description: errorMessage(e) });
     },
@@ -86,7 +98,7 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain }: Props) {
     const message = text.trim();
     if (!message || send.isPending) return;
     setDraft("");
-    send.mutate(message);
+    send.mutate({ message, sent: spec });
   };
 
   return (
@@ -140,7 +152,9 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain }: Props) {
                     <span className="sr-only">{m.role === "user" ? "You: " : "Assistant: "}</span>
                     {m.content}
                   </p>
-                  {info?.warnings.map((w) => <WarningCallout key={`${w.rule}${w.field}`} warning={w} className="max-w-[92%]" />)}
+                  {info && info.notes.length > 0
+                    ? info.notes.map((n) => <RuleNoteCallout key={n} note={n} className="max-w-[92%]" />)
+                    : info?.warnings.map((w) => <WarningCallout key={`${w.rule}${w.field}`} warning={w} className="max-w-[92%]" />)}
                   {isLast && info && info.ambiguities.length > 0 && !send.isPending && (
                     <div className="flex flex-wrap gap-1.5" role="group" aria-label="Suggested replies">
                       {info.ambiguities.map((a) => (

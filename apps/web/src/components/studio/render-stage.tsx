@@ -5,11 +5,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 
 import { CompareSlider } from "@/components/compare-slider";
+import { JobOverdueNotice } from "@/components/job-overdue";
 import { PhotoCredit } from "@/components/photo-credit";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { isActive, useJob, useRenderJobId } from "@/lib/jobs";
+import { isActive, useJob, useJobOverdue, useRenderJobId } from "@/lib/jobs";
 import { LOW_STRUCTURE_SCORE, progressFraction } from "@/lib/spec";
 import type { Look, Photo, Render } from "@/lib/types";
 
@@ -20,14 +21,18 @@ type Props = {
   render: Render | undefined;
   onRegenerate: () => void;
   regenerating: boolean;
+  /** E.g. no image engine available. */
+  regenerateDisabled?: boolean;
   /** Extra controls rendered under the image (engine picker etc.). */
   toolbar?: React.ReactNode;
 };
 
-export function RenderStage({ photo, photoLabel, look, render, onRegenerate, regenerating, toolbar }: Props) {
+export function RenderStage({ photo, photoLabel, look, render, onRegenerate, regenerating, regenerateDisabled, toolbar }: Props) {
   const jobId = useRenderJobId(render?.id);
   const job = useJob(jobId);
-  const status = job.data && isActive(job.data.status) ? job.data.status : render?.status;
+  // The job settles before the Look refetches; trust it over a stale "queued/running" render row.
+  const status = job.data && (isActive(job.data.status) || isActive(render?.status)) ? job.data.status : render?.status;
+  const overdue = useJobOverdue(job.data);
   const progress = job.data && isActive(job.data.status) ? progressFraction(job.data.progress) : status === "running" ? null : 0;
   const busy = status === "queued" || status === "running";
   const done = status === "done" && render?.url;
@@ -45,7 +50,9 @@ export function RenderStage({ photo, photoLabel, look, render, onRegenerate, reg
             ? `${photoLabel} rendered.${lowScore ? " It may have altered the room." : ""}`
             : status === "failed"
               ? `Render of ${photoLabel} failed. ${render.error ?? ""}`
-              : "";
+              : status === "cancelled"
+                ? `Render of ${photoLabel} was cancelled.`
+                : "";
 
   return (
     <div className="flex flex-col gap-3">
@@ -83,10 +90,11 @@ export function RenderStage({ photo, photoLabel, look, render, onRegenerate, reg
                     )}
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">{render?.engine ? `Engine: ${render.engine}` : null}</p>
+                  {overdue && job.data && <JobOverdueNotice job={job.data} className="mt-3" />}
                 </div>
               </motion.div>
             )}
-            {status === "failed" && (
+            {(status === "failed" || status === "cancelled") && (
               <motion.div
                 key="failed"
                 initial={{ opacity: 0 }}
@@ -96,9 +104,17 @@ export function RenderStage({ photo, photoLabel, look, render, onRegenerate, reg
                 className="absolute inset-0 z-30 flex items-end bg-background/40 p-4 backdrop-blur-[2px] sm:p-6"
               >
                 <div role="alert" className="w-full max-w-md rounded-xl bg-background/95 p-4 shadow-lg ring-1 ring-destructive/30">
-                  <p className="text-sm font-medium text-destructive">This render failed</p>
-                  <p className="mt-1 text-sm text-pretty text-muted-foreground">{render?.error ?? job.data?.error ?? "The engine returned an error."}</p>
-                  <Button size="sm" variant="outline" className="mt-3" onClick={onRegenerate} disabled={regenerating}>
+                  {status === "cancelled" ? (
+                    <p className="text-sm font-medium">This render was cancelled</p>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-destructive">This render failed</p>
+                      <p className="mt-1 text-sm text-pretty text-muted-foreground">
+                        {render?.error ?? job.data?.error ?? "The engine returned an error."}
+                      </p>
+                    </>
+                  )}
+                  <Button size="sm" variant="outline" className="mt-3" onClick={onRegenerate} disabled={regenerating || regenerateDisabled}>
                     <RefreshCwIcon />
                     Try again
                   </Button>
@@ -133,7 +149,7 @@ export function RenderStage({ photo, photoLabel, look, render, onRegenerate, reg
       <div className="flex flex-wrap items-center gap-2">
         {toolbar}
         <PhotoCredit photo={photo} className="bg-muted text-muted-foreground backdrop-blur-none hover:bg-accent hover:text-foreground" />
-        <Button variant="outline" size="sm" className="ml-auto" onClick={onRegenerate} disabled={!look || busy || regenerating}>
+        <Button variant="outline" size="sm" className="ml-auto" onClick={onRegenerate} disabled={!look || busy || regenerating || regenerateDisabled}>
           <RefreshCwIcon />
           Regenerate this photo
         </Button>

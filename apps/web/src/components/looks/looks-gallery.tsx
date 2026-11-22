@@ -141,7 +141,7 @@ export function LooksGallery({ params }: { params: Promise<{ id: string }> }) {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h2 className="font-display truncate text-2xl leading-tight">
-                          <Link href={`/spaces/${id}?look=${look.id}`} className="rounded-sm after:absolute after:inset-0 after:content-[''] focus-visible:outline-none">
+                          <Link href={`/spaces/${id}?look=${look.id}&open=1`} className="rounded-sm after:absolute after:inset-0 after:content-[''] focus-visible:outline-none">
                             {look.name}
                           </Link>
                         </h2>

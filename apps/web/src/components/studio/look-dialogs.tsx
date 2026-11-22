@@ -35,7 +35,7 @@ function SaveForm({ suggestedName, onSave, pending }: { suggestedName: string; o
       className="grid gap-5"
       onSubmit={(e) => {
         e.preventDefault();
-        onSave(name.trim() || suggestedName);
+        if (!pending) onSave(name.trim() || suggestedName);
       }}
     >
       <DialogHeader>
@@ -89,7 +89,7 @@ function VariationForm({ baseName, onSubmit, pending, willRender }: { baseName: 
       className="grid gap-5"
       onSubmit={(e) => {
         e.preventDefault();
-        if (prompt.trim()) onSubmit(prompt.trim());
+        if (prompt.trim() && !pending) onSubmit(prompt.trim());
       }}
     >
       <DialogHeader>
@@ -110,7 +110,8 @@ function VariationForm({ baseName, onSubmit, pending, willRender }: { baseName: 
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
-              if (prompt.trim()) onSubmit(prompt.trim());
+              // Same guard as the disabled submit button: no second variation while one is in flight.
+              if (prompt.trim() && !pending) onSubmit(prompt.trim());
             }
           }}
           placeholder="Same layout, but in deep green and gold"

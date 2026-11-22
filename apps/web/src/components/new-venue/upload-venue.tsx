@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronDownIcon, ImagePlusIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,13 @@ export function UploadVenue() {
   const [spaces, setSpaces] = useState<DraftSpace[]>(() => [newSpace()]);
   const [submitted, setSubmitted] = useState(false);
   const [status, setStatus] = useState("");
+  const latest = useRef(spaces);
+
+  useEffect(() => {
+    latest.current = spaces;
+  }, [spaces]);
+  // Leaving the page (or finishing) must not leak the local previews.
+  useEffect(() => () => latest.current.forEach((s) => s.files.forEach((f) => URL.revokeObjectURL(f.url))), []);
 
   const errors = {
     name: !name.trim() ? "Give the venue a name." : null,

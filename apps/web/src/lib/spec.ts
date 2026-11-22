@@ -1,3 +1,4 @@
+import { stableStringify } from "@/lib/stable-json";
 import type { DesignSpec, RuleWarning, VenueRules } from "@/lib/types";
 
 export function defaultSpec(space = "ballroom"): DesignSpec {
@@ -179,7 +180,7 @@ export function suggestLookName(spec: DesignSpec): string {
 }
 
 export function specEquals(a: DesignSpec | null | undefined, b: DesignSpec | null | undefined) {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  return stableStringify(a) === stableStringify(b);
 }
 
 const FIELD_LABELS: Record<string, string> = {

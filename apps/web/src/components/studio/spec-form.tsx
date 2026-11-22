@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Controller, useForm, type FieldPath, type Resolver, type UseFormReturn } from "react-hook-form";
-import { z } from "zod";
 
 import { ChipsInput } from "@/components/chips-input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -13,50 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { SPEC_LIMITS, specFormSchema as schema, type NumericSpecField } from "@/lib/spec-schema";
 import type { DesignSpec, VenueRules } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const text = z.string().trim().max(120, "Keep it under 120 characters").nullable().optional();
-const required = (what: string) => z.string().trim().min(1, `Add a ${what}`).max(80);
-const count = (min: number, max: number) =>
-  z.number({ error: "Enter a number" }).int("Use a whole number").min(min, `At least ${min}`).max(max, `At most ${max}`);
-
-const schema = z.looseObject({
-  version: z.literal(1),
-  space: z.string(),
-  event_type: z.enum(["wedding", "corporate", "birthday", "gala", "shower", "other"]).optional(),
-  guest_count: count(1, 5000).nullable().optional(),
-  palette: z.array(z.string()).max(8, "Up to 8 colors"),
-  tables: z.object({
-    count: count(0, 500),
-    shape: z.enum(["round", "banquet", "square", "oval", "cocktail", "mixed"]),
-    size_in: z.number({ error: "Enter a number" }).positive("Must be positive").max(240).nullable().optional(),
-    seats: count(1, 40).nullable().optional(),
-  }),
-  linens: z.object({ color: required("linen color"), pattern: text, length: z.enum(["floor", "lap", "none"]).optional(), runner: text }),
-  napkins: z.object({ color: text, fold: text }).optional(),
-  chairs: z.object({ style: required("chair style"), color: required("chair color"), cushion: text, sash: text }),
-  centerpieces: z.object({
-    height: z.enum(["none", "low", "medium", "tall", "mixed"]),
-    flowers: z.array(z.string()).optional(),
-    colors: z.array(z.string()).optional(),
-    greenery: text,
-    container: text,
-    candles: z.enum(["none", "flameless", "live"]).optional(),
-  }),
-  lighting: z.object({
-    uplighting: text,
-    pin_spots: z.boolean().optional(),
-    string_lights: z.boolean().optional(),
-    ambient: z.enum(["daylight", "evening_warm", "dim", "colored"]).optional(),
-  }),
-  extras: z.array(z.string()),
-  effects: z.object({ fog: z.boolean().optional(), confetti: z.boolean().optional(), sparklers: z.boolean().optional() }).optional(),
-  install: z
-    .object({ uses_adhesives: z.boolean().optional(), uses_nails: z.boolean().optional(), ceiling_draping: z.boolean().optional() })
-    .optional(),
-  notes: z.string().max(2000).nullable().optional(),
-});
 
 type Form = UseFormReturn<DesignSpec>;
 type Path = FieldPath<DesignSpec>;
@@ -147,15 +105,19 @@ function TextField({ form, name, label, placeholder, className }: { form: Form; 
   );
 }
 
-function NumberField({ form, name, label, className }: { form: Form; name: Path; label: string; className?: string }) {
+function NumberField({ form, name, label, className }: { form: Form; name: NumericSpecField; label: string; className?: string }) {
   const id = `spec-${name.replace(/\./g, "-")}`;
   const error = errorFor(form, name);
+  const { min, max } = SPEC_LIMITS[name];
   return (
     <FieldShell form={form} name={name} label={label} className={className}>
       <Input
         id={id}
         type="number"
         inputMode="numeric"
+        min={min}
+        max={max}
+        step={1}
         className="tabular"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}

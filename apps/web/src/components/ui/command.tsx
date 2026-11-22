@@ -33,34 +33,51 @@ function Command({
   )
 }
 
+/**
+ * cmdk's default filter is a fuzzy subsequence match, which ranks loose matches ("rndr" in "Garden
+ * terrace") above obvious ones. Every typed word must appear in the item's value or keywords instead.
+ */
+function commandFilter(value: string, search: string, keywords?: string[]): number {
+  const words = search.toLowerCase().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return 1
+  const haystack = `${value} ${(keywords ?? []).join(" ")}`.toLowerCase()
+  if (!words.every((w) => haystack.includes(w))) return 0
+  return haystack.startsWith(words[0]) ? 1 : 0.5
+}
+
 function CommandDialog({
   title = "Command Palette",
   description = "Search for a command to run...",
   children,
   className,
   showCloseButton = false,
+  filter = commandFilter,
   ...props
 }: Omit<React.ComponentProps<typeof Dialog>, "children"> & {
   title?: string
   description?: string
   className?: string
   showCloseButton?: boolean
+  filter?: React.ComponentProps<typeof CommandPrimitive>["filter"]
   children: React.ReactNode
 }) {
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
       <DialogContent
         className={cn(
-          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
+          // Opened from the keyboard many times a day: no open/close animation.
+          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0 data-open:animate-none data-closed:animate-none",
           className
         )}
         showCloseButton={showCloseButton}
       >
-        {children}
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <Command label={title} filter={filter}>
+          {children}
+        </Command>
       </DialogContent>
     </Dialog>
   )
@@ -184,6 +201,7 @@ function CommandShortcut({
 }
 
 export {
+  commandFilter,
   Command,
   CommandDialog,
   CommandInput,

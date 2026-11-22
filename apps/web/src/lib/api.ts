@@ -53,13 +53,22 @@ function detailFrom(text: string, status: number, statusText: string): string {
 /** fetch() can't report upload progress, so large video uploads use XHR. */
 function uploadWithProgress<T>(path: string, form: FormData, onProgress?: (fraction: number) => void, signal?: AbortSignal): Promise<T> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Upload cancelled", "AbortError"));
+      return;
+    }
     const xhr = new XMLHttpRequest();
+    const onAbort = () => xhr.abort();
+    // Attach before sending so an abort that races the request start is never missed.
+    signal?.addEventListener("abort", onAbort, { once: true });
+    const done = () => signal?.removeEventListener("abort", onAbort);
     xhr.open("POST", path);
     xhr.setRequestHeader("Accept", "application/json");
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress?.(e.loaded / e.total);
     };
     xhr.onload = () => {
+      done();
       if (xhr.status >= 200 && xhr.status < 300) {
         onProgress?.(1);
         resolve((xhr.responseText ? JSON.parse(xhr.responseText) : undefined) as T);
@@ -67,9 +76,14 @@ function uploadWithProgress<T>(path: string, form: FormData, onProgress?: (fract
         reject(new ApiError(xhr.status, detailFrom(xhr.responseText, xhr.status, xhr.statusText)));
       }
     };
-    xhr.onerror = () => reject(new ApiError(0, "Can't reach the local API. Start it with `make dev`."));
-    xhr.onabort = () => reject(new DOMException("Upload cancelled", "AbortError"));
-    signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+    xhr.onerror = () => {
+      done();
+      reject(new ApiError(0, "Can't reach the local API. Start it with `make dev`."));
+    };
+    xhr.onabort = () => {
+      done();
+      reject(new DOMException("Upload cancelled", "AbortError"));
+    };
     xhr.send(form);
   });
 }
@@ -112,11 +126,13 @@ export const httpApi: VVApi = {
   regenerateRender: (id, body) =>
     request(`/api/renders/${enc(id)}/regenerate`, { method: "POST", ...json(body) }),
   getJob: (id) => request(`/api/jobs/${enc(id)}`),
+  cancelJob: (id) => request(`/api/jobs/${enc(id)}/cancel`, { method: "POST" }),
   research: (body) => request("/api/venues/research", { method: "POST", ...json(body) }),
   importVenue: (body) => request("/api/venues/import", { method: "POST", ...json(body) }),
-  uploadVideo: (venueId, file, onProgress, signal) => {
+  uploadVideo: (venueId, file, { brain, onProgress, signal } = {}) => {
     const form = new FormData();
     form.append("file", file, file.name);
+    if (brain) form.append("brain", brain);
     return uploadWithProgress<Job>(`/api/venues/${enc(venueId)}/video`, form, onProgress, signal);
   },
   applyVideo: (venueId, body) =>

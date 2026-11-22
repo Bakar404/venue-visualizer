@@ -38,7 +38,8 @@ export type Backends = {
   brains: BackendStatus[];
   /** User-facing photoreal engines, plus "mock" in dev. Internal helpers are never listed here. */
   engines: BackendStatus[];
-  defaults: { brain: string; engine: string };
+  /** `engine` is null when no public image engine is available (see docs/api.md). */
+  defaults: { brain: string; engine: string | null };
   /** Internal helpers the pipeline uses on its own; never offered as an output choice. */
   internal?: {
     layout_guide?: { available: boolean; detail?: string | null };
@@ -142,16 +143,17 @@ export type Job = {
 
 export type PhotoMode = "import" | "reference";
 
+/** `POST /api/venues/import`, exactly as docs/api.md describes it. */
 export type ImportVenueBody = {
   research_job_id: string;
   match_index: number;
-  name: string;
-  spaces: { name: string; source_name: string; venue_spec: VenueSpec }[];
-  accepted_rules: { text: string; maps_to: RuleKey | null; allowed: boolean | null; source: string }[];
-  provided_items: string[];
-  photos: { url: string; space: string; mode: PhotoMode; source_page: string; credit: string | null }[];
-  /** Required when any photo has mode "import". */
-  rights_confirmed: boolean;
+  /** Suggested space names, verbatim and unique. Renames happen afterwards with `PATCH /api/spaces/{id}`. */
+  space_names: string[];
+  /** Rule keys whose suggested value is unambiguous. */
+  accepted_rules: RuleKey[];
+  /** Must match suggested provided items verbatim. */
+  accepted_provided_items: string[];
+  photos: { url: string; mode: PhotoMode; rights_confirmed: boolean }[];
 };
 
 export type ApplyVideoBody = {
@@ -170,6 +172,8 @@ export type ChatResponse = {
   reply: string;
   spec: DesignSpec;
   warnings: RuleWarning[];
+  /** The pipeline's venue-rule adjustment notes; may be empty even when `warnings` is not. */
+  rule_notes: string[];
   ambiguities: string[];
   brain: string;
 };
@@ -215,12 +219,18 @@ export interface VVApi {
   ): Promise<RenderResponse>;
   regenerateRender(id: string, body: { engine?: string }): Promise<Job>;
   getJob(id: string): Promise<Job>;
+  /** Queued jobs cancel immediately; running ones stop when the worker notices. */
+  cancelJob(id: string): Promise<Job>;
   /** Starts the venue finder: a web-capable brain researches the venue. Job kind "venue_research". */
   research(body: { query: string; brain?: string }): Promise<Job>;
   /** Turns a reviewed research match into a Venue with spaces, accepted rules and photos. */
   importVenue(body: ImportVenueBody): Promise<Venue>;
   /** Uploads a video tour and starts frame extraction. Job kind "video_ingest". */
-  uploadVideo(venueId: string, file: File, onProgress?: (fraction: number) => void, signal?: AbortSignal): Promise<Job>;
+  uploadVideo(
+    venueId: string,
+    file: File,
+    opts?: { brain?: string | null; onProgress?: (fraction: number) => void; signal?: AbortSignal },
+  ): Promise<Job>;
   /** Keeps the reviewed frames as photos, grouped into (new or renamed) spaces. */
   applyVideo(venueId: string, body: ApplyVideoBody): Promise<Venue>;
   listJobs(spaceId: string): Promise<Job[]>;
