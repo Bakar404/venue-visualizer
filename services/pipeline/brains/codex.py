@@ -4,7 +4,10 @@ argv: codex exec --skip-git-repo-check --sandbox read-only --ephemeral --color n
             --output-schema <schema file> -o <last-message file> [-i <image>...] -- <prompt>
 Codex has no separate system-prompt flag in `exec`, so system and user text are concatenated.
 Codex enforces --output-schema with OpenAI strict structured outputs, which rejects open-ended objects,
-so open objects (like `spec_patch`) are sent as JSON-encoded strings and decoded afterwards.
+so open objects (like `spec_patch`) are sent as JSON-encoded strings and decoded afterwards, and string
+`format`s that strict mode does not support (e.g. "uri") are dropped.
+Web research (`web=True`): `codex exec --search` enables Codex's built-in live web search tool; the sandbox stays
+read-only, so no shell or file writes are possible.
 """
 from __future__ import annotations
 
@@ -17,6 +20,9 @@ from typing import Any
 
 from .._proc import ProcTimeout, extract_json, probe_version, run_cli, tail, which
 from .base import BrainError, BrainStatus
+from .claude import stage_images
+
+_STRICT_FORMATS = {"date-time", "time", "date", "duration", "email", "hostname", "ipv4", "ipv6", "uuid"}
 
 
 def strictify(schema: dict) -> tuple[dict, list[tuple[str, ...]]]:
@@ -29,6 +35,8 @@ def strictify(schema: dict) -> tuple[dict, list[tuple[str, ...]]]:
         if not isinstance(node, dict):
             return node
         node = dict(node)
+        if "format" in node and node["format"] not in _STRICT_FORMATS:
+            del node["format"]
         if node.get("type") == "object" or "properties" in node:
             props = node.get("properties")
             if not props:
@@ -77,7 +85,7 @@ class CodexBrain:
             return BrainStatus(available=False, detail=f"detect failed: {e}")
 
     def build_argv(self, path: str, prompt: str, schema_file: Path, out_file: Path, cwd: Path,
-                   images: list[Path]) -> list[str]:
+                   images: list[Path], web: bool = False) -> list[str]:
         argv = [
             path, "exec",
             "--skip-git-repo-check",
@@ -88,6 +96,8 @@ class CodexBrain:
             "--output-schema", str(schema_file),
             "-o", str(out_file),
         ]
+        if web:
+            argv.append("--search")
         model = os.environ.get("VV_CODEX_MODEL")
         if model:
             argv += ["-m", model]
@@ -97,7 +107,8 @@ class CodexBrain:
         return argv
 
     async def complete_json(
-        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180
+        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180,
+        *, web: bool = False,
     ) -> dict:
         path = which(self.binary)
         if not path:
@@ -111,8 +122,7 @@ class CodexBrain:
             cwd = Path(tmp)
             schema_file, out_file = cwd / "schema.json", cwd / "last_message.json"
             schema_file.write_text(json.dumps(strict))
-            argv = self.build_argv(path, prompt, schema_file, out_file, cwd,
-                                   [Path(i).resolve() for i in images or []])
+            argv = self.build_argv(path, prompt, schema_file, out_file, cwd, stage_images(images, cwd), web=web)
             try:
                 res = await run_cli(argv, cwd=cwd, timeout_s=timeout_s)
             except ProcTimeout as e:

@@ -25,5 +25,8 @@ class Brain(Protocol):
 
     def detect(self) -> BrainStatus: ...           # must never raise
     async def complete_json(
-        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180
+        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180,
+        *, web: bool = False,
     ) -> dict: ...
+    # web=True enables the CLI's own web search/fetch tools (and nothing else) for venue research.
+    # images are copied into the call's temp cwd; at most read-only access to that cwd is granted.

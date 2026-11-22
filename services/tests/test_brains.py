@@ -6,9 +6,10 @@ import pytest
 
 from pipeline._proc import extract_json
 from pipeline.brains.base import BrainError
-from pipeline.brains.claude import ClaudeBrain
-from pipeline.brains.codex import decode_strings, strictify
-from pipeline.brains.kimi import agent_file_text, parse_stream
+from pipeline.brains.claude import ClaudeBrain, stage_images
+from pipeline.brains.codex import CodexBrain, decode_strings, strictify
+from pipeline.brains.copilot import CopilotBrain
+from pipeline.brains.kimi import agent_file_text, agent_tools, parse_stream
 from pipeline.brains.mock import MockBrain
 from pipeline.prompts import CHAT_RESPONSE_SCHEMA
 
@@ -33,7 +34,8 @@ def test_claude_argv_disables_tools_unless_images(tmp_path):
     argv = b.build_argv("/bin/claude", "SYS", {"type": "object"}, [])
     assert argv[argv.index("--tools") + 1] == "" and "--json-schema" in argv and "--system-prompt" in argv
     argv = b.build_argv("/bin/claude", "SYS", {"type": "object"}, [tmp_path / "a.png"])
-    assert argv[argv.index("--tools") + 1] == "Read" and str(tmp_path) in argv
+    assert argv[argv.index("--tools") + 1] == "Read"
+    assert argv[argv.index("--allowed-tools") + 1] == "Read(./**)" and "--add-dir" not in argv
 
 
 def test_codex_strict_schema_round_trip():
@@ -63,3 +65,51 @@ async def test_mock_brain_non_chat_schema_returns_defaults():
     schema = {"type": "object", "properties": {"ok": {"type": "boolean"}, "tables_seen": {"type": "integer"},
                                                "notes": {"type": "string"}}}
     assert await MockBrain().complete_json("s", "u", schema) == {"ok": True, "tables_seen": 1, "notes": ""}
+
+
+def test_claude_web_flag_enables_only_web_tools(tmp_path):
+    b = ClaudeBrain()
+    argv = b.build_argv("/bin/claude", "SYS", {"type": "object"}, [], web=True)
+    assert argv[argv.index("--tools") + 1] == "WebSearch,WebFetch"
+    assert argv[argv.index("--allowed-tools") + 1] == "WebSearch,WebFetch"
+    assert argv[argv.index("--permission-mode") + 1] == "dontAsk"
+    argv = b.build_argv("/bin/claude", "SYS", {"type": "object"}, [tmp_path / "a.png"], web=True)
+    assert argv[argv.index("--tools") + 1] == "WebSearch,WebFetch,Read"
+    assert "Bash" not in " ".join(argv)
+
+
+def test_copilot_web_flag_argv(tmp_path):
+    b = CopilotBrain()
+    plain = b.build_argv("/bin/copilot", "PROMPT", [tmp_path / "image-0.png"])
+    assert "--available-tools=" in plain and f"--attachment={tmp_path / 'image-0.png'}" in plain
+    assert not any(a.startswith(("--allow-tool", "--allow-all")) for a in plain)
+    web = b.build_argv("/bin/copilot", "PROMPT", [], web=True)
+    assert "--available-tools=web_search,web_fetch" in web
+    assert "--allow-tool=url" in web and "--allow-all-urls" in web
+    assert "--allow-all-tools" not in web and "--available-tools=" not in web
+
+
+def test_codex_and_kimi_web_flags(tmp_path):
+    b = CodexBrain()
+    args = ("/bin/codex", "P", tmp_path / "s.json", tmp_path / "o.json", tmp_path, [])
+    assert "--search" not in b.build_argv(*args)
+    argv = b.build_argv(*args, web=True)
+    assert argv.index("--search") > argv.index("exec") and argv[-2:] == ["--", "P"]
+    assert agent_tools(images=False, web=False) == []
+    assert agent_tools(images=False, web=True) == ["WebSearch", "FetchURL"]
+    assert agent_tools(images=True, web=False) == ["ReadMediaFile"]
+
+
+def test_stage_images_copies_into_cwd(tmp_path, room):
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    staged = stage_images([room], cwd)
+    assert staged == [cwd / "image-0.png"] and staged[0].read_bytes() == room.read_bytes()
+
+
+async def test_mock_brain_web_returns_canned_research():
+    from pipeline.research import build_research_prompt, research_schema, validation_errors
+
+    schema = research_schema()
+    out = await MockBrain().complete_json("s", build_research_prompt("The Plaza, NYC"), schema, web=True)
+    assert out["query"] == "The Plaza, NYC" and not validation_errors(out, schema)

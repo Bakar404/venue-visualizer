@@ -3,6 +3,8 @@
 Always available. It reads the planner message and current spec from the marked blocks that
 `prompts.build_chat_messages` puts in the user prompt. For any other schema (e.g. vision QA) it returns a
 schema-shaped object built from defaults (booleans true, so offline QA never blocks a render).
+With `web=True` and a VenueResearch-shaped schema it returns canned, schema-valid research for the query
+(example.com sources), so the venue-finder flow can be exercised offline.
 """
 from __future__ import annotations
 
@@ -12,7 +14,14 @@ from pathlib import Path
 from typing import Any
 
 from ..models import default_spec
-from ..prompts import CURRENT_SPEC_END, CURRENT_SPEC_START, USER_MESSAGE_END, USER_MESSAGE_START
+from ..prompts import (
+    CURRENT_SPEC_END,
+    CURRENT_SPEC_START,
+    USER_MESSAGE_END,
+    USER_MESSAGE_START,
+    VENUE_QUERY_END,
+    VENUE_QUERY_START,
+)
 from .base import BrainStatus
 
 _NUMBER_WORDS = {
@@ -351,6 +360,44 @@ def schema_default(schema: dict) -> Any:
     return None
 
 
+def canned_research(query: str) -> dict:
+    """Deterministic, schema-valid VenueResearch for offline demos and tests."""
+    name = query.split(",")[0].strip() or "Sample Venue"
+    site = "https://example.com/venue"
+    return {
+        "query": query,
+        "matches": [{
+            "name": name,
+            "address": None,
+            "website": site,
+            "confidence": 0.5,
+            "summary": "Offline sample result (mock brain); no web search was performed.",
+            "style": "classic ballroom",
+            "spaces": [{
+                "name": "Grand Ballroom",
+                "description": "Sample ballroom with a sprung wooden dance floor.",
+                "capacity_seated": 200,
+                "capacity_standing": 300,
+                "length_ft": 90.0,
+                "width_ft": 60.0,
+                "ceiling_ft": 20.0,
+                "walls": "ivory paneling",
+                "floor": "patterned carpet",
+                "windows": "tall arched windows",
+                "fixtures": ["crystal chandeliers"],
+                "photos": [{"url": f"{site}/ballroom.jpg", "source_page": f"{site}/spaces",
+                            "caption": "Grand Ballroom", "credit": "example.com"}],
+                "source": f"{site}/spaces",
+            }],
+            "rules_found": [{"text": "Open flames are not permitted; flameless candles only.",
+                             "maps_to": "live_candles", "allowed": False, "source": f"{site}/policies"}],
+            "provided_items": ["60-inch round tables", "chiavari chairs"],
+            "sources": [site],
+        }],
+        "notes": "Generated offline by the mock brain.",
+    }
+
+
 class MockBrain:
     id = "mock"
     label = "Offline mock (keyword parser)"
@@ -359,9 +406,12 @@ class MockBrain:
         return BrainStatus(available=True, logged_in=True, version="1", detail="deterministic offline parser")
 
     async def complete_json(
-        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180
+        self, system: str, user: str, schema: dict, images: list[Path] | None = None, timeout_s: int = 180,
+        *, web: bool = False,
     ) -> dict:
         props = schema.get("properties") or {}
+        if web and "matches" in props:
+            return canned_research(_between(user, VENUE_QUERY_START, VENUE_QUERY_END) or user.strip()[:200])
         if "spec_patch" not in props:
             return schema_default(schema)
         message = _between(user, USER_MESSAGE_START, USER_MESSAGE_END) or user

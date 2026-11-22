@@ -11,10 +11,17 @@ KEEP_UNCHANGED = (
     "camera position, lens and framing. Photorealistic, same time of day unless lighting says otherwise."
 )
 
+PHOTOREAL = (
+    "A real photograph by a professional event photographer: full-frame camera, 24mm lens, eye level, natural "
+    "exposure, realistic materials and imperfections. Not an illustration, not CGI, no people, no text."
+)
+
 USER_MESSAGE_START = "<<<USER_MESSAGE"
 USER_MESSAGE_END = "USER_MESSAGE>>>"
 CURRENT_SPEC_START = "<<<CURRENT_SPEC"
 CURRENT_SPEC_END = "CURRENT_SPEC>>>"
+VENUE_QUERY_START = "<<<VENUE_QUERY"
+VENUE_QUERY_END = "VENUE_QUERY>>>"
 
 _AMBIENT = {
     "daylight": "natural daylight",
@@ -130,8 +137,18 @@ def describe_spec(spec: DesignSpec | dict) -> list[str]:
     return lines
 
 
-def build_edit_prompt(spec: DesignSpec | dict, venue_spec: VenueSpec | dict | None = None) -> str:
-    """One instruction for an image-edit engine: what to add, then the explicit keep-unchanged list."""
+def build_layout_guide_clause(n_tables: int, shape: str) -> str:
+    """Sentence telling a photoreal engine how to use the scene3d layout guide passed as a second reference."""
+    noun = "table" if n_tables == 1 else "tables"
+    return (f"A second reference image is a plain top-down/eye-level layout guide: place exactly {n_tables} "
+            f"{_SHAPE.get(shape, shape)} {noun} in the positions it shows; do not copy its style.")
+
+
+def build_edit_prompt(spec: DesignSpec | dict, venue_spec: VenueSpec | dict | None = None,
+                      layout_guide: bool = False) -> str:
+    """One instruction for an image-edit engine: what to add, then the explicit keep-unchanged list.
+
+    With `layout_guide=True` the scene3d layout image is expected as the second reference image."""
     s = _spec(spec)
     v = _venue(venue_spec)
     guests = f" for about {s.guest_count} guests" if s.guest_count else ""
@@ -146,6 +163,9 @@ def build_edit_prompt(spec: DesignSpec | dict, venue_spec: VenueSpec | dict | No
         if features:
             parts.append(f"Existing room features that must stay as they are: {'; '.join(features)}.")
     parts.append("Place furniture at realistic scale and perspective on the existing floor; do not add people.")
+    if layout_guide:
+        parts.append(build_layout_guide_clause(s.tables.count, s.tables.shape))
+    parts.append(PHOTOREAL)
     parts.append(KEEP_UNCHANGED)
     return "\n".join(parts)
 
@@ -174,8 +194,9 @@ def build_base_prompt(venue_spec: VenueSpec | dict | None) -> str:
         "The room is completely empty: no furniture, no tables, no chairs, no decor, no people. "
         "Camera at eye level (about 5 feet) from the back of the room looking toward the far wall, "
         "showing the full floor, walls and ceiling; straight verticals, realistic proportions, "
-        "soft natural light. Photorealistic, high detail, no text or watermarks."
+        "soft natural light, no watermarks."
     )
+    sentences.append(PHOTOREAL)
     return " ".join(sentences)
 
 

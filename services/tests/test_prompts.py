@@ -6,10 +6,12 @@ from pipeline.models import VenueRules, VenueSpec, default_spec
 from pipeline.prompts import (
     CHAT_RESPONSE_SCHEMA,
     KEEP_UNCHANGED,
+    PHOTOREAL,
     SPEC_SYSTEM_PROMPT,
     build_base_prompt,
     build_chat_messages,
     build_edit_prompt,
+    build_layout_guide_clause,
 )
 
 
@@ -55,3 +57,26 @@ def test_chat_messages_and_schema():
     assert '"live_candles": false' in user and "chiavari chairs" in user
     assert CHAT_RESPONSE_SCHEMA["required"] == ["reply", "spec_patch", "ambiguities"]
     assert CHAT_RESPONSE_SCHEMA["properties"]["spec_patch"]["type"] == "object"
+
+
+def test_photoreal_clause_in_edit_and_base_prompts():
+    assert PHOTOREAL == ("A real photograph by a professional event photographer: full-frame camera, 24mm lens, "
+                         "eye level, natural exposure, realistic materials and imperfections. Not an illustration, "
+                         "not CGI, no people, no text.")
+    assert PHOTOREAL in build_edit_prompt(default_spec())
+    assert PHOTOREAL in build_base_prompt(VenueSpec(style="ballroom"))
+    assert PHOTOREAL in build_base_prompt(None)
+
+
+def test_layout_guide_clause():
+    assert build_layout_guide_clause(12, "round") == (
+        "A second reference image is a plain top-down/eye-level layout guide: place exactly 12 round tables "
+        "in the positions it shows; do not copy its style.")
+    assert "exactly 1 " in build_layout_guide_clause(1, "rectangular") and "tables" not in \
+        build_layout_guide_clause(1, "rectangular")
+    spec = default_spec()
+    spec.tables.count = 7
+    with_guide = build_edit_prompt(spec, layout_guide=True)
+    assert build_layout_guide_clause(7, spec.tables.shape) in with_guide
+    assert with_guide.rstrip().endswith(KEEP_UNCHANGED)
+    assert "layout guide" not in build_edit_prompt(spec)
