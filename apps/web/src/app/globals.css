@@ -41,6 +41,17 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-indeterminate: indeterminate 1.8s linear infinite;
+
+  /* A calm sweep for work with no measurable progress (venue research, video analysis). */
+  @keyframes indeterminate {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
 }
 
 /*

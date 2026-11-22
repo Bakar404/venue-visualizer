@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { compile } from "json-schema-to-typescript";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const files = ["design-spec.schema.json", "venue.schema.json"];
+const files = ["design-spec.schema.json", "venue.schema.json", "venue-research.schema.json"];
 
 const options = {
   bannerComment: "",

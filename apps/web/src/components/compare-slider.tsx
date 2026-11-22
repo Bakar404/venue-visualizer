@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useId, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -15,28 +16,34 @@ type Props = {
   initial?: number;
   beforeLabel?: string;
   afterLabel?: string;
+  /**
+   * For static images in `public/`: render with next/image so they're resized and served as AVIF/WebP.
+   * User photos (blob:, data: and API URLs) keep a plain <img>.
+   */
+  optimize?: { sizes: string; preload?: boolean };
 };
+
+function SliderImage({ src, alt, optimize, style }: { src: string; alt: string; optimize?: Props["optimize"]; style?: React.CSSProperties }) {
+  if (optimize) {
+    return <Image src={src} alt={alt} fill sizes={optimize.sizes} preload={optimize.preload} className="object-cover" style={style} draggable={false} />;
+  }
+  return <img src={src} alt={alt} className="absolute inset-0 size-full object-cover" style={style} draggable={false} />;
+}
 
 /**
  * Before/after comparison. A native range input drives the split, so it works with
  * arrow keys, Home/End and screen readers. The split follows the pointer with no easing.
  */
-export function CompareSlider({ before, after, beforeAlt, afterAlt, className, children, initial = 50, beforeLabel = "Before", afterLabel = "After" }: Props) {
+export function CompareSlider({ before, after, beforeAlt, afterAlt, className, children, initial = 50, beforeLabel = "Before", afterLabel = "After", optimize }: Props) {
   const [pos, setPos] = useState(initial);
   const id = useId();
 
   return (
     <div className={cn("group/compare relative isolate overflow-hidden bg-muted select-none", className)}>
-      <img src={before} alt={beforeAlt} className="absolute inset-0 size-full object-cover" draggable={false} />
+      <SliderImage src={before} alt={beforeAlt} optimize={optimize} />
       {after && (
         <>
-          <img
-            src={after}
-            alt={afterAlt}
-            className="absolute inset-0 size-full object-cover"
-            style={{ clipPath: `inset(0 0 0 ${pos}%)` }}
-            draggable={false}
-          />
+          <SliderImage src={after} alt={afterAlt} optimize={optimize} style={{ clipPath: `inset(0 0 0 ${pos}%)` }} />
           <div
             aria-hidden
             className="pointer-events-none absolute inset-y-0 z-10 w-px bg-white/90 shadow-[0_0_0_1px_rgb(0_0_0/0.15)]"

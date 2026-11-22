@@ -21,11 +21,12 @@ VV_API_URL=http://127.0.0.1:9000 pnpm --filter web dev
 NEXT_PUBLIC_VV_MOCK=1 pnpm --filter web dev
 ```
 
-- The app is served by an in-memory API (`src/lib/mock-api.ts`). The data is a sample venue with a ballroom (two photos and two Looks, one a variation of the other) and a terrace with no photos, so you can try the "Describe your venue" flow.
-- Jobs finish about 2 seconds after they start.
+- The app is served by an in-memory API (`src/lib/mock-api.ts`). The seed data is a fictional venue, Larkspur House: a ballroom with two photos and two Looks (one a variation of the other) and a garden terrace, plus a barn at Hollow Creek Farm.
+- Renders return the matching decorated photo for the photo and Look. Uploaded photos come back lightly tinted.
+- Render jobs finish about 2 seconds after they start. Venue research and video tours finish after about 3 seconds: research always finds "Larkspur House", and a video tour always yields 8 frames across two spaces.
 - To simulate a failed render, put the word "fail" in a Look's notes.
 - Data resets when you reload the page.
-- Sample images live in `public/samples/`. Regenerate them with `node scripts/gen-samples.mjs`.
+- Demo images are AI-generated photographs in `public/samples/photoreal/` (see its `CREDITS.md`). The catalog is `src/lib/samples.ts`.
 
 ## Scripts
 
@@ -41,11 +42,13 @@ NEXT_PUBLIC_VV_MOCK=1 pnpm --filter web dev
 | Route | Screen |
 | --- | --- |
 | `/` | Landing page, with live engine and brain detection from `GET /api/system/backends` |
-| `/venues` | Venue list and the new-venue dialog (`?new=1` opens it) |
+| `/venues` | Venue list |
+| `/venues/new` | New venue: find it on the web, upload photos, a video tour, or describe it. `?tab=find\|upload\|video\|describe` |
 | `/venues/[id]` | Venue rules and rooms |
 | `/spaces/[id]` | Studio: photos, render canvas with before and after slider, chat and plan details. `?look=` selects a Look |
 | `/spaces/[id]/looks` | Looks gallery. Select two to compare |
 | `/compare?a=&b=` | Side-by-side or slider comparison for each photo, plus the plan differences |
+| `/render/scene?spec=&venue=&camera=` | Internal, not linked: the layout guide the backend screenshots (contract in `packages/scene/README.md`). No app chrome, `noindex` |
 
 Press ⌘K (or Ctrl+K) anywhere for the command palette: new venue, jump to a venue or room, render all, save Look, make a variation, compare, export, switch engine and toggle theme.
 
@@ -56,6 +59,7 @@ Source layout:
 - `src/lib/jobs.ts`: job polling and the toasts that report progress.
 - `src/lib/spec.ts`: helpers for working with a DesignSpec (rules, diffs, palette colours).
 - `src/components/studio/*`: the studio.
+- `src/components/new-venue/*`: the new-venue flow, including the research import review and the video frame review.
 - `src/components/ui/*`: shadcn/ui components built on Base UI.
 
 ## Design notes

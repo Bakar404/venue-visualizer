@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { normalizeBackends } from "@/lib/backends";
 import type { Look } from "@/lib/types";
 
 export const qk = {
@@ -18,7 +19,7 @@ export const qk = {
 };
 
 export function useBackends() {
-  return useQuery({ queryKey: qk.backends, queryFn: api.backends, staleTime: 30_000, retry: 1 });
+  return useQuery({ queryKey: qk.backends, queryFn: async () => normalizeBackends(await api.backends()), staleTime: 30_000, retry: 1 });
 }
 
 export function useVenues() {

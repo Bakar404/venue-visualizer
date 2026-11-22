@@ -21,6 +21,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { api, errorMessage } from "@/lib/api";
 import { trackJobs } from "@/lib/jobs";
@@ -304,10 +305,13 @@ function StudioLoaded({ space }: { space: Space }) {
               <LayoutGridIcon />
               All Looks
             </Link>
-            <Button variant="outline" size="sm" onClick={() => void exportLook()} disabled={!activeLook}>
-              <DownloadIcon />
-              Export PDF
-            </Button>
+            <Tooltip>
+              <TooltipTrigger render={<Button variant="outline" size="sm" onClick={() => void exportLook()} disabled={!activeLook} />}>
+                <DownloadIcon />
+                Export PDF
+              </TooltipTrigger>
+              <TooltipContent>Includes credits for any photos from the web</TooltipContent>
+            </Tooltip>
           </div>
         </div>
         <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="px-4 pb-3 lg:hidden">
@@ -411,6 +415,11 @@ function StudioLoaded({ space }: { space: Space }) {
               Render all photos
               {usablePhotos.length > 0 && <span className="tabular opacity-75">({usablePhotos.length})</span>}
             </Button>
+            {backends.data?.internal?.layout_guide?.available && (
+              <p className="text-center text-xs text-muted-foreground" title={backends.data.internal.layout_guide.detail ?? undefined}>
+                Exact table layout guide on
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" onClick={() => setSaveOpen(true)}>
                 <SaveIcon />

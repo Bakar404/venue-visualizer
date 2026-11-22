@@ -5,7 +5,7 @@ const apiUrl = (process.env.VV_API_URL ?? "http://localhost:8000").replace(/\/$/
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
-  transpilePackages: ["@vv/schema"],
+  transpilePackages: ["@vv/schema", "@vv/scene"],
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${apiUrl}/api/:path*` },

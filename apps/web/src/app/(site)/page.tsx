@@ -5,12 +5,13 @@ import { CompareSlider } from "@/components/compare-slider";
 import { DitherBackground } from "@/components/dither-background";
 import { Spotlight, SpotlightCard } from "@/components/spotlight";
 import { buttonVariants } from "@/components/ui/button";
+import { SAMPLE_CREDITS_URL, SAMPLE_PAIRS, SAMPLES } from "@/lib/samples";
 import { cn } from "@/lib/utils";
 
 const steps = [
   {
     title: "Add your venue",
-    body: "Upload a few photos of the empty room, or describe it and generate a base image. Note the house rules once: no open flames, no confetti, whatever applies.",
+    body: "Find it by name and we'll gather its photos and published rules, or upload your own photos or a walk-through video. Confirm the house rules once: no open flames, no confetti, whatever applies.",
   },
   {
     title: "Describe the look",
@@ -18,7 +19,7 @@ const steps = [
   },
   {
     title: "Compare and export",
-    body: "Render every photo, save each idea as a Look, put two side by side, and export a PDF for your florist, planner or venue manager.",
+    body: "Every photo is edited, not redrawn, so results look like real photographs of your room. Save each idea as a Look, compare two, and export a PDF for your florist or planner.",
   },
 ];
 
@@ -38,7 +39,7 @@ export default function Home() {
               placed into your own venue. It runs on your computer with the AI tools you already have.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-3">
-              <Link href="/venues?new=1" className={cn(buttonVariants({ size: "lg" }), "h-11 px-5 text-[0.95rem]")}>
+              <Link href="/venues/new" className={cn(buttonVariants({ size: "lg" }), "h-11 px-5 text-[0.95rem]")}>
                 Start a venue
               </Link>
               <Link href="/venues" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "h-11 px-4 text-[0.95rem]")}>
@@ -49,18 +50,57 @@ export default function Home() {
           <figure className="relative">
             <div className="rounded-[1.25rem] bg-card/70 p-2 shadow-[0_1px_0_0_var(--border),0_30px_60px_-30px_oklch(0.3_0.03_60/0.35)] ring-1 ring-border backdrop-blur-sm">
               <CompareSlider
-                before="/samples/ballroom-north.svg"
-                after="/samples/ballroom-north-dressed.svg"
-                beforeAlt="The empty sample ballroom with arched windows and chandeliers"
-                afterAlt="The same ballroom set with blush linens, gold chairs, tall rose centerpieces and string lights"
+                before={SAMPLES["ballroom-a"].empty}
+                after={SAMPLES["ballroom-a"].looks.blush!.url}
+                beforeAlt={SAMPLES["ballroom-a"].alt}
+                afterAlt={SAMPLES["ballroom-a"].looks.blush!.alt}
                 className="aspect-[3/2] rounded-[0.85rem]"
                 initial={42}
+                optimize={{ sizes: "(min-width: 1400px) 760px, (min-width: 1024px) 55vw, calc(100vw - 2rem)", preload: true }}
               />
             </div>
-            <figcaption className="mt-3 px-2 text-sm text-muted-foreground">
-              Drag the divider. The walls, windows and chandeliers stay; only the decor is added.
+            <figcaption className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-2 text-sm text-muted-foreground">
+              <span>Drag the divider. The walls, windows and chandeliers stay; only the decor is added.</span>
+              <DemoCredit />
             </figcaption>
           </figure>
+        </div>
+      </section>
+
+      <section aria-labelledby="looks" className="border-b bg-muted/30">
+        <div className="mx-auto w-full max-w-[1400px] px-4 py-16 sm:px-6 lg:py-20">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 id="looks" className="font-display text-4xl sm:text-5xl">
+                Same room, different Looks
+              </h2>
+              <p className="mt-3 max-w-xl text-pretty text-muted-foreground">
+                Each Look starts again from the original photo, so the room never drifts. Drag to compare.
+              </p>
+            </div>
+            <DemoCredit />
+          </div>
+          <ul className="mt-10 grid gap-6 md:grid-cols-3">
+            {SAMPLE_PAIRS.map((pair) => (
+              <li key={pair.id}>
+                <figure>
+                  <CompareSlider
+                    before={pair.before}
+                    after={pair.after}
+                    beforeAlt={pair.beforeAlt}
+                    afterAlt={pair.afterAlt}
+                    afterLabel={pair.title}
+                    className="aspect-[3/2] rounded-xl ring-1 ring-border"
+                    initial={50}
+                    optimize={{ sizes: "(min-width: 1400px) 450px, (min-width: 768px) 32vw, calc(100vw - 2rem)" }}
+                  />
+                  <figcaption className="mt-3 text-sm">
+                    <span className="font-medium">{pair.title}.</span> <span className="text-muted-foreground">{pair.caption}</span>
+                  </figcaption>
+                </figure>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -90,9 +130,9 @@ export default function Home() {
               Bring your own AI
             </h2>
             <p className="mt-5 max-w-md leading-relaxed text-pretty text-muted-foreground">
-              Venue Visualizer has no account and no subscription. It uses the coding agents and image
-              models already signed in on this machine, and falls back to a 3D scene or a mock engine when
-              there are none. This list is live from your local API.
+              Venue Visualizer has no account and no subscription. It uses the coding agents and photo
+              engines already signed in on this machine, and every result is an edit of a real photograph.
+              This list is live from your local API.
             </p>
           </div>
           <BackendList />
@@ -103,7 +143,7 @@ export default function Home() {
         <p className="font-display max-w-2xl text-4xl leading-tight text-balance sm:text-5xl">
           Your photos and plans stay on your machine.
         </p>
-        <Link href="/venues?new=1" className={cn(buttonVariants({ size: "lg" }), "h-11 px-5 text-[0.95rem]")}>
+        <Link href="/venues/new" className={cn(buttonVariants({ size: "lg" }), "h-11 px-5 text-[0.95rem]")}>
           Start a venue
         </Link>
       </section>
@@ -115,5 +155,16 @@ export default function Home() {
         </div>
       </footer>
     </>
+  );
+}
+
+function DemoCredit({ className }: { className?: string }) {
+  return (
+    <a
+      href={SAMPLE_CREDITS_URL}
+      className={cn("text-xs text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground", className)}
+    >
+      AI-generated demo images
+    </a>
   );
 }

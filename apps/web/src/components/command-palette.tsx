@@ -108,7 +108,7 @@ export function CommandPalette() {
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Go to">
-          <CommandItem onSelect={run(() => router.push("/venues?new=1"))}>
+          <CommandItem onSelect={run(() => router.push("/venues/new"))}>
             <PlusIcon />
             New venue
           </CommandItem>

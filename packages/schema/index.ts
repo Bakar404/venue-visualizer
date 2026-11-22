@@ -148,3 +148,68 @@ export interface RuleWarning {
    */
   fix?: string | null;
 }
+
+// ---- venue-research.schema.json ----
+/**
+ * What the venue-finder agent found on the public web about a real venue. Everything here is a suggestion with a source; the user confirms before it becomes a Venue/Space. Rules found online are NOT authoritative until the user accepts them.
+ */
+export interface VenueResearch {
+  query: string;
+  /**
+   * @maxItems 5
+   */
+  matches: {
+    name: string;
+    address?: string | null;
+    website?: string | null;
+    confidence: number;
+    summary?: string | null;
+    style?: string | null;
+    spaces?: {
+      name: string;
+      description?: string | null;
+      capacity_seated?: number | null;
+      capacity_standing?: number | null;
+      length_ft?: number | null;
+      width_ft?: number | null;
+      ceiling_ft?: number | null;
+      walls?: string | null;
+      floor?: string | null;
+      windows?: string | null;
+      fixtures?: string[];
+      /**
+       * @maxItems 12
+       */
+      photos?: {
+        url: string;
+        source_page: string;
+        caption?: string | null;
+        credit?: string | null;
+      }[];
+      source?: string | null;
+    }[];
+    /**
+     * Policies the agent saw published (e.g. 'flameless candles only'). Suggestions only.
+     */
+    rules_found?: {
+      text: string;
+      maps_to?:
+        | "live_candles"
+        | "fog"
+        | "confetti"
+        | "sparklers"
+        | "adhesives"
+        | "nails"
+        | "ceiling_draping"
+        | null;
+      allowed?: boolean | null;
+      source: string;
+    }[];
+    provided_items?: string[];
+    /**
+     * @minItems 1
+     */
+    sources: string[];
+  }[];
+  notes?: string | null;
+}

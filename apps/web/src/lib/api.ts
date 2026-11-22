@@ -1,6 +1,6 @@
 import { ApiError } from "@/lib/errors";
 import { mockApi } from "@/lib/mock-api";
-import type { VVApi } from "@/lib/types";
+import type { Job, VVApi } from "@/lib/types";
 
 export { ApiError };
 
@@ -36,6 +36,41 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
+}
+
+function detailFrom(text: string, status: number, statusText: string): string {
+  try {
+    const body = JSON.parse(text) as { detail?: unknown };
+    if (typeof body.detail === "string") return body.detail;
+    if (body.detail) return JSON.stringify(body.detail);
+  } catch {
+    if (status >= 500) return "The local API isn't responding. Start it with `make dev`.";
+  }
+  return `${status} ${statusText}`;
+}
+
+/** fetch() can't report upload progress, so large video uploads use XHR. */
+function uploadWithProgress<T>(path: string, form: FormData, onProgress?: (fraction: number) => void, signal?: AbortSignal): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", path);
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(1);
+        resolve((xhr.responseText ? JSON.parse(xhr.responseText) : undefined) as T);
+      } else {
+        reject(new ApiError(xhr.status, detailFrom(xhr.responseText, xhr.status, xhr.statusText)));
+      }
+    };
+    xhr.onerror = () => reject(new ApiError(0, "Can't reach the local API. Start it with `make dev`."));
+    xhr.onabort = () => reject(new DOMException("Upload cancelled", "AbortError"));
+    signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+    xhr.send(form);
+  });
 }
 
 const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
@@ -76,6 +111,15 @@ export const httpApi: VVApi = {
   regenerateRender: (id, body) =>
     request(`/api/renders/${enc(id)}/regenerate`, { method: "POST", ...json(body) }),
   getJob: (id) => request(`/api/jobs/${enc(id)}`),
+  research: (body) => request("/api/venues/research", { method: "POST", ...json(body) }),
+  importVenue: (body) => request("/api/venues/import", { method: "POST", ...json(body) }),
+  uploadVideo: (venueId, file, onProgress, signal) => {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    return uploadWithProgress<Job>(`/api/venues/${enc(venueId)}/video`, form, onProgress, signal);
+  },
+  applyVideo: (venueId, body) =>
+    request(`/api/venues/${enc(venueId)}/video/apply`, { method: "POST", ...json(body) }),
   listJobs: (spaceId) => request(`/api/jobs?space_id=${enc(spaceId)}`),
   exportUrl: async (lookId) => `/api/looks/${enc(lookId)}/export.pdf`,
 };

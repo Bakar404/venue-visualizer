@@ -31,7 +31,7 @@ export function BackendPicker({ kind, options, value, onChange, className, usabl
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false} className="min-w-64">
         <SelectGroup>
-          <SelectLabel>{kind === "engine" ? "Image engines on this machine" : "Brains on this machine"}</SelectLabel>
+          <SelectLabel>{kind === "engine" ? "Photo engines on this machine" : "Brains on this machine"}</SelectLabel>
           {(options ?? []).map((b) => {
             const disabled = !b.available || (usable ? !usable(b) : false);
             const reason = !b.available ? (b.detail ?? "Not detected on this machine.") : unusableReason;

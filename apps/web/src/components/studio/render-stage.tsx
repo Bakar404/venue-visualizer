@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 
 import { CompareSlider } from "@/components/compare-slider";
+import { PhotoCredit } from "@/components/photo-credit";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -131,6 +132,7 @@ export function RenderStage({ photo, photoLabel, look, render, onRegenerate, reg
       </p>
       <div className="flex flex-wrap items-center gap-2">
         {toolbar}
+        <PhotoCredit photo={photo} className="bg-muted text-muted-foreground backdrop-blur-none hover:bg-accent hover:text-foreground" />
         <Button variant="outline" size="sm" className="ml-auto" onClick={onRegenerate} disabled={!look || busy || regenerating}>
           <RefreshCwIcon />
           Regenerate this photo

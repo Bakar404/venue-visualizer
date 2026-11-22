@@ -5,6 +5,7 @@ import { ImagePlusIcon, Trash2Icon } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { PhotoCredit } from "@/components/photo-credit";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import { api, errorMessage } from "@/lib/api";
@@ -169,7 +170,8 @@ export function PhotoStrip({
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-1" aria-label="Photos">
         {photos.map((photo, i) => {
           const render = latestRenderFor(look?.renders, photo.id);
-          const label = photo.kind === "generated_base" ? `Generated view ${i + 1}` : `Photo ${i + 1}`;
+          const label =
+            photo.kind === "generated_base" ? `Generated view ${i + 1}` : photo.kind === "video_frame" ? `Video frame ${i + 1}` : `Photo ${i + 1}`;
           const selected = photo.id === selectedId;
           const shown = render?.status === "done" && render.url ? render.url : photo.url;
           return (
@@ -183,7 +185,10 @@ export function PhotoStrip({
                   selected ? "ring-2 ring-foreground" : "ring-1 ring-border hover:ring-foreground/30",
                 )}
               >
-                <img src={shown} alt={label} className="aspect-[3/2] w-full bg-muted object-cover" loading="lazy" />
+                <span className="relative block">
+                  <img src={shown} alt={label} className="aspect-[3/2] w-full bg-muted object-cover" loading="lazy" />
+                  <PhotoCredit photo={photo} asLink={false} className="absolute bottom-1 left-1 max-w-[calc(100%-0.5rem)]" />
+                </span>
                 <span className="flex items-center justify-between gap-2 px-2 py-1.5 text-left text-xs">
                   <span className="truncate">{label}</span>
                   {render && (

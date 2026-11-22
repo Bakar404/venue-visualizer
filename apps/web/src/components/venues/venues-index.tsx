@@ -2,13 +2,13 @@
 
 import { BuildingIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
+import { PhotoCredit } from "@/components/photo-credit";
 import { QueryError } from "@/components/query-error";
 import { SpotlightCard } from "@/components/spotlight";
-import { VenueDialog } from "@/components/venues/venue-dialog";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVenues } from "@/lib/queries";
 import { RULE_KEYS, RULE_LABELS, formatDate } from "@/lib/spec";
@@ -21,15 +21,13 @@ function restrictions(venue: Venue) {
 export function VenuesIndex() {
   const params = useSearchParams();
   const router = useRouter();
-  const pathname = usePathname();
-  const [open, setOpen] = useState(false);
   const venues = useVenues();
-  const dialogOpen = open || params.get("new") === "1";
+  const legacyNew = params.get("new") === "1";
 
-  const onOpenChange = (next: boolean) => {
-    setOpen(next);
-    if (!next && params.get("new")) router.replace(pathname, { scroll: false });
-  };
+  // Old links (`/venues?new=1`) now open the new-venue page.
+  useEffect(() => {
+    if (legacyNew) router.replace("/venues/new");
+  }, [legacyNew, router]);
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-10 sm:px-6 lg:py-14">
@@ -38,10 +36,10 @@ export function VenuesIndex() {
           <h1 className="font-display text-5xl sm:text-6xl">Venues</h1>
           <p className="mt-2 text-muted-foreground">Each venue keeps its house rules and its rooms.</p>
         </div>
-        <Button size="lg" onClick={() => setOpen(true)}>
+        <Link href="/venues/new" className={buttonVariants({ size: "lg" })}>
           <PlusIcon />
           New venue
-        </Button>
+        </Link>
       </div>
 
       <div className="mt-10">
@@ -59,13 +57,13 @@ export function VenuesIndex() {
             <div>
               <p className="font-display text-3xl">Add your first venue</p>
               <p className="mt-1 max-w-md text-muted-foreground">
-                Start with its name and house rules. Rooms and photos come next.
+                Find it by name, upload photos or a video tour, or describe it.
               </p>
             </div>
-            <Button onClick={() => setOpen(true)}>
+            <Link href="/venues/new" className={buttonVariants()}>
               <PlusIcon />
               New venue
-            </Button>
+            </Link>
           </div>
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -76,9 +74,12 @@ export function VenuesIndex() {
                 <li key={venue.id}>
                   <SpotlightCard className="h-full transition-colors focus-within:border-ring hover:border-foreground/20">
                     <Link href={`/venues/${venue.id}`} className="flex h-full flex-col rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-                      <div className="aspect-[16/7] overflow-hidden rounded-t-2xl border-b bg-muted">
+                      <div className="relative aspect-[16/7] overflow-hidden rounded-t-2xl border-b bg-muted">
                         {cover ? (
-                          <img src={cover.url} alt="" className="size-full object-cover" />
+                          <>
+                            <img src={cover.url} alt="" className="size-full object-cover" />
+                            <PhotoCredit photo={cover} asLink={false} className="absolute right-2 bottom-2 max-w-[70%]" />
+                          </>
                         ) : (
                           <div className="flex size-full items-center justify-center text-sm text-muted-foreground">No photos yet</div>
                         )}
@@ -100,7 +101,6 @@ export function VenuesIndex() {
           </ul>
         )}
       </div>
-      <VenueDialog open={dialogOpen} onOpenChange={onOpenChange} />
     </div>
   );
 }

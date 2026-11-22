@@ -87,7 +87,7 @@ export function BackendList() {
       {(
         [
           ["Brains", "Turn your words into a decor plan", data.brains],
-          ["Engines", "Paint the plan into your photos", data.engines],
+          ["Photo engines", "Edit the plan into your photos, photoreal", data.engines],
         ] as const
       ).map(([title, hint, list]) => (
         <section key={title} aria-label={title}>

@@ -11,6 +11,7 @@ import { QueryError } from "@/components/query-error";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api, errorMessage } from "@/lib/api";
 import { qk, useLooks, useSpace } from "@/lib/queries";
 import { colorFor, firstDoneRender, formatDate } from "@/lib/spec";
@@ -157,10 +158,13 @@ export function LooksGallery({ params }: { params: Promise<{ id: string }> }) {
                       </p>
                     )}
                     <div className="relative z-10 flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => void exportLook(look)}>
-                        <DownloadIcon />
-                        Export PDF
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger render={<Button variant="outline" size="sm" onClick={() => void exportLook(look)} />}>
+                          <DownloadIcon />
+                          Export PDF
+                        </TooltipTrigger>
+                        <TooltipContent>Includes credits for any photos from the web</TooltipContent>
+                      </Tooltip>
                       <Popover>
                         <PopoverTrigger render={<Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" aria-label={`Delete ${look.name}`} />}>
                           <Trash2Icon />

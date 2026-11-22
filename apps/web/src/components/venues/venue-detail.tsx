@@ -4,6 +4,7 @@ import { CheckIcon, ImageIcon, PencilIcon, PlusIcon, XIcon } from "lucide-react"
 import Link from "next/link";
 import { use, useState } from "react";
 
+import { PhotoCredit } from "@/components/photo-credit";
 import { QueryError } from "@/components/query-error";
 import { SpotlightCard } from "@/components/spotlight";
 import { hasVenueSpec } from "@/components/venue-spec-fields";
@@ -126,7 +127,10 @@ export function VenueDetail({ params }: { params: Promise<{ id: string }> }) {
                         <div className="grid aspect-[16/9] grid-cols-3 gap-px overflow-hidden rounded-t-2xl border-b bg-border">
                           {usable.length ? (
                             <>
-                              <img src={usable[0].url} alt="" className={cn("size-full bg-muted object-cover", usable.length > 1 ? "col-span-2" : "col-span-3")} />
+                              <div className={cn("relative", usable.length > 1 ? "col-span-2" : "col-span-3")}>
+                                <img src={usable[0].url} alt="" className="size-full bg-muted object-cover" />
+                                <PhotoCredit photo={usable[0]} asLink={false} className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)]" />
+                              </div>
                               {usable.length > 1 && (
                                 <div className="grid gap-px">
                                   {usable.slice(1, 3).map((p) => (
