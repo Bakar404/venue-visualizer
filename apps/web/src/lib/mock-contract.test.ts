@@ -251,14 +251,27 @@ describe("mock API matches the first-run setup contract", () => {
       const t0 = new Date("2026-11-21T12:00:00Z").getTime();
       vi.setSystemTime(t0);
       const early = system.lanInfo().pairing_code!;
+      vi.setSystemTime(t0 + 9 * 60_000);
+      expect(system.lanInfo()).toMatchObject({ pairing_code: early, pairing_expires_in: 60 });
       vi.setSystemTime(t0 + 10 * 60_000 - 1000);
-      expect(system.lanInfo()).toMatchObject({ pairing_code: early, pairing_expires_in: 1 });
       system.pairDevice(early, "Phone A");
       const late = system.lanInfo();
       expect(late.pairing_expires_in).toBe(600);
       vi.setSystemTime(t0 + 2 * 10 * 60_000 + 1);
       expect(() => system.pairDevice(late.pairing_code!, "Phone B")).toThrow(/No pairing code is active/);
       expect(system.lanDevices().map((d) => d.label)).toEqual(["Phone A"]);
+    });
+
+    it("issues a full-lifetime code when the owner checks with less than a minute left", () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      systemHooks.setLan(true);
+      const t0 = Date.now();
+      const first = system.lanInfo();
+      vi.setSystemTime(t0 + 570_000);
+
+      const fresh = system.lanInfo();
+      expect(fresh.pairing_expires_in).toBe(600);
+      expect(fresh.pairing_code).not.toBe(first.pairing_code);
     });
   });
 

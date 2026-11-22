@@ -394,7 +394,7 @@ export interface paths {
         };
         /**
          * Lan Info
-         * @description Show the current pairing code without extending it, issuing one if none is active.
+         * @description Show the current pairing code, replacing it if absent or valid for less than a minute.
          */
         get: operations["lan_info_api_system_lan_get"];
         put?: never;

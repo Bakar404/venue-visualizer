@@ -158,7 +158,7 @@ type SystemState = {
   detected: Record<MockProvider, ToolState>;
   settings: Settings;
   tests: Record<string, BackendTest>;
-  /** The pairing code; showing the panel keeps it until expiry, New code replaces it. */
+  /** The active pairing code and its expiry. */
   pairing: { code: string; expiresAt: number } | null;
   /** The last retired code, so a new one never repeats it. */
   previousCode: string | null;
@@ -478,6 +478,7 @@ export function setupStatus(): SetupStatus {
 /** The phone opens the pairing page first (any other page answers 403 until it's paired). */
 const LAN_URL = "http://192.168.1.24:3000/pair";
 const CODE_SECONDS = PAIRING_CODE_MINUTES * 60;
+const CODE_REFRESH_SECONDS = 60;
 /** services/api/lan.py: per-client failures in a window, then a global lockout after too many wrong codes. */
 const MAX_FAILURES = 5;
 const ATTEMPT_SECONDS = 600;
@@ -510,7 +511,12 @@ function showLan(rotate: boolean): LanInfo {
   }
   if (rotate || !state.pairing || now >= state.pairing.expiresAt) {
     retire();
-    state.pairing = { code: newCode(state.previousCode), expiresAt: now + CODE_SECONDS * 1000 };
+  }
+  if (!state.pairing || state.pairing.expiresAt - now < CODE_REFRESH_SECONDS * 1000) {
+    state.pairing = {
+      code: newCode(state.pairing?.code ?? state.previousCode),
+      expiresAt: now + CODE_SECONDS * 1000,
+    };
     save();
   }
   return {
@@ -519,7 +525,7 @@ function showLan(rotate: boolean): LanInfo {
   };
 }
 
-/** `GET /api/system/lan` (owner only). Keeps the current code until expiry; issues one if none. */
+/** `GET /api/system/lan` (owner only). Replaces a code if absent or valid for less than a minute. */
 export function lanInfo(): LanInfo {
   return showLan(false);
 }

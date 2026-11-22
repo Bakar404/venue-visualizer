@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from pipeline.registry import dev_mode
+
 REPO = Path(__file__).resolve().parents[2]
 LOCAL_WEB_URL = "http://localhost:3000"
 
@@ -51,7 +53,7 @@ class Settings:
                 limits[f"engine:{key.removeprefix(prefix).lower()}"] = int(value)
         return cls(
             data_dir=Path(os.environ.get("VV_DATA_DIR") or REPO / "data").expanduser().resolve(),
-            dev=os.environ.get("VV_DEV") == "1",
+            dev=dev_mode(),
             web_url=os.environ.get("VV_WEB_URL") or LOCAL_WEB_URL,
             inline_jobs=os.environ.get("VV_INLINE_JOBS") == "1",
             lan=os.environ.get("VV_LAN") == "1",

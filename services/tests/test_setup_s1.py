@@ -50,7 +50,24 @@ def test_doctor_strict_does_not_count_mock_backends(setup_machine, monkeypatch, 
     assert status == 1
     with desktop() as api:
         setup = api.get("/api/system/setup").json()
-    assert setup["brain"]["missing"] and setup["engine"]["missing"]
+    assert setup["brain"]["ready"] == ["mock"]
+    assert setup["engine"]["ready"] == ["mock"]
+
+
+@pytest.mark.parametrize(("flag", "value", "enabled"), [
+    ("VV_DEV", " YES ", True),
+    ("VV_MOCK", " TrUe ", True),
+    ("VV_MOCK", "off", False),
+])
+def test_setup_and_backend_lists_agree_on_mock_flags(setup_machine, monkeypatch, flag, value, enabled):  # noqa: F811
+    monkeypatch.setenv(flag, value)
+    with desktop() as api:
+        backends = api.get("/api/system/backends").json()
+        setup = api.get("/api/system/setup").json()
+    for role in ("brain", "engine"):
+        assert any(backend["id"] == "mock" for backend in backends[f"{role}s"]) is enabled
+        assert setup[role]["ready"] == (["mock"] if enabled else [])
+        assert setup[role]["missing"] is not enabled
 
 
 @pytest.mark.parametrize(("image_test", "expected"), [

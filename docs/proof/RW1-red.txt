@@ -1,0 +1,39 @@
+$ pnpm --filter web exec vitest run src/components/setup/phone-access.test.tsx -t "background poll fails"
+
+ RUN  v5.1.1 /Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web
+
+ ❯ src/components/setup/phone-access.test.tsx (5 tests | 1 failed | 4 skipped) 51ms
+   × keeps showing the pairing code after a background poll fails 50ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/setup/phone-access.test.tsx > keeps showing the pairing code after a background poll fails
+AssertionError: expected undefined to be '123 456' // Object.is equality
+
+- Expected:
+"123 456"
+
++ Received:
+undefined
+
+ ❯ src/components/setup/phone-access.test.tsx:75:61
+     73|
+     74|   expect(client.getQueryState(qk.lan)?.status).toBe("error");
+     75|   expect(screen.queryByTestId("pairing-code")?.textContent).toBe("123 …
+       |                                                             ^
+     76|   expect(screen.queryByText(/couldn.t check phone access/i)).toBeNull(…
+     77| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 skipped (5)
+   Start at  01:39:30
+   Duration  1.20s (environment 48%, import 36%, transform 11%, tests 5%)
+
+undefined
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/apps/web:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/components/setup/phone-access.test.tsx -t background poll fails
+
+Exit status: 1

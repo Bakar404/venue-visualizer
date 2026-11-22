@@ -46,6 +46,7 @@ SEEN_SECONDS = 60
 ATTEMPT_SECONDS = 10 * 60
 MAX_FAILURES = 5
 CODE_SECONDS = 10 * 60
+CODE_REFRESH_SECONDS = 60
 MAX_CODE_FAILURES = 10
 LOCK_SECONDS = 5 * 60
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "[::1]"})
@@ -322,14 +323,17 @@ class Pairing:
         self._previous, self.code, self._code_failures = self.code or self._previous, None, 0
 
     def show(self, *, rotate: bool = False) -> tuple[str | None, int | None, int | None]:
-        """Show the current code and its remaining time, or issue a new one if inactive or rotating."""
+        """Show the current code or issue a new one if inactive, rotating or nearly expired."""
         with self._lock:
             now = time.monotonic()
             if now < self._locked_until:
                 return None, None, ceil(self._locked_until - now)
             if rotate or self.code is None or now >= self._expires:
                 self._retire()
-                while (code := f"{secrets.randbelow(1_000_000):06d}") == self._previous:
+            if self.code is None or self._expires - now < CODE_REFRESH_SECONDS:
+                # Replacing a still-active code must not clear its failure count.
+                previous = self.code or self._previous
+                while (code := f"{secrets.randbelow(1_000_000):06d}") == previous:
                     pass
                 self.code = code
                 self._expires = now + CODE_SECONDS
@@ -391,7 +395,7 @@ def _lan_out(runtime: RuntimeDep, request: Request, response: Response, *, rotat
 
 @router.get("")
 def lan_info(runtime: RuntimeDep, request: Request, response: Response) -> LanOut:
-    """Show the current pairing code without extending it, issuing one if none is active."""
+    """Show the current pairing code, replacing it if absent or valid for less than a minute."""
     return _lan_out(runtime, request, response, rotate=False)
 
 

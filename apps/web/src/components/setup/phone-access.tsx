@@ -77,7 +77,7 @@ export function PhoneAccess() {
 
       {lan.isPending ? (
         <Skeleton className="h-40 w-full" />
-      ) : lan.isError ? (
+      ) : lan.isError && !info ? (
         <p role="alert" className="text-sm text-muted-foreground">
           Couldn&apos;t check phone access: {errorMessage(lan.error)}
         </p>

@@ -172,7 +172,6 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
   const pill = base ? setupPill(base) : "Not installed";
   const states = [brainState, engineState];
   const signedOut = states.includes("signed_out");
-  const needsTest = states.includes("likely") || states.includes("failed");
   const usedFor: UsedFor[] = base?.used_for ?? [...(brain ? (["chat"] as const) : []), ...(engine ? (["images"] as const) : [])];
   const costNote = base?.cost_note ?? engine?.caps?.cost_note ?? "See the provider's pricing.";
   const install = base?.install ? (os === "linux" ? base.install.linux : base.install.macos) : null;
@@ -199,6 +198,14 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
     },
   });
   const shown = result ?? lastTest;
+  const testFailed = shown?.ok === false;
+  const signedIn = shown?.ok === true || states.includes("ready");
+  const testChat = brainState === "likely" && shown?.kind !== "brain";
+  const testImages = engineState === "likely" && shown?.kind !== "engine";
+  const testHint = testChat && testImages ? "Run Test chat or Test images to find out."
+    : testChat ? "Run Test chat to confirm chat works."
+    : testImages ? "Run Test images to confirm images work."
+    : null;
   const testBlocked = test.isPending || retry.wait !== null;
   // From a paired phone every image test asks first (and sends confirm_credits), even for a free local engine.
   const fromPhone = setup.data?.client === "phone";
@@ -254,12 +261,16 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
           <SignIn label="Sign in" login={login} />
         </div>
       )}
-      {!signedOut && needsTest && (
+      {!signedOut && (testFailed ? login : testHint) && (
         <div className="grid gap-3">
-          <p className="text-sm text-pretty">
-            It&apos;s installed, but we can&apos;t tell whether it&apos;s signed in. Run a test to find out.
-          </p>
-          {login && <SignIn label="If the test fails, sign in with" login={login} />}
+          {!testFailed && (
+            <p className="text-sm text-pretty">
+              {signedIn ? "Signed in." : "It's installed, but we can't tell whether it's signed in."} {testHint}
+            </p>
+          )}
+          {login && (!signedIn || testFailed) && (
+            <SignIn label={testFailed ? "Sign in with" : "If the test fails, sign in with"} login={login} />
+          )}
         </div>
       )}
       {!mixedStatus && pill === "Ready" && base?.version && <p className="text-sm text-muted-foreground">Version {base.version} is installed.</p>}

@@ -76,6 +76,7 @@ test("S5: installed but signed out shows the sign-in step; Test tells unknown fr
   await copilot.getByRole("button", { name: "Test chat" }).click();
   await expect(copilot.getByTestId("test-result")).toContainText(/Failed/);
   await expect(copilot.getByTestId("test-result")).toContainText(/sign/i);
+  await expect(copilot).not.toContainText(/can.t tell/i);
 
   // Installing restarts nothing; skip the 10 s per-backend cooldown the failed test started.
   await page.evaluate(() => {
@@ -88,17 +89,12 @@ test("S5: installed but signed out shows the sign-in step; Test tells unknown fr
 });
 
 test("S5: image tests ask before using credits; free engines test straight away", async ({ page }) => {
-  const imagePosts: string[] = [];
-  await page.route("**/api/system/backends/engine/*/test", async (route) => {
-    if (route.request().method() === "POST") imagePosts.push(route.request().url());
-    await route.continue();
-  });
   await page.goto("/setup?vvScenario=ready");
   await mockReady(page);
   await page.evaluate(() => window.__vvMock.clearTests());
   await page.reload();
   await mockReady(page);
-  // This suite uses the in-browser API mock, so watch its test calls as well as real POSTs.
+  // The in-browser API mock does not send HTTP requests.
   const testCall = await holdMock(page, "testBackend");
   const copilot = card(page, "GitHub Copilot");
   await expect(pill(copilot)).toHaveText("Unknown");
@@ -110,7 +106,6 @@ test("S5: image tests ask before using credits; free engines test straight away"
   await expect(confirm).toBeHidden();
   await expect(copilot.getByTestId("test-result")).toHaveCount(0);
   expect(await page.evaluate(() => window.__vvMock.waiting("testBackend"))).toBe(0);
-  expect(imagePosts).toEqual([]);
 
   await copilot.getByRole("button", { name: "Test images" }).click();
   await settled(page);
@@ -136,6 +131,8 @@ test("RV7: a passing chat test does not mark images ready at 375 px", async ({ p
   await copilot.getByRole("button", { name: "Test chat" }).click();
   await expect(copilot.getByTestId("test-result")).toContainText("Chat test: Passed");
   await expect(pill(copilot)).toHaveText("Chat: Ready · Images: Likely");
+  await expect(copilot).toContainText("Signed in. Run Test images to confirm images work.");
+  await expect(copilot).not.toContainText(/can.t tell/i);
   expect(await copilot.evaluate((el) => el.scrollWidth)).toBeLessThanOrEqual(375);
 });
 

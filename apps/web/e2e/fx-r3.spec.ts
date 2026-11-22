@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { lanCode, proof, settled } from "./helpers";
 
-// FX-R3: New code asks the API for a fresh code (POST /api/system/lan/code); showing the panel doesn't rotate it.
+// FX-R3: New code asks the API for a fresh code (POST /api/system/lan/code).
 // The panel counts down to expiry, fetches a new code when it runs out, and explains a pairing lockout.
 
 test("FX-R3: New code replaces the code; the panel counts down and refreshes at expiry", async ({ page }) => {
@@ -42,7 +42,7 @@ test("RV2: the open panel notices a lockout without reloading, then shows a code
   const secondsLeft = async () => Number(/for (\d+) s/.exec((await paused.textContent()) ?? "")?.[1]);
   const initial = await secondsLeft();
   await page.clock.fastForward(10_000);
-  await expect.poll(secondsLeft).toBeLessThan(initial);
+  await expect.poll(async () => Math.abs(await secondsLeft() - (initial - 10))).toBeLessThanOrEqual(1);
   await page.clock.fastForward(21_000);
   await expect(page.getByTestId("pairing-code")).toHaveText(/^\d{3} \d{3}$/);
   await expect(paused).toHaveCount(0);
