@@ -29,3 +29,4 @@ ruvector.db
 agentdb.rvf
 agentdb.rvf.lock
 probe/
+.claude/launch.json
