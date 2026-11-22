@@ -1,0 +1,7 @@
+
+Running 3 tests using 3 workers
+
+[1/3] [mobile] › e2e/s8.spec.ts:96:1 › S8: Render is reachable from every Studio tab @mobile
+[2/3] [mobile] › e2e/s8.spec.ts:69:1 › S8: the before/after slider drags by touch @mobile
+[3/3] [mobile] › e2e/s8.spec.ts:44:1 › S8: the composer stays above the on-screen keyboard @mobile
+  3 passed (6.6s)

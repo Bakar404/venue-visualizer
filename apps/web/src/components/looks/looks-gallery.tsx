@@ -75,7 +75,7 @@ export function LooksGallery({ params }: { params: Promise<{ id: string }> }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
-            <Link href={`/spaces/${id}`} className="rounded-sm hover:text-foreground">
+            <Link href={`/spaces/${id}`} className="rounded-sm hover:text-foreground pointer-coarse:-my-3 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
               {space.data?.name ?? "Studio"}
             </Link>
           </nav>

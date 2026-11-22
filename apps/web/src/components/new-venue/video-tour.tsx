@@ -5,6 +5,7 @@ import { ChevronDownIcon, FilmIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { CameraCapture } from "@/components/camera-capture";
 import { FrameReview } from "@/components/new-venue/frame-review";
 import { JobProgress, formatElapsed } from "@/components/new-venue/job-progress";
 import { Button } from "@/components/ui/button";
@@ -274,10 +275,13 @@ export function VideoTour() {
             )}
           >
             <FilmIcon aria-hidden className="size-6 text-muted-foreground" />
-            <Button type="button" variant="outline" onClick={() => input.current?.click()}>
-              Choose a video
-            </Button>
-            <p className="text-xs text-muted-foreground">Or drop it here. MP4, MOV or WebM (including iPhone HEVC), up to 1 GB and 5 minutes.</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button type="button" variant="outline" onClick={() => input.current?.click()}>
+                Choose a video
+              </Button>
+              <CameraCapture kind="video" onFiles={(files) => pick(files?.[0])} />
+            </div>
+            <p className="text-sm text-muted-foreground sm:text-xs">Or drop it here. MP4, MOV or WebM (including iPhone HEVC), up to 1 GB and 5 minutes.</p>
             {submitted && errors.video && <p className="text-sm text-destructive">{errors.video}</p>}
           </div>
         )}

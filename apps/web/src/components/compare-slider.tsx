@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -31,15 +31,49 @@ function SliderImage({ src, alt, optimize, style }: { src: string; alt: string; 
 }
 
 /**
- * Before/after comparison. A native range input drives the split, so it works with
- * arrow keys, Home/End and screen readers. The split follows the pointer with no easing.
+ * Before/after comparison. A native range input holds the split, so it works with arrow keys, Home/End and screen
+ * readers. Mouse, pen and touch drag anywhere on the image via pointer events: the split follows the pointer with
+ * no easing, the stage captures the pointer so the drag survives leaving it, and a second finger is ignored so the
+ * split never jumps. `touch-action: pan-y` keeps vertical page scrolling on phones.
  */
 export function CompareSlider({ before, after, beforeAlt, afterAlt, className, children, initial = 50, beforeLabel = "Before", afterLabel = "After", optimize }: Props) {
   const [pos, setPos] = useState(initial);
   const id = useId();
+  const input = useRef<HTMLInputElement>(null);
+  const dragging = useRef<number | null>(null);
+
+  const follow = (e: React.PointerEvent<HTMLDivElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    if (box.width) setPos(Math.round(Math.min(100, Math.max(0, ((e.clientX - box.left) / box.width) * 100))));
+  };
+  const drag = after
+    ? {
+        onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+          if (dragging.current !== null || !e.isPrimary || e.button !== 0) return;
+          // Controls laid over the image (retry, progress actions) keep their own clicks.
+          if (e.target !== input.current && (e.target as Element).closest("button, a, [role=button], textarea, select")) return;
+          dragging.current = e.pointerId;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          input.current?.focus({ preventScroll: true });
+          follow(e);
+        },
+        onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+          if (e.pointerId === dragging.current) follow(e);
+        },
+        onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
+          if (e.pointerId === dragging.current) dragging.current = null;
+        },
+        onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => {
+          if (e.pointerId === dragging.current) dragging.current = null;
+        },
+      }
+    : {};
 
   return (
-    <div className={cn("group/compare relative isolate overflow-hidden bg-muted select-none", className)}>
+    <div
+      {...drag}
+      className={cn("group/compare relative isolate overflow-hidden bg-muted select-none", after && "cursor-ew-resize touch-pan-y", className)}
+    >
       <SliderImage src={before} alt={beforeAlt} optimize={optimize} />
       {after && (
         <>
@@ -64,6 +98,7 @@ export function CompareSlider({ before, after, beforeAlt, afterAlt, className, c
             Comparison split. Lower values show more of {afterLabel === "After" ? "the render" : afterLabel}.
           </label>
           <input
+            ref={input}
             id={id}
             type="range"
             min={0}
@@ -72,7 +107,7 @@ export function CompareSlider({ before, after, beforeAlt, afterAlt, className, c
             value={pos}
             onChange={(e) => setPos(Number(e.target.value))}
             aria-valuetext={`${pos}% ${beforeLabel === "Before" ? "original photo" : beforeLabel}`}
-            className="absolute inset-0 z-20 size-full cursor-ew-resize opacity-0"
+            className="pointer-events-none absolute inset-0 z-20 size-full opacity-0"
           />
         </>
       )}

@@ -4,6 +4,8 @@ const apiUrl = (process.env.VV_API_URL ?? "http://localhost:8000").replace(/\/$/
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // The dev badge floats over the phone Studio's bottom tab bar; the mock-mode dev server is what e2e drives.
+  devIndicators: process.env.NEXT_PUBLIC_VV_MOCK === "1" ? false : undefined,
   partialPrefetching: true,
   transpilePackages: ["@vv/schema", "@vv/scene"],
   experimental: {

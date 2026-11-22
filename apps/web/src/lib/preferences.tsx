@@ -2,7 +2,9 @@
 
 import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
 
-import { useBackends } from "@/lib/queries";
+import { isUsable } from "@/lib/backends";
+import { useBackends, useSettings } from "@/lib/queries";
+import type { BackendStatus } from "@/lib/types";
 
 type Prefs = { engine: string | null; brain: string | null };
 const KEY = "vv:prefs";
@@ -43,6 +45,8 @@ type PreferencesValue = {
   brain: string | null;
   setEngine: (id: string) => void;
   setBrain: (id: string) => void;
+  /** The chosen engine or brain when it has stopped working, so the UI can explain why and link to setup. */
+  unavailable: { engine: BackendStatus | null; brain: BackendStatus | null };
 };
 
 const PreferencesContext = createContext<PreferencesValue | null>(null);
@@ -51,17 +55,18 @@ const PreferencesContext = createContext<PreferencesValue | null>(null);
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
   const stored = useSyncExternalStore(subscribe, read, () => EMPTY);
   const { data } = useBackends();
+  const { data: settings } = useSettings();
 
   const engine = useMemo(() => {
     if (!data) return null;
-    const available = data.engines.filter((e) => e.available).map((e) => e.id);
+    const available = data.engines.filter(isUsable).map((e) => e.id);
     if (stored.engine && available.includes(stored.engine)) return stored.engine;
     return data.defaults.engine && available.includes(data.defaults.engine) ? data.defaults.engine : null;
   }, [data, stored.engine]);
 
   const brain = useMemo(() => {
     if (!data) return null;
-    const available = data.brains.filter((b) => b.available).map((b) => b.id);
+    const available = data.brains.filter(isUsable).map((b) => b.id);
     if (stored.brain && available.includes(stored.brain)) return stored.brain;
     const preferred = data.defaults.brain;
     return preferred && available.includes(preferred) ? preferred : (available[0] ?? null);
@@ -70,7 +75,22 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const setEngine = useCallback((id: string) => write({ ...read(), engine: id }), []);
   const setBrain = useCallback((id: string) => write({ ...read(), brain: id }), []);
 
-  const value = useMemo(() => ({ engine, brain, setEngine, setBrain }), [engine, brain, setEngine, setBrain]);
+  const unavailable = useMemo(() => {
+    const broken = (list: BackendStatus[] | undefined, ...chosen: (string | null | undefined)[]) => {
+      const id = chosen.find(Boolean);
+      const b = id ? list?.find((x) => x.id === id) : undefined;
+      return b && !isUsable(b) ? b : null;
+    };
+    return {
+      engine: broken(data?.engines, stored.engine, settings?.default_engine),
+      brain: broken(data?.brains, stored.brain, settings?.default_brain),
+    };
+  }, [data, settings, stored.engine, stored.brain]);
+
+  const value = useMemo(
+    () => ({ engine, brain, setEngine, setBrain, unavailable }),
+    [engine, brain, setEngine, setBrain, unavailable],
+  );
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
 }
 

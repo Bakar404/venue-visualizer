@@ -1,0 +1,181 @@
+# pnpm --filter web exec playwright test e2e/s5.spec.ts  (before the LAN security change)
+
+Running 9 tests using 4 workers
+
+  ✓  3 [chromium] › e2e/s5.spec.ts:51:1 › S5: unfinished setup redirects every app route, except setup, pairing and the render scene (3.7s)
+  ✓  2 [chromium] › e2e/s5.spec.ts:67:1 › S5: installed but signed out shows the sign-in step; Test tells unknown from ready (4.0s)
+  ✓  1 [chromium] › e2e/s5.spec.ts:15:1 › S5: a fresh install is sent to /setup and sees what to install, with copyable commands (4.1s)
+  ✘  6 [chromium] › e2e/s5.spec.ts:129:1 › S5: rate-limited tests say when to try again, and Test waits until then (962ms)
+  ✓  4 [chromium] › e2e/s5.spec.ts:86:1 › S5: image tests ask before using credits; free engines test straight away (5.1s)
+  ✘  8 [chromium] › e2e/s5.spec.ts:223:1 › S5: paired phones are listed and can be forgotten one by one or all at once (448ms)
+  ✓  5 [chromium] › e2e/s5.spec.ts:111:1 › S5: Advanced keeps per-provider options (2.1s)
+  ✘  9 [chromium] › e2e/s5.spec.ts:178:1 › S5: Open on your phone shows the QR code, address and a one-time code; New code replaces it; /pair accepts only the newest (443ms)
+  ✘  7 [chromium] › e2e/s5.spec.ts:158:1 › S5: phone access is off by default: no toggle, just the restart command and why pairing is needed (10.8s)
+
+
+  1) [chromium] › e2e/s5.spec.ts:129:1 › S5: rate-limited tests say when to try again, and Test waits until then 
+
+    Error: page.evaluate: TypeError: window.__vvMock.rateLimitTests is not a function
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:135:14
+
+    Error Context: test-results/s5-S5-rate-limited-tests-s-35d4d-n-and-Test-waits-until-then-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-rate-limited-tests-s-35d4d-n-and-Test-waits-until-then-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-rate-limited-tests-s-35d4d-n-and-Test-waits-until-then-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/s5.spec.ts:158:1 › S5: phone access is off by default: no toggle, just the restart command and why pairing is needed 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('region', { name: 'Open on your phone' })
+    Expected pattern: /Phone access is off/
+    Received string:  "Open on your phoneTake photos and walk the room with your phone while this computer does the work. Your phone needs to be on the same Wi-Fi as this computer.While this is on, anyone on the same Wi-Fi can reach this page. Each phone must first type the one-time pairing code shown here, but only turn it on at home or in the office, never on café or hotel Wi-Fi.Allow phones on this Wi-Fi"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toContainText" getByRole('region', { name: 'Open on your phone' }) with timeout 10000ms
+      - waiting for getByRole('region', { name: 'Open on your phone' })
+        24 × locator resolved to <section aria-labelledby="_R_af5esne5l5rlb_" class="grid gap-5 rounded-2xl border bg-card p-5 sm:p-6">…</section>
+           - unexpected value "Open on your phoneTake photos and walk the room with your phone while this computer does the work. Your phone needs to be on the same Wi-Fi as this computer.While this is on, anyone on the same Wi-Fi can reach this page. Each phone must first type the one-time pairing code shown here, but only turn it on at home or in the office, never on café or hotel Wi-Fi.Allow phones on this Wi-Fi"
+
+
+      159 |   await page.goto("/setup");
+      160 |   const phone = page.getByRole("region", { name: "Open on your phone" });
+    > 161 |   await expect(phone).toContainText(/Phone access is off/);
+          |                       ^
+      162 |   await expect(page.getByRole("switch")).toHaveCount(0);
+      163 |   await expect(phone.getByRole("checkbox")).toHaveCount(0);
+      164 |   await expect(phone).toContainText(/anyone on the same Wi.?Fi could try to connect/i);
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:161:23
+
+    Error Context: test-results/s5-S5-phone-access-is-off--270aa-d-and-why-pairing-is-needed-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-phone-access-is-off--270aa-d-and-why-pairing-is-needed-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-phone-access-is-off--270aa-d-and-why-pairing-is-needed-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/s5.spec.ts:178:1 › S5: Open on your phone shows the QR code, address and a one-time code; New code replaces it; /pair accepts only the newest 
+
+    Error: page.evaluate: TypeError: window.__vvMock.setLan is not a function
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:182:14
+
+    Error Context: test-results/s5-S5-Open-on-your-phone-s-621e0-air-accepts-only-the-newest-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-Open-on-your-phone-s-621e0-air-accepts-only-the-newest-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-Open-on-your-phone-s-621e0-air-accepts-only-the-newest-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e/s5.spec.ts:223:1 › S5: paired phones are listed and can be forgotten one by one or all at once 
+
+    Error: page.evaluate: TypeError: window.__vvMock.setLan is not a function
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:370:30), <anonymous>:1:23)
+        at UtilityScript.evaluate (<anonymous>:372:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s5.spec.ts:226:14
+
+    Error Context: test-results/s5-S5-paired-phones-are-li-39cd0-n-one-by-one-or-all-at-once-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s5-S5-paired-phones-are-li-39cd0-n-one-by-one-or-all-at-once-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s5-S5-paired-phones-are-li-39cd0-n-one-by-one-or-all-at-once-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › e2e/s5.spec.ts:129:1 › S5: rate-limited tests say when to try again, and Test waits until then 
+    [chromium] › e2e/s5.spec.ts:158:1 › S5: phone access is off by default: no toggle, just the restart command and why pairing is needed 
+    [chromium] › e2e/s5.spec.ts:178:1 › S5: Open on your phone shows the QR code, address and a one-time code; New code replaces it; /pair accepts only the newest 
+    [chromium] › e2e/s5.spec.ts:223:1 › S5: paired phones are listed and can be forgotten one by one or all at once 
+  5 passed (17.2s)
+
+# pnpm --filter web exec vitest run src/lib/mock-contract.test.ts src/lib/api.test.ts  (before; tail)
+    [90m140|[39m }
+    [90m141|[39m
+[90m [2m❯[22m src/lib/mock-contract.test.ts:[2m190:19[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/lib/mock-contract.test.ts[2m > [22mmock API matches the first-run setup spec[2m > [22mGET /api/system/lan and POST /api/system/lan/pair
+[31m[1mTypeError[22m: systemHooks.setLan is not a function[39m
+[36m [2m❯[22m src/lib/mock-contract.test.ts:[2m205:17[22m[39m
+    [90m203|[39m     expect(off).toMatchObject({ enabled: false, url: null, qr_svg: nul…
+    [90m204|[39m     expect((await rejects(mockApi.pairDevice("123456"))).status).toBe(…
+    [90m205|[39m     systemHooks[33m.[39m[34msetLan[39m([35mtrue[39m)[33m;[39m
+    [90m   |[39m                 [31m^[39m
+    [90m206|[39m     [35mconst[39m first [33m=[39m [35mawait[39m mockApi[33m.[39m[34mlanInfo[39m()[33m;[39m
+    [90m207|[39m     [34mexpectSpec[39m(lanSchema[33m,[39m first)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/lib/mock-contract.test.ts[2m > [22mmock API matches the first-run setup spec[2m > [22mpairing codes expire[2m > [22mafter 10 minutes
+[31m[1mTypeError[22m: systemHooks.setLan is not a function[39m
+[36m [2m❯[22m src/lib/mock-contract.test.ts:[2m224:19[22m[39m
+    [90m222|[39m     [34mit[39m([32m"after 10 minutes"[39m[33m,[39m () [33m=>[39m {
+    [90m223|[39m       vi[33m.[39m[34museFakeTimers[39m({ toFake[33m:[39m [[32m"Date"[39m] })[33m;[39m
+    [90m224|[39m       systemHooks[33m.[39m[34msetLan[39m([35mtrue[39m)[33m;[39m
+    [90m   |[39m                   [31m^[39m
+    [90m225|[39m       [35mconst[39m t0 [33m=[39m [35mnew[39m [33mDate[39m([32m"2026-11-21T12:00:00Z"[39m)[33m.[39m[34mgetTime[39m()[33m;[39m
+    [90m226|[39m       vi[33m.[39m[34msetSystemTime[39m(t0)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/lib/mock-contract.test.ts[2m > [22mmock API matches the first-run setup spec[2m > [22mGET and DELETE /api/system/lan/devices
+[31m[1mTypeError[22m: systemHooks.setLan is not a function[39m
+[36m [2m❯[22m src/lib/mock-contract.test.ts:[2m238:17[22m[39m
+    [90m236|[39m
+    [90m237|[39m   [34mit[39m([32m"GET and DELETE /api/system/lan/devices"[39m[33m,[39m [35masync[39m () [33m=>[39m {
+    [90m238|[39m     systemHooks[33m.[39m[34msetLan[39m([35mtrue[39m)[33m;[39m
+    [90m   |[39m                 [31m^[39m
+    [90m239|[39m     [34mexpect[39m([35mawait[39m mockApi[33m.[39m[34mlanDevices[39m())[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m240|[39m     for (let i = 0; i < 3; i++) await mockApi.pairDevice((await mockAp…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/lib/mock-contract.test.ts[2m > [22mmock API matches the first-run setup spec[2m > [22mPOST /api/system/backends/{kind}/{id}/test can be rate-limited with Retry-After
+[31m[1mTypeError[22m: systemHooks.rateLimitTests is not a function[39m
+[36m [2m❯[22m src/lib/mock-contract.test.ts:[2m257:19[22m[39m
+    [90m255|[39m     [35mtry[39m {
+    [90m256|[39m       systemHooks[33m.[39m[34msetScenario[39m([32m"ready"[39m)[33m;[39m
+    [90m257|[39m       systemHooks[33m.[39m[34mrateLimitTests[39m([34m5[39m)[33m;[39m
+    [90m   |[39m                   [31m^[39m
+    [90m258|[39m       [35mconst[39m t0 [33m=[39m [33mDate[39m[33m.[39m[34mnow[39m()[33m;[39m
+    [90m259|[39m       [35mconst[39m limited [33m=[39m () [33m=>[39m {
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[31m7 failed[39m[22m[2m | [22m[1m[32m11 passed[39m[22m[90m (18)[39m
+[2m   Start at [22m 23:14:50
+[2m   Duration [22m 15.60s[2m (tests 99%, import 1%)[22m
+

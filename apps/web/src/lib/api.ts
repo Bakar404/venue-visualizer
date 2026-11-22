@@ -1,5 +1,5 @@
 import { normalizeChatResponse } from "@/lib/chat";
-import { ApiError } from "@/lib/errors";
+import { ApiError, parseRetryAfter } from "@/lib/errors";
 import { mockApi } from "@/lib/mock-api";
 import type { Job, VenueImportResult, VVApi } from "@/lib/types";
 
@@ -32,7 +32,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       // Non-JSON error body (for example the proxy failing to reach the API).
       if (res.status >= 500) detail = "The local API isn't responding. Start it with `make dev`.";
     }
-    throw new ApiError(res.status, detail);
+    throw new ApiError(res.status, detail, res.status === 429 ? parseRetryAfter(res.headers.get("Retry-After")) : undefined);
   }
 
   if (res.status === 204) return undefined as T;
@@ -94,6 +94,23 @@ const enc = encodeURIComponent;
 
 export const httpApi: VVApi = {
   backends: () => request("/api/system/backends"),
+  refreshBackends: () => request("/api/system/backends/refresh", { method: "POST" }),
+  testBackend: (kind, id, body) =>
+    request(`/api/system/backends/${enc(kind)}/${enc(id)}/test`, { method: "POST", ...json(body) }),
+  getSettings: () => request("/api/settings"),
+  updateSettings: (body) => request("/api/settings", { method: "PATCH", ...json(body) }),
+  setupStatus: () => request("/api/system/setup"),
+  lanInfo: () => request("/api/system/lan"),
+  pairDevice: async (code) => {
+    await request("/api/system/lan/pair", { method: "POST", ...json({ code }), credentials: "include" });
+  },
+  lanDevices: () => request("/api/system/lan/devices"),
+  forgetLanDevice: async (id) => {
+    await request(`/api/system/lan/devices/${enc(id)}`, { method: "DELETE" });
+  },
+  forgetAllLanDevices: async () => {
+    await request("/api/system/lan/devices", { method: "DELETE" });
+  },
   listVenues: () => request("/api/venues"),
   createVenue: (body) => request("/api/venues", { method: "POST", ...json(body) }),
   getVenue: (id) => request(`/api/venues/${enc(id)}`),

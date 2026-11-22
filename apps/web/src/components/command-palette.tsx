@@ -10,6 +10,7 @@ import {
   MoonIcon,
   PlusIcon,
   SaveIcon,
+  SettingsIcon,
   SparklesIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -25,8 +26,8 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-  CommandShortcut,
 } from "@/components/ui/command";
+import { isUsable } from "@/lib/backends";
 import { usePreferences } from "@/lib/preferences";
 import { useBackends, useVenues } from "@/lib/queries";
 import { useStudioActions } from "@/lib/studio-actions";
@@ -116,6 +117,10 @@ export function CommandPalette() {
             <LayoutGridIcon />
             All venues
           </CommandItem>
+          <CommandItem value="set up ai tools setup brain engine" onSelect={run(() => router.push("/setup"))}>
+            <SettingsIcon />
+            Set up AI tools
+          </CommandItem>
           {venues.data?.map((venue) => (
             <CommandItem key={venue.id} value={`venue ${venue.name} ${venue.id}`} onSelect={run(() => router.push(`/venues/${venue.id}`))}>
               <BuildingIcon />
@@ -140,11 +145,10 @@ export function CommandPalette() {
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Engine">
-          {backends.data?.engines.map((e) => (
+          {backends.data?.engines.filter(isUsable).map((e) => (
             <CommandItem
               key={e.id}
               value={`engine switch ${e.label} ${e.id}`}
-              disabled={!e.available}
               data-checked={engine === e.id}
               onSelect={run(() => {
                 setEngine(e.id);
@@ -153,7 +157,6 @@ export function CommandPalette() {
             >
               <CpuIcon />
               Switch engine to {e.label}
-              {!e.available && <CommandShortcut>Unavailable</CommandShortcut>}
             </CommandItem>
           ))}
         </CommandGroup>

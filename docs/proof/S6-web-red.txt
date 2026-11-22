@@ -1,0 +1,71 @@
+
+Running 2 tests using 2 workers
+
+[1/2] [chromium] › e2e/s6.spec.ts:61:1 › S6: a chosen engine that stops working is explained, with a link to setup
+[2/2] [chromium] › e2e/s6.spec.ts:8:1 › S6: choosing defaults finishes setup, and the app then uses them
+  1) [chromium] › e2e/s6.spec.ts:8:1 › S6: choosing defaults finishes setup, and the app then uses them 
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/setup$/
+    Received string:  "http://localhost:3300/?vvScenario=ready"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 10000ms
+        24 × locator resolved to <html lang="en" class="geist_a71539c9-module__T19VSG__variable instrument_serif_bed06b21-module__swPsvG__variable h-full antialiased light">…</html>
+           - unexpected value "http://localhost:3300/?vvScenario=ready"
+
+
+       8 | test("S6: choosing defaults finishes setup, and the app then uses them", async ({ page }) => {
+       9 |   await page.goto("/?vvScenario=ready");
+    > 10 |   await expect(page).toHaveURL(/\/setup$/);
+         |                      ^
+      11 |   await expect(page.getByRole("link", { name: /Set up AI/ })).toHaveAttribute("href", "/setup");
+      12 |
+      13 |   const defaults = page.getByRole("region", { name: "Choose your defaults" });
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s6.spec.ts:10:22
+
+    Error Context: test-results/s6-S6-choosing-defaults-fi-bf972--and-the-app-then-uses-them-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s6-S6-choosing-defaults-fi-bf972--and-the-app-then-uses-them-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s6-S6-choosing-defaults-fi-bf972--and-the-app-then-uses-them-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [chromium] › e2e/s6.spec.ts:61:1 › S6: a chosen engine that stops working is explained, with a link to setup 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('region', { name: 'Choose your defaults' }).getByRole('radiogroup', { name: 'Default image engine' }).getByRole('radio', { name: /Local FLUX/ })
+
+
+      62 |   await page.goto("/setup?vvScenario=ready");
+      63 |   const defaults = page.getByRole("region", { name: "Choose your defaults" });
+    > 64 |   await defaults.getByRole("radiogroup", { name: "Default image engine" }).getByRole("radio", { name: /Local FLUX/ }).click();
+         |                                                                                                                       ^
+      65 |   await defaults.getByRole("button", { name: "Finish setup" }).click();
+      66 |   await expect(page.getByRole("region", { name: "Try it" })).toBeVisible();
+      67 |
+        at /Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web/e2e/s6.spec.ts:64:119
+
+    Error Context: test-results/s6-S6-a-chosen-engine-that-1daf0-lained-with-a-link-to-setup-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/s6-S6-a-chosen-engine-that-1daf0-lained-with-a-link-to-setup-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/s6-S6-a-chosen-engine-that-1daf0-lained-with-a-link-to-setup-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › e2e/s6.spec.ts:8:1 › S6: choosing defaults finishes setup, and the app then uses them 
+    [chromium] › e2e/s6.spec.ts:61:1 › S6: a chosen engine that stops working is explained, with a link to setup 

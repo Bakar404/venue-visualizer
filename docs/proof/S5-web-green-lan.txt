@@ -1,0 +1,30 @@
+# pnpm --filter web exec playwright test e2e/s5.spec.ts  (after the LAN security change)
+
+Running 9 tests using 4 workers
+
+  ✓  4 [chromium] › e2e/s5.spec.ts:15:1 › S5: a fresh install is sent to /setup and sees what to install, with copyable commands (3.7s)
+  ✓  3 [chromium] › e2e/s5.spec.ts:67:1 › S5: installed but signed out shows the sign-in step; Test tells unknown from ready (3.8s)
+  ✓  1 [chromium] › e2e/s5.spec.ts:51:1 › S5: unfinished setup redirects every app route, except setup, pairing and the render scene (3.9s)
+  ✓  2 [chromium] › e2e/s5.spec.ts:86:1 › S5: image tests ask before using credits; free engines test straight away (5.3s)
+  ✓  7 [chromium] › e2e/s5.spec.ts:158:1 › S5: phone access is off by default: no toggle, just the restart command and why pairing is needed (1.9s)
+  ✓  5 [chromium] › e2e/s5.spec.ts:111:1 › S5: Advanced keeps per-provider options (2.7s)
+  ✓  8 [chromium] › e2e/s5.spec.ts:179:1 › S5: Open on your phone shows the QR code, address and a one-time code; New code replaces it; /pair accepts only the newest (3.1s)
+  ✓  6 [chromium] › e2e/s5.spec.ts:129:1 › S5: rate-limited tests say when to try again, and Test waits until then (8.0s)
+  ✓  9 [chromium] › e2e/s5.spec.ts:224:1 › S5: paired phones are listed and can be forgotten one by one or all at once (6.2s)
+
+  9 passed (14.0s)
+
+# pnpm --filter web exec vitest run src/lib/mock-contract.test.ts src/lib/api.test.ts  (after)
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.1.1 [39m[90m/Users/ahmedabdelsalam/Desktop/venue-visualizer-setup-web/apps/web[39m
+
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m18 passed[39m[22m[90m (18)[39m
+[2m   Start at [22m 23:26:10
+[2m   Duration [22m 20.09s[2m (tests 99%, import 1%)[22m
+
+
+# pnpm --filter web e2e, two runs in a row:
+  75 passed (1.9m)
+  75 passed (1.8m)

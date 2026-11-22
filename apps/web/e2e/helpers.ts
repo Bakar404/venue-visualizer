@@ -18,9 +18,37 @@ type MockPeek = {
   waiting: (name: MockGate) => number;
   /** The next request of this kind fails with a 500 and this message. */
   failNext: (name: MockGate, message: string) => void;
+  /** Resets the simulated machine and settings (also `?vvScenario=` on any URL). Kept for the tab's session. */
+  setScenario: (name: MockScenario) => void;
+  /** Changes a tool on the simulated machine, like running its install or sign-in command. Seen after Check again. */
+  install: (provider: MockProvider, state?: "ready" | "signed-out" | "missing") => void;
+  settings: () => {
+    default_brain: string | null;
+    default_engine: string | null;
+    allow_web_research: boolean;
+    setup_completed_at: string | null;
+    providers: Record<string, Record<string, string | null> | undefined>;
+    lan: { enabled: boolean };
+  };
+  /** Like restarting the app with `make dev-lan` (true) or `make dev` (false). Settings can't change it. */
+  setLan: (enabled: boolean) => void;
+  /** Phones paired with this computer, as `GET /api/system/lan/devices` returns them. */
+  lanDevices: () => Array<{ id: string; label: string; paired_at: string; last_seen: string }>;
+  /** Adds a paired phone directly, as if it had paired through /pair. */
+  pairPhone: (label?: string) => void;
+  /** The next backend test is refused with HTTP 429 and `Retry-After: seconds`; tests stay refused until then. */
+  rateLimitTests: (seconds: number) => void;
 };
 
+export type MockScenario = "fresh" | "signed-out" | "ready" | "demo";
+type MockProvider = "claude" | "codex" | "copilot" | "kimi" | "mflux";
+
 type MockGate = "chat" | "renderLook" | "deletePhoto" | "getJob";
+
+/** Waits until the app has loaded the mock and attached `window.__vvMock`. */
+export async function mockReady(page: Page) {
+  await page.waitForFunction(() => "__vvMock" in window);
+}
 
 /** Holds `name` requests in the mock; returns a release function. */
 export async function holdMock(page: Page, name: MockGate) {
