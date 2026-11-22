@@ -64,9 +64,12 @@ export async function lanCode(page: Page) {
   return ((await code.textContent()) ?? "").replace(/\D/g, "");
 }
 
-/** Waits until the app has loaded the mock and attached `window.__vvMock`. */
+/**
+ * Waits until the app has loaded the mock, attached `window.__vvMock`, and dropped `?vvScenario=` from the URL.
+ * Until then a reload would re-apply the scenario and undo whatever the test just changed (slow CI machines hit this).
+ */
 export async function mockReady(page: Page) {
-  await page.waitForFunction(() => "__vvMock" in window);
+  await page.waitForFunction(() => "__vvMock" in window && !new URLSearchParams(window.location.search).has("vvScenario"));
 }
 
 /** Holds `name` requests in the mock; returns a release function. */
