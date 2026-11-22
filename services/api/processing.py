@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -25,6 +26,8 @@ from .integrations import (
 from .jobs import completing, progress, video_input
 from .models import Job, Look, Photo, Render, Space, Venue, new_id
 from .storage import (
+
+logger = logging.getLogger(__name__)
     MAX_PHOTOS,
     MAX_VIDEO_SECONDS,
     CleanImage,
@@ -77,16 +80,21 @@ async def _render(runtime: Runtime, job: Job, work: Path) -> Outcome:
     refs = []
     guide = await invoke(layout_engine) if spec.tables.count > 0 else None
     if guide:
-        guide_result = await guide.generate(
-            GenerateRequest(
-                prompt="Layout guide for table positions and counts",
-                out_path=work / "layout.png",
-                design_spec=spec.to_dict(),
-                venue_spec=space.venue_spec_json,
+        try:
+            guide_result = await guide.generate(
+                GenerateRequest(
+                    prompt="Layout guide for table positions and counts",
+                    out_path=work / "layout.png",
+                    design_spec=spec.to_dict(),
+                    venue_spec=space.venue_spec_json,
+                    timeout_s=60,
+                )
             )
-        )
-        refs.append(pipeline_output(guide_result.path, work))
-        prompt += f"\n{layout_clause(spec.to_dict())}"
+        except Exception as exc:  # the guide is an optional aid; render without it
+            logger.warning("Layout guide skipped for render %s: %s", render.id, exc)
+        else:
+            refs.append(pipeline_output(guide_result.path, work))
+            prompt += f"\n{layout_clause(spec.to_dict())}"
     progress(runtime, job, 0.25, prompt)
 
     logs = []

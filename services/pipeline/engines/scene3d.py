@@ -170,7 +170,12 @@ class Scene3DEngine:
                             raise EngineError(
                                 f"Scene route returned {status}; /render/scene must be installed."
                             )
-                        await page.wait_for_function("window.__VV_SCENE_READY === true")
+                        await page.wait_for_function(
+                            "window.__VV_SCENE_READY === true || typeof window.__VV_SCENE_ERROR === 'string'"
+                        )
+                        scene_error = await page.evaluate("window.__VV_SCENE_ERROR || null")
+                        if scene_error:
+                            raise EngineError(f"Layout guide could not be drawn: {scene_error}")
                         canvas = page.locator("canvas")
                         await canvas.wait_for(state="visible")
                         bounds = await canvas.bounding_box()
