@@ -1,3 +1,4 @@
-
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-7 passed, 9 deselected, 1 warning in 0.48s
+=========================== short test summary info ============================
+FAILED tests/test_sec_1.py::test_dev_lan_keeps_the_api_on_loopback - assert '...
+1 failed, 1 warning in 0.06s
