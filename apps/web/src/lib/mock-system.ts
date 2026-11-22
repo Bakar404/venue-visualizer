@@ -118,16 +118,25 @@ const MOCK_BRAIN: BackendStatus = {
   id: "mock", label: "Mock brain", kind: "brain", available: true, logged_in: null, version: null,
   detail: "Keyword parser for offline use. In demo mode it also returns a sample venue.",
   used_for: ["chat"], cost_note: "Free, for testing", login: null, last_test: null,
+  install: { macos: "", linux: "", docs_url: "" },
 };
 const MOCK_ENGINE: BackendStatus = {
   id: "mock", label: "Mock (dev)", kind: "engine", available: true, logged_in: null, version: null,
   detail: "Returns the matching demo photograph. Nothing is generated.",
   caps: { can_generate: true, can_edit: true, typical_seconds: 2, cost_note: "Free, for testing", photoreal: true, max_refs: 0 },
   used_for: ["images"], cost_note: "Free, for testing", login: null, last_test: null,
+  install: { macos: "", linux: "", docs_url: "" },
 };
+// Mirrors services/pipeline/providers.py "scene3d".
 const LAYOUT_GUIDE: BackendStatus = {
   id: "scene3d", label: "Layout guide", kind: "engine", available: true, logged_in: null, version: null,
   detail: "Places each table exactly before the photo edit.",
+  install: {
+    macos: "uv run --extra scene3d playwright install chromium",
+    linux: "uv run --extra scene3d playwright install chromium",
+    docs_url: "https://playwright.dev/python/docs/browsers",
+  },
+  login: null, used_for: ["images"], cost_note: "Free, runs locally", last_test: null,
 };
 
 const BRAIN_ORDER = ["claude", "copilot", "codex", "kimi", "mock"];
