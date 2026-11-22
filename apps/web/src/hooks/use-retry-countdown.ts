@@ -4,17 +4,23 @@ import { useEffect, useState } from "react";
 
 /** Whole seconds left until `until` (epoch ms), ticking down; 0 once it has passed, null when there's nothing to wait for. */
 export function useSecondsLeft(until: number | null): number | null {
-  const [now, setNow] = useState(() => Date.now());
+  // The clock is read only in effects: reading it during render makes Next refuse to prerender the page.
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     if (until === null) return;
     const tick = () => {
       setNow(Date.now());
       if (Date.now() >= until) clearInterval(t);
     };
+    const first = setTimeout(tick, 0);
     const t = setInterval(tick, 250);
-    return () => clearInterval(t);
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+    };
   }, [until]);
-  return until === null ? null : Math.max(0, Math.ceil((until - now) / 1000));
+  if (until === null || now === null) return null;
+  return Math.max(0, Math.ceil((until - now) / 1000));
 }
 
 /**
