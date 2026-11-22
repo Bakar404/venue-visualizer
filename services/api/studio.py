@@ -188,6 +188,8 @@ def generate_base(space_id: UUID, body: GenerateBase, runtime: RuntimeDep) -> Jo
         with Session(runtime.engine) as session:
             _require_reference(require(session, Space, str(space_id)), body.reference_url)
     engine = pick_engine(runtime.settings, body.engine, "can_generate")
+    if body.reference_url is not None and engine.capabilities().max_refs < 1:
+        raise HTTPException(422, f"{engine.label} can't use a reference photo; pick Copilot, Codex or mflux.")
     with write_session(runtime.engine) as session:
         space = require(session, Space, str(space_id))
         if space.references_json:

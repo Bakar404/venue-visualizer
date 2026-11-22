@@ -29,7 +29,9 @@ def test_brain_schema_requires_two_to_four_options():
     }
     validator = jsonschema.Draft202012Validator(CHAT_RESPONSE_SCHEMA)
     validator.validate(envelope)
-    for ambiguous in ["What kind of candles?", {"question": "Which?", "options": ["One"]},
+    # Too few options are repaired server-side (spec_ops._sanitise_cosmetics, see test_review_ut_backend R2);
+    # the raw schema still rejects plain strings and more than four options.
+    for ambiguous in ["What kind of candles?",
                       {"question": "Which?", "options": ["One", "Two", "Three", "Four", "Five"]}]:
         with pytest.raises(jsonschema.ValidationError):
             validator.validate({**envelope, "ambiguities": [ambiguous]})

@@ -191,7 +191,7 @@ def build_edit_prompt(spec: DesignSpec | dict, venue_spec: VenueSpec | dict | No
     parts = [head, *[f"- {line}" for line in describe_spec(s, venue_rules)]]
     if s.scene:
         time = {
-            "daylight": "in daylight", "golden_hour": "during golden hour",
+            None: None, "daylight": "in daylight", "golden_hour": "during golden hour",
             "evening": "in the evening", "night": "at night",
         }[s.scene.time_of_day]
         windows = {
@@ -205,7 +205,10 @@ def build_edit_prompt(spec: DesignSpec | dict, venue_spec: VenueSpec | dict | No
             elif s.scene.windows == "sheer_draped":
                 windows += "; no daylight through the drapes"
             windows += "; interior lit by the event lighting"
-        parts.append(f"Scene: photographed {time}: {windows}.")
+        if time is not None:
+            parts.append(f"Scene: photographed {time}: {windows}.")
+        elif s.scene.windows != "as_photographed":
+            parts.append(f"Windows: {windows}; keep the time of day as photographed.")
     if v:
         features = [x for x in [v.style, v.walls and f"walls: {v.walls}", v.floor and f"floor: {v.floor}",
                                 v.windows and f"windows: {v.windows}", *(v.fixtures or [])] if x]
@@ -273,7 +276,7 @@ CHAT_RESPONSE_SCHEMA: dict[str, Any] = {
                 "required": ["question", "options"],
                 "properties": {
                     "question": {"type": "string", "minLength": 1},
-                    "options": {"type": "array", "minItems": 2, "maxItems": 4,
+                    "options": {"type": "array", "minItems": 0, "maxItems": 4,
                                 "items": {"type": "string", "minLength": 1, "maxLength": 80}},
                 },
             },

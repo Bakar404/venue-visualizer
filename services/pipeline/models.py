@@ -79,7 +79,7 @@ class Lighting(_Model):
 
 
 class Scene(_Model):
-    time_of_day: Literal["daylight", "golden_hour", "evening", "night"] = "daylight"
+    time_of_day: Literal["daylight", "golden_hour", "evening", "night"] | None = None  # None = as photographed
     windows: Literal["as_photographed", "dark", "sheer_draped"] = "as_photographed"
 
 

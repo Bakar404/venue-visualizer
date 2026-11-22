@@ -21,7 +21,7 @@ def structure_message(report: Mapping[str, object]) -> StructureMessage:
             "level": "unverified",
             "text": "Lighting changed a lot, so we couldn't confirm the room matches; compare with the slider.",
         }
-    if method == "unverifiable":
+    if method in ("unverifiable", "edges", "gray", "flat"):  # legacy methods weren't alignment-checked
         return {
             "level": "unverified",
             "text": "We couldn't confirm the room matches; compare with the slider.",

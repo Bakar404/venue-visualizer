@@ -84,7 +84,12 @@ def test_reference_import_obeys_the_photo_cap_before_downloading(client, referen
 
 
 def test_generate_base_passes_only_the_chosen_reference_to_generate(client, reference_space, monkeypatch):
+    from dataclasses import replace
+
+
     chosen = REFERENCES[1]["url"]
+    caps = MockEngine.capabilities
+    monkeypatch.setattr(MockEngine, "capabilities", lambda self: replace(caps(self), max_refs=1))
 
     async def download_image(url, folder):
         assert url == chosen

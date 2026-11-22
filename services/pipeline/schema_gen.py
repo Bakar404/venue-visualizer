@@ -99,7 +99,7 @@ def _compare_object(js: dict, js_root: dict, ps: dict, ps_root: dict, path: str,
             a_types.discard("null")
         if a_types != b_types and not (a_types == {None} or b_types == {None}):
             errs.append(f"{sub}: types differ: schema={sorted(map(str, a_types))} model={sorted(map(str, b_types))}")
-        if a.get("enum") != b.get("enum"):
+        if _enum_set(a.get("enum")) != _enum_set(b.get("enum")):
             errs.append(f"{sub}: enum differs: schema={a.get('enum')} model={b.get('enum')}")
         for bound in _BOUNDS:
             if a.get(bound) != b.get(bound):
@@ -113,6 +113,11 @@ def _compare_object(js: dict, js_root: dict, ps: dict, ps_root: dict, path: str,
         if "object" in a and "object" in b:
             errs.extend(_compare_object(a["object"], js_root, b["object"], ps_root, sub, {}))
     return errs
+
+
+def _enum_set(values):
+    """Enum values ignoring null: a nullable field lists None in JSON Schema but not in the Literal."""
+    return None if values is None else frozenset(v for v in values if v is not None)
 
 
 def check_models() -> list[str]:

@@ -31,6 +31,10 @@ from .claude import stage_images
 _STRICT_FORMATS = {"date-time", "time", "date", "duration", "email", "hostname", "ipv4", "ipv6", "uuid"}
 
 
+_UNSUPPORTED_STRICT_KEYWORDS = ("minLength", "maxLength", "minItems", "maxItems", "pattern",
+                                "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "default")
+
+
 def strictify(schema: dict) -> tuple[dict, list[tuple[str, ...]]]:
     """Make a schema acceptable to strict structured outputs.
 
@@ -43,6 +47,8 @@ def strictify(schema: dict) -> tuple[dict, list[tuple[str, ...]]]:
         node = dict(node)
         if "format" in node and node["format"] not in _STRICT_FORMATS:
             del node["format"]
+        for kw in _UNSUPPORTED_STRICT_KEYWORDS:  # enforced server-side by spec_ops instead
+            node.pop(kw, None)
         if node.get("type") == "object" or "properties" in node:
             props = node.get("properties")
             if not props:

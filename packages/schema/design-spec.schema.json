@@ -313,14 +313,19 @@
       "description": "Time of day and what the windows show. Maps phrases like '7pm', 'dark outside', 'golden hour'.",
       "properties": {
         "time_of_day": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "daylight",
             "golden_hour",
             "evening",
-            "night"
+            "night",
+            null
           ],
-          "default": "daylight"
+          "default": null,
+          "description": "null = keep the time of day as photographed"
         },
         "windows": {
           "type": "string",

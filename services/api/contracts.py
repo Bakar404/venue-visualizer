@@ -184,7 +184,8 @@ class LookCreate(Input):
 
 class StructureReport(BaseModel):
     score: float
-    method: Literal["aligned", "misaligned", "unverifiable"]
+    # "edges"/"gray"/"flat" come from renders saved by the pre-alignment check; kept so old Looks still load.
+    method: Literal["aligned", "misaligned", "unverifiable", "edges", "gray", "flat"]
     reason: str | None = None
     aligned: bool
     inliers: int

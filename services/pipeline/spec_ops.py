@@ -89,6 +89,31 @@ def _coerce_spec(spec: DesignSpec | dict | None) -> DesignSpec:
     return spec if isinstance(spec, DesignSpec) else validate_spec(spec)
 
 
+LOOK_NAME_MAX = 40
+OPTION_MAX_LEN = 80
+
+
+def _sanitise_cosmetics(resp: dict) -> None:
+    """Repair presentation-only fields so a long name or odd chip list never discards the planner's edit."""
+    name = resp.get("look_name")
+    if isinstance(name, str) and len(name.strip()) > LOOK_NAME_MAX:
+        cut = name.strip()[:LOOK_NAME_MAX + 1]
+        cut = cut[: cut.rfind(" ")] if " " in cut[LOOK_NAME_MAX // 2:] else cut[:LOOK_NAME_MAX]
+        resp["look_name"] = cut.rstrip(" ,&-")[:LOOK_NAME_MAX]
+    items = resp.get("ambiguities")
+    if isinstance(items, list):
+        fixed = []
+        for item in items:
+            if isinstance(item, str):
+                item = {"question": item, "options": []}
+            if not isinstance(item, dict) or not isinstance(item.get("question"), str):
+                continue
+            opts = [o.strip() for o in item.get("options") or [] if isinstance(o, str) and o.strip()]
+            opts = [o for o in opts if len(o) <= OPTION_MAX_LEN][:4]
+            fixed.append({"question": item["question"].strip(), "options": opts if len(opts) >= 2 else []})
+        resp["ambiguities"] = fixed
+
+
 def _parse_response(resp: Any, base: dict) -> ChatResult:
     if not isinstance(resp, dict):
         raise SpecValidationError(f"response must be a JSON object, got {type(resp).__name__}")
@@ -99,6 +124,7 @@ def _parse_response(resp: Any, base: dict) -> ChatResult:
             resp["spec_patch"] = json.loads(patch)
         except json.JSONDecodeError as e:
             raise SpecValidationError(f"spec_patch is not valid JSON: {e}") from e
+    _sanitise_cosmetics(resp)
     errors = sorted(jsonschema.Draft202012Validator(CHAT_RESPONSE_SCHEMA).iter_errors(resp),
                     key=lambda e: list(e.absolute_path))
     if errors:

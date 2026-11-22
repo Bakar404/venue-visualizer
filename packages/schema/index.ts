@@ -84,7 +84,10 @@ export interface DesignSpec {
    * Time of day and what the windows show. Maps phrases like '7pm', 'dark outside', 'golden hour'.
    */
   scene?: {
-    time_of_day?: "daylight" | "golden_hour" | "evening" | "night";
+    /**
+     * null = keep the time of day as photographed
+     */
+    time_of_day?: "daylight" | "golden_hour" | "evening" | "night" | null;
     windows?: "as_photographed" | "dark" | "sheer_draped";
   };
 }

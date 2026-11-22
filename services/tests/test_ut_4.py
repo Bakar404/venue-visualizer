@@ -33,6 +33,6 @@ def test_scene_is_optional_and_defaults_when_present():
     spec = default_spec().to_dict()
     assert "scene" not in spec
     scene = validate_spec({**spec, "scene": {}}).to_dict()["scene"]
-    assert scene == {"time_of_day": "daylight", "windows": "as_photographed"}
+    assert scene.get("time_of_day") is None and scene["windows"] == "as_photographed"  # None = as photographed
     draped = validate_spec({**spec, "scene": {"time_of_day": "evening", "windows": "sheer_draped"}})
     assert "sheer drapes" in prompts.build_edit_prompt(draped)
