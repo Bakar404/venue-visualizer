@@ -57,3 +57,9 @@ The user wants results that look like real photographs, not 3D or illustrated sc
 - Demo and mock-mode imagery uses real photoreal renders (generated with Copilot's image tool, credited in
   `apps/web/public/samples/photoreal/CREDITS.md`), not SVG drawings.
 - Prompts always ask for "a real photograph by a professional event photographer, 24mm, eye level, realistic materials, no CGI look".
+
+## 2026-11-21: Video tours become base photos (not 3D)
+A walkthrough video is turned into a curated set of sharp, diverse keyframes (ffmpeg + OpenCV). A vision-capable brain
+labels and clusters them by space and drafts a VenueSpec per space. This keeps the output photoreal and reuses the photo
+pipeline. Gaussian-splat reconstruction stays a later option. Web photos found by the venue finder may be used as base
+photos after a one-time personal-use confirmation; this supersedes the earlier "reference only" default.
