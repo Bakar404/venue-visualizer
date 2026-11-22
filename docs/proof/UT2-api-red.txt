@@ -1,0 +1,30 @@
+tests/test_ut_2.py:26: KeyError
+________ test_rules_adjustments_count_as_changes_to_the_requested_spec _________
+
+client = <starlette.testclient.TestClient object at 0x10c110cb0>
+
+    def test_rules_adjustments_count_as_changes_to_the_requested_spec(client):
+        venue = _venue(client, rules={"live_candles": False})
+        url = f"/api/spaces/{_space(client, venue)['id']}/chat"
+        spec = default_spec("Ballroom").to_dict()
+        spec["centerpieces"]["candles"] = "live"
+        response = _json(client.post(url, json={"message": "Show me", "spec": spec}))
+>       assert response["spec_changed"] is True
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'spec_changed'
+
+tests/test_ut_2.py:40: KeyError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-api/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_ut_2.py::test_chat_offers_render_without_changing_the_plan[Show me how it looks]
+FAILED tests/test_ut_2.py::test_chat_offers_render_without_changing_the_plan[Render a new photo]
+FAILED tests/test_ut_2.py::test_chat_offers_render_without_changing_the_plan[I want to see it]
+FAILED tests/test_ut_2.py::test_chat_offers_render_without_changing_the_plan[I don't see new photos]
+FAILED tests/test_ut_2.py::test_chat_reports_real_changes_even_when_the_user_also_wants_to_render
+FAILED tests/test_ut_2.py::test_rules_adjustments_count_as_changes_to_the_requested_spec
+6 failed, 1 warning in 0.54s

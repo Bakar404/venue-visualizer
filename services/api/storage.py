@@ -14,7 +14,7 @@ from typing import BinaryIO
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pillow_heif import register_heif_opener
 
-from .integrations import IntegrationError
+from .integrations import IntegrationError, invoke, pipeline_module, pipeline_output
 
 log = logging.getLogger(__name__)
 MAX_IMAGE_BYTES = 20_000_000
@@ -153,6 +153,15 @@ def clean_image(source: BinaryIO | Path, stem: Path, max_bytes: int | None = MAX
     with atomic_file(dest) as output:
         normalized.save(output, format={".jpg": "JPEG", ".png": "PNG", ".webp": "WEBP"}[suffix])
     return CleanImage(dest, normalized.width, normalized.height)
+
+
+async def download_reference(url: str, folder: Path) -> CleanImage:
+    fetch = pipeline_module("fetch", "download_image", "FetchError")
+    try:
+        path = await invoke(fetch.download_image, url, folder)
+        return await invoke(clean_image, pipeline_output(path, folder), folder / "reference")
+    except (fetch.FetchError, InvalidMedia) as exc:
+        raise IntegrationError(502, f"Could not load a venue reference: {exc}") from exc
 
 
 @contextmanager

@@ -169,10 +169,11 @@ def structure_report(original: Path, render: Path) -> dict:
        below TILE_FLOOR, the score is pushed under the threshold, so one missing chandelier or window bay is
        flagged even when the ceiling grid is intact.
     4. Photos with no usable structure can't be verified: UNVERIFIABLE_SCORE (< STRUCTURE_OK), so a person checks.
-    Returns {score, method, reason, aligned, inliers, scale, rotation, coverage, f1, tile_low, tiles, edge_density}.
+    Reports the absolute mean brightness change over the protected area, on a scale from 0 to 1.
     """
     report = {"aligned": False, "inliers": 0, "scale": None, "rotation": None, "coverage": None,
-              "f1": None, "tile_low": None, "tiles": 0, "edge_density": None, "reason": None, "flat": False}
+              "f1": None, "tile_low": None, "tiles": 0, "edge_density": None, "flat": False,
+              "brightness_delta": None}
     a_full, b_full = _load_gray(Path(original)), _load_gray(Path(render))
     for img in (a_full, b_full):
         h, w = img.shape[:2]
@@ -181,6 +182,8 @@ def structure_report(original: Path, render: Path) -> dict:
                     "reason": "image too small or too elongated to check"}
     a, b = _fit(a_full), _fit(b_full)
     top = max(8, int(a.shape[0] * TOP_FRACTION))
+    b_top = max(8, int(b.shape[0] * TOP_FRACTION))
+    report["brightness_delta"] = float(abs(a[:top].mean() - b[:b_top].mean()) / 255)
     ea_full = _edges(a)
     density = float(ea_full[:top].mean())
     report["edge_density"] = density
@@ -210,7 +213,8 @@ def structure_report(original: Path, render: Path) -> dict:
     score = min(f1, tile_low + TILE_MARGIN)
     if tiles and min(tiles) < TILE_FLOOR:
         score = min(score, STRUCTURE_OK - 0.05)
-    return {**report, "score": float(max(0.0, min(1.0, score))), "method": "aligned"}
+    reason = "protected room features match" if score >= STRUCTURE_OK else "protected room features differ"
+    return {**report, "score": float(max(0.0, min(1.0, score))), "method": "aligned", "reason": reason}
 
 
 def structure_score(original: Path, render: Path) -> float:

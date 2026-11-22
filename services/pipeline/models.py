@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from typing_extensions import TypedDict
 
 EventType = Literal["wedding", "corporate", "birthday", "gala", "shower", "other"]
 TableShape = Literal["round", "banquet", "square", "oval", "cocktail", "mixed"]
@@ -20,6 +21,12 @@ LinenLength = Literal["floor", "lap", "none"]
 CenterpieceHeight = Literal["none", "low", "medium", "tall", "mixed"]
 Candles = Literal["none", "flameless", "live"]
 Ambient = Literal["daylight", "evening_warm", "dim", "colored"]
+ChatIntent = Literal["edit", "render", "question", "none"]
+
+
+class Ambiguity(TypedDict):
+    question: str
+    options: list[str]
 
 
 class _Model(BaseModel):
@@ -71,6 +78,11 @@ class Lighting(_Model):
     ambient: Ambient = "evening_warm"
 
 
+class Scene(_Model):
+    time_of_day: Literal["daylight", "golden_hour", "evening", "night"] = "daylight"
+    windows: Literal["as_photographed", "dark", "sheer_draped"] = "as_photographed"
+
+
 class Effects(_Model):
     fog: bool = False
     confetti: bool = False
@@ -99,6 +111,7 @@ class DesignSpec(_Model):
     effects: Effects = Field(default_factory=Effects)
     install: Install = Field(default_factory=Install)
     notes: Annotated[str, Field(max_length=2000)] | None = None
+    scene: Scene | None = None
 
 
 class VenueRules(_Model):

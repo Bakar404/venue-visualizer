@@ -16,6 +16,8 @@ from .contracts import (
     GenerateBase,
     JobOut,
     PhotoOut,
+    PhotoReference,
+    ReferenceImport,
     SpaceOut,
     SpacePatch,
     SpecCheck,
@@ -30,6 +32,7 @@ from .models import ChatMessage, Job, Photo, Render, Space, Venue, new_id
 from .storage import (
     MAX_PHOTOS,
     clean_image,
+    download_reference,
     media_path,
     photo_path,
     publish,
@@ -41,6 +44,19 @@ from .storage import (
 spaces = APIRouter(prefix="/api/spaces", tags=["spaces"])
 photos = APIRouter(prefix="/api/photos", tags=["photos"])
 specs = APIRouter(prefix="/api/spec", tags=["spec"])
+
+
+def _check_photo_capacity(session: Session, space_id: str, adding: int = 1) -> None:
+    count = len(session.exec(select(Photo.id).where(Photo.space_id == space_id)).all())
+    if count + adding > MAX_PHOTOS:
+        raise HTTPException(409, f"A space can hold at most {MAX_PHOTOS} photos")
+
+
+def _require_reference(space: Space, url: str) -> PhotoReference:
+    for entry in space.references_json:
+        if entry["url"] == url:
+            return PhotoReference.model_validate(entry)
+    raise HTTPException(422, "The URL is not a stored reference for this space")
 
 
 @spaces.get("/{space_id}")
@@ -84,9 +100,7 @@ def upload_photos(
         images = [clean_image(upload.file, stage / str(index)) for index, upload in enumerate(uploads)]
         with publish() as published, write_session(runtime.engine) as session:
             space = require(session, Space, str(space_id))
-            count = len(session.exec(select(Photo.id).where(Photo.space_id == space.id)).all())
-            if count + len(images) > MAX_PHOTOS:
-                raise HTTPException(409, f"A space can hold at most {MAX_PHOTOS} photos")
+            _check_photo_capacity(session, space.id, len(images))
             response = []
             for image in images:
                 key = new_id()
@@ -105,6 +119,40 @@ def upload_photos(
                 session.add(photo)
                 response.append(photo_out(photo))
             return response
+
+
+@spaces.post("/{space_id}/references/import", status_code=201, tags=["photos"])
+def import_reference(space_id: UUID, body: ReferenceImport, runtime: RuntimeDep) -> PhotoOut:
+    with Session(runtime.engine) as session:
+        space = require(session, Space, str(space_id))
+        if not body.rights_confirmed:
+            raise HTTPException(422, "Confirm you have the right to use this photo for personal planning")
+        reference = _require_reference(space, body.url)
+        _check_photo_capacity(session, space.id)
+
+    root = runtime.settings.data_dir
+    with staging(root) as stage:
+        image = asyncio.run(download_reference(reference.url, stage))
+        with publish() as published, write_session(runtime.engine) as session:
+            space = require(session, Space, str(space_id))
+            _check_photo_capacity(session, space.id)
+            key = new_id()
+            photo = Photo(
+                id=key,
+                venue_id=space.venue_id,
+                space_id=space.id,
+                path=photo_path(space.venue_id, key, image),
+                kind="web",
+                source_url=reference.url,
+                source_page=reference.source_page,
+                credit=reference.credit,
+                approved=True,
+                width=image.width,
+                height=image.height,
+            )
+            publish_image(root, image.path, photo.path, published)
+            session.add(photo)
+            return photo_out(photo)
 
 
 @photos.delete("/{photo_id}", status_code=204)
@@ -136,22 +184,23 @@ def approve_photo(photo_id: UUID, runtime: RuntimeDep) -> PhotoOut:
 
 @spaces.post("/{space_id}/generate-base", status_code=202, tags=["photos"])
 def generate_base(space_id: UUID, body: GenerateBase, runtime: RuntimeDep) -> JobOut:
+    if body.reference_url is not None:
+        with Session(runtime.engine) as session:
+            _require_reference(require(session, Space, str(space_id)), body.reference_url)
     engine = pick_engine(runtime.settings, body.engine, "can_generate")
     with write_session(runtime.engine) as session:
         space = require(session, Space, str(space_id))
         if space.references_json:
             pipeline_module("fetch", "download_image", "FetchError")
-            if not engine.capabilities().can_edit:
+            if body.reference_url is None and not engine.capabilities().can_edit:
                 raise HTTPException(422, "This engine cannot use venue photos as references")
-        count = len(session.exec(select(Photo.id).where(Photo.space_id == space.id)).all())
-        if count >= MAX_PHOTOS:
-            raise HTTPException(409, f"A space can hold at most {MAX_PHOTOS} photos")
+        _check_photo_capacity(session, space.id)
         job = Job(
             kind="generate_base",
             queue_key=f"engine:{engine.id}",
             space_id=space.id,
             venue_id=space.venue_id,
-            payload_json={"engine": engine.id, "angle_hint": body.angle_hint},
+            payload_json={"engine": engine.id, "angle_hint": body.angle_hint, "reference_url": body.reference_url},
         )
         session.add(job)
     return dispatch(runtime, [job])[0]
@@ -166,7 +215,18 @@ def chat_history(space_id: UUID, runtime: RuntimeDep) -> list[ChatMessageOut]:
             .where(ChatMessage.space_id == space.id)
             .order_by(ChatMessage.created_at, ChatMessage.id)
         ).all()
-        return [ChatMessageOut.model_validate(row) for row in rows]
+        messages = []
+        for row in rows:
+            meta = row.chat_meta_json or {}
+            ambiguities = [
+                {"question": item, "options": []} if isinstance(item, str) else item
+                for item in meta.get("ambiguities", [])
+            ]
+            messages.append(ChatMessageOut(
+                id=row.id, role=row.role, content=row.content, created_at=row.created_at,
+                intent=meta.get("intent"), look_name=meta.get("look_name"), ambiguities=ambiguities,
+            ))
+        return messages
 
 
 @spaces.post("/{space_id}/chat", tags=["spec"])
@@ -188,6 +248,8 @@ def chat(space_id: UUID, body: ChatIn, runtime: RuntimeDep) -> ChatOut:
     rule_notes = getattr(result, "rule_notes", [])
     if result.warnings and not hasattr(result, "rule_notes"):
         reply += "\n\nAdjusted for venue rules: " + "; ".join(warning.message for warning in result.warnings)
+    spec_after = result.spec.to_dict()
+    look_name = result.look_name
     with write_session(runtime.engine) as session:
         saved = require(session, Space, space.id)
         if body.spec is None and saved.current_spec_json != space.current_spec_json:
@@ -195,7 +257,16 @@ def chat(space_id: UUID, body: ChatIn, runtime: RuntimeDep) -> ChatOut:
         active_rules = require(session, Venue, saved.venue_id).rules_json
         if active_rules != venue.rules_json:
             raise HTTPException(409, "Venue rules changed during chat; retry with the latest rules")
-        saved.current_spec_json = result.spec.to_dict()
+        if not result.spec_changed:
+            latest = session.exec(
+                select(ChatMessage)
+                .where(ChatMessage.space_id == space.id, ChatMessage.role == "assistant")
+                .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+                .limit(1)
+            ).first()
+            if latest and latest.spec_after_json == spec_after and latest.chat_meta_json:
+                look_name = latest.chat_meta_json.get("look_name") or look_name
+        saved.current_spec_json = spec_after
         session.add_all(
             [
                 ChatMessage(space_id=space.id, role="user", content=body.message),
@@ -204,8 +275,13 @@ def chat(space_id: UUID, body: ChatIn, runtime: RuntimeDep) -> ChatOut:
                     role="assistant",
                     content=reply,
                     spec_patch_json=result.spec_patch,
-                    spec_after_json=result.spec.to_dict(),
+                    spec_after_json=spec_after,
                     warnings_json=[w.to_dict() for w in result.warnings],
+                    chat_meta_json={
+                        "intent": result.intent,
+                        "look_name": look_name,
+                        "ambiguities": result.ambiguities,
+                    },
                 ),
             ]
         )
@@ -215,6 +291,9 @@ def chat(space_id: UUID, body: ChatIn, runtime: RuntimeDep) -> ChatOut:
         rule_notes=rule_notes,
         spec=result.spec,
         warnings=result.warnings,
+        intent=result.intent,
+        spec_changed=result.spec_changed,
+        look_name=look_name,
         ambiguities=result.ambiguities,
     )
 

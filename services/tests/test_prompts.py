@@ -26,8 +26,7 @@ def test_edit_prompt_lists_decor_and_keep_clause():
     for needle in ("dusty blue", "silver", "chiavari", "60", "white dance floor", "uplighting",
                    "oak paneling", "crystal chandeliers"):
         assert needle in prompt
-    assert "Keep EXACTLY unchanged: walls, windows, doors, ceiling, chandeliers and fixtures, floor material, " \
-           "camera position, lens and framing." in prompt
+    assert "Keep EXACTLY unchanged: walls, window architecture, doors, ceiling" in prompt
 
 
 def test_edit_prompt_mentions_flameless_candles():
@@ -55,7 +54,7 @@ def test_chat_messages_and_schema():
     assert "default" in low and "ambiguit" in low and "never invent venue rules" in low and "palette" in low
     assert "blush napkins" in user and json.dumps(spec.palette[0]) in user
     assert '"live_candles": false' in user and "chiavari chairs" in user
-    assert CHAT_RESPONSE_SCHEMA["required"] == ["reply", "spec_patch", "ambiguities"]
+    assert CHAT_RESPONSE_SCHEMA["required"] == ["reply", "spec_patch", "intent", "look_name", "ambiguities"]
     assert CHAT_RESPONSE_SCHEMA["properties"]["spec_patch"]["type"] == "object"
 
 

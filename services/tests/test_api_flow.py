@@ -28,18 +28,6 @@ DESCRIPTION = (
 JSON_HEADERS = {"Content-Type": "application/json"}
 
 
-@pytest.fixture
-def client(tmp_path, monkeypatch):
-    monkeypatch.setenv("VV_DATA_DIR", str(tmp_path / "data"))
-    monkeypatch.setenv("VV_DEV", "1")
-    monkeypatch.setenv("VV_INLINE_JOBS", "1")
-    monkeypatch.setenv("VV_DEFAULT_ENGINE", "mock")
-    monkeypatch.setenv("VV_DEFAULT_BRAIN", "mock")
-    monkeypatch.setattr(shutil, "which", lambda *_args, **_kwargs: None)
-    with TestClient(create_app(), base_url="http://localhost:8000") as api:
-        yield api
-
-
 def _json(response, status=200):
     assert response.status_code == status, response.text
     return response.json()
@@ -180,6 +168,9 @@ def test_chat_rule_notes_and_history(client, monkeypatch, has_rule_notes):
             reply=expected_reply if has_rule_notes else "Here's your plan.",
             spec=default_spec(),
             spec_patch={},
+            intent="edit",
+            spec_changed=False,
+            look_name=None,
             ambiguities=[],
             warnings=[
                 RuleWarning(rule="live_candles", field="centerpieces.candles", message=messages[0]),
@@ -234,10 +225,11 @@ def test_import_capacity_columns_added_to_existing_database(tmp_path):
             session.flush()
             session.add(space)
         with engine.begin() as conn:
-            conn.exec_driver_sql("DELETE FROM schema_version WHERE version = 2")
+            conn.exec_driver_sql("DELETE FROM schema_version WHERE version > 1")
             conn.exec_driver_sql("INSERT INTO schema_version (version) VALUES (1)")
             for column in ("capacity_seated", "capacity_standing", "source"):
                 conn.exec_driver_sql(f"ALTER TABLE space DROP COLUMN {column}")
+            conn.exec_driver_sql("ALTER TABLE chatmessage DROP COLUMN chat_meta_json")
         initialize(engine)
         initialize(engine)
         with Session(engine) as session:
@@ -559,7 +551,8 @@ def test_render_qa_uses_alignment_not_aspect_ratio(client, monkeypatch, tmp_path
             "score": score, "method": "aligned" if aligned else "misaligned", "aligned": aligned,
             "inliers": 36 if aligned else 0, "scale": 1.0 if aligned else None,
             "rotation": 0.0 if aligned else None, "coverage": 0.95 if aligned else None,
-            "edge_density": 0.1, "flat": False,
+            "edge_density": 0.1, "flat": False, "brightness_delta": 0.03,
+            "reason": "protected room features match" if aligned else "no consistent match with the photo",
         }
         reports.append(report)
         return report

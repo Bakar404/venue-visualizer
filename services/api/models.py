@@ -121,4 +121,5 @@ class ChatMessage(SQLModel, table=True):
     spec_patch_json: dict | None = Field(default=None, sa_column=Column(JSON))
     spec_after_json: dict | None = Field(default=None, sa_column=Column(JSON))
     warnings_json: list[dict] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    chat_meta_json: dict | None = Field(default=None, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=now, sa_type=DateTime)

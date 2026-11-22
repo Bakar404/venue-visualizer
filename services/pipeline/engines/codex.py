@@ -51,10 +51,12 @@ def newest_image(dirs: list[Path], since: float, exclude_prefix: str = "vv-input
 
 
 def build_instruction(prompt: str, size: str, quality: str, inputs: list[str],
-                      tables: tuple[int, str] | None = None) -> str:
-    """`inputs[1:]` are layout guides (table placement and count only), never style references."""
+                      tables: tuple[int, str] | None = None, *, reference_only: bool = False) -> str:
+    """In edit mode, `inputs[1:]` are layout guides, never style references."""
     w, h = size.split("x")
-    if inputs:
+    if inputs and reference_only:
+        head = f"$imagegen Generate one image using the attached reference photo(s): {', '.join(inputs)}."
+    elif inputs:
         head = (f"$imagegen Edit the attached image {inputs[0]} (keep its exact framing) according to the prompt "
                 "below.")
         if inputs[1:]:
@@ -109,7 +111,8 @@ class CodexEngine:
 
     async def generate(self, req: GenerateRequest) -> ImageResult:
         size = req.size if req.size in SIZES else "1536x1024"
-        return await self._run(req.prompt, size, req.quality, [], req.out_path, req.timeout_s)
+        return await self._run(req.prompt, size, req.quality, req.ref_images[:3], req.out_path, req.timeout_s,
+                               reference_only=True)
 
     async def edit(self, req: EditRequest) -> ImageResult:
         with Image.open(req.input_image) as im:
@@ -120,7 +123,8 @@ class CodexEngine:
         return await self._run(req.prompt, size, req.quality, images, req.out_path, req.timeout_s, guide)
 
     async def _run(self, prompt: str, size: str, quality: str, images: list[Path], out_path: Path,
-                   timeout_s: int, tables: tuple[int, str] | None = None) -> ImageResult:
+                   timeout_s: int, tables: tuple[int, str] | None = None, *,
+                   reference_only: bool = False) -> ImageResult:
         path = which(self.binary)
         if not path:
             raise EngineError("codex CLI is not installed")
@@ -132,7 +136,9 @@ class CodexEngine:
                 dst = cwd / f"vv-input-{i}{Path(img).suffix.lower() or '.png'}"
                 shutil.copyfile(img, dst)
                 staged.append(dst)
-            instruction = build_instruction(prompt, size, quality, [p.name for p in staged], tables)
+            instruction = build_instruction(
+                prompt, size, quality, [p.name for p in staged], tables, reference_only=reference_only,
+            )
             argv = self.build_argv(path, instruction, cwd, staged)
             try:
                 res = await run_cli(argv, cwd=cwd, timeout_s=timeout_s, clean_env=True)

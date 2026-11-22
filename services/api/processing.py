@@ -30,6 +30,7 @@ from .storage import (
     MAX_VIDEO_SECONDS,
     CleanImage,
     clean_image,
+    download_reference,
     media_path,
     photo_path,
     publish,
@@ -155,44 +156,47 @@ async def _generate_base(runtime: Runtime, job: Job, work: Path) -> Outcome:
     with Session(runtime.engine) as session:
         space = session.get_one(Space, job.space_id)
     engine = await invoke(pick_engine, runtime.settings, job.payload_json["engine"], "can_generate")
-    prompt = f"{prompts.build_base_prompt(space.venue_spec_json)}\n{_PHOTO_REAL}"
-    if angle := job.payload_json.get("angle_hint"):
-        prompt += f"\nApproximate alternative camera angle: {angle}."
     progress(runtime, job, 0.25)
     dest = work / "base.png"
-    if space.references_json and engine.capabilities().can_edit:
-        fetch = pipeline_module("fetch", "download_image", "FetchError")
-        refs = []
-        for index, data in enumerate(space.references_json[: 1 + engine.capabilities().max_refs]):
-            reference = PhotoReference.model_validate(data)
-            folder = work / f"ref-{index}"
-            folder.mkdir()
-            try:
-                path = await invoke(fetch.download_image, reference.url, folder)
-            except fetch.FetchError as exc:
-                raise IntegrationError(502, f"Could not load a venue reference: {exc}") from exc
-            refs.append((await invoke(clean_image, pipeline_output(path, folder), folder / "reference")).path)
+    reference_url = job.payload_json.get("reference_url")
+    if reference_url:
+        folder = work / "ref"
+        folder.mkdir()
+        reference = await download_reference(reference_url, folder)
         progress(runtime, job, 0.45)
-        # TODO: Use GenerateRequest references when pipeline engines support them.
-        generated = await engine.edit(
-            EditRequest(
+        generated = await engine.generate(GenerateRequest(
+            prompt="Create an empty version of the room shown in the reference photo, "
+                   "same architecture and viewpoint, no furniture or people. "
+                   "Make it a realistic architectural photograph.",
+            out_path=dest,
+            ref_images=[reference.path],
+            venue_spec=space.venue_spec_json,
+        ))
+    else:
+        prompt = f"{prompts.build_base_prompt(space.venue_spec_json)}\n{_PHOTO_REAL}"
+        if angle := job.payload_json.get("angle_hint"):
+            prompt += f"\nApproximate alternative camera angle: {angle}."
+        if space.references_json:
+            if not engine.capabilities().can_edit:
+                raise IntegrationError(422, "This engine cannot use venue photos as references")
+            refs = []
+            for index, data in enumerate(space.references_json[: 1 + engine.capabilities().max_refs]):
+                reference = PhotoReference.model_validate(data)
+                folder = work / f"ref-{index}"
+                folder.mkdir()
+                refs.append((await download_reference(reference.url, folder)).path)
+            progress(runtime, job, 0.45)
+            generated = await engine.edit(EditRequest(
                 prompt=f"{prompt}\nUse the input only as a reference for the room. Make a new, empty base view.",
                 input_image=refs[0],
                 ref_images=refs[1:],
                 out_path=dest,
                 venue_spec=space.venue_spec_json,
-            )
-        )
-    else:
-        if space.references_json:
-            raise IntegrationError(422, "This engine cannot use venue photos as references")
-        generated = await engine.generate(
-            GenerateRequest(
-                prompt=prompt,
-                out_path=dest,
-                venue_spec=space.venue_spec_json,
-            )
-        )
+            ))
+        else:
+            generated = await engine.generate(GenerateRequest(
+                prompt=prompt, out_path=dest, venue_spec=space.venue_spec_json,
+            ))
     image = await invoke(clean_image, pipeline_output(generated.path, work), work / "clean", None)
     key = new_id()
     photo = Photo(

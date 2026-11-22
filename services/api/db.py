@@ -7,7 +7,7 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from .models import SchemaVersion
 
-VERSION = 2
+VERSION = 3
 
 
 def database(data_dir: Path) -> Engine:
@@ -32,13 +32,15 @@ def initialize(engine: Engine) -> None:
         conn.exec_driver_sql("BEGIN IMMEDIATE")
         SchemaVersion.__table__.create(conn, checkfirst=True)
         version = conn.execute(text("SELECT MAX(version) FROM schema_version")).scalar_one()
-        if version not in (None, 1, VERSION):
+        if version not in (None, 1, 2, VERSION):
             raise RuntimeError(f"Unsupported database schema version: {version}; expected {VERSION}")
         SQLModel.metadata.create_all(conn)
         if version == 1:
             conn.exec_driver_sql("ALTER TABLE space ADD COLUMN capacity_seated INTEGER")
             conn.exec_driver_sql("ALTER TABLE space ADD COLUMN capacity_standing INTEGER")
             conn.exec_driver_sql("ALTER TABLE space ADD COLUMN source VARCHAR")
+        if version in (1, 2):
+            conn.exec_driver_sql("ALTER TABLE chatmessage ADD COLUMN chat_meta_json JSON")
         if version != VERSION:
             conn.execute(text("INSERT INTO schema_version (version) VALUES (:version)"), {"version": VERSION})
 

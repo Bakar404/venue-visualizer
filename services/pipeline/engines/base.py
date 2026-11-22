@@ -37,6 +37,7 @@ class GenerateRequest:
     timeout_s: int = 300
     design_spec: dict | None = None   # used by scene3d
     venue_spec: dict | None = None
+    ref_images: list[Path] = field(default_factory=list)
 
 
 @dataclass

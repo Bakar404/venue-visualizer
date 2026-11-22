@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from ..models import default_spec
+from ..models import Ambiguity, ChatIntent, default_spec
 from ..prompts import (
     CURRENT_SPEC_END,
     CURRENT_SPEC_START,
@@ -121,10 +121,10 @@ def _get(spec: dict, path: str) -> Any:
     return node
 
 
-def parse_message(message: str, current: dict) -> tuple[dict, list[str]]:
+def parse_message(message: str, current: dict) -> tuple[dict, list[Ambiguity]]:
     """Map a planner message onto (merge patch, ambiguities) relative to `current`."""
     patch: dict = {}
-    ambiguities: list[str] = []
+    ambiguities: list[Ambiguity] = []
     element_colors: list[str] = []
     explicit_palette: list[str] = []
     extras = list(current.get("extras") or [])
@@ -275,14 +275,27 @@ def parse_message(message: str, current: dict) -> tuple[dict, list[str]]:
         else:
             _set(patch, "centerpieces.candles", "live")
             if not re.search(r"\b(live|real|lit|wax)\b", low):
-                ambiguities.append("Should the candles be real (live flame) or flameless LED?")
+                ambiguities.append({"question": "Should the candles be real or flameless?",
+                                    "options": ["Live candles", "Flameless candles"]})
 
-    # --- lighting flags, effects, install -------------------------------------------------------------
+    # --- scene, lighting flags, effects, install ------------------------------------------------------
+    if re.search(r"\b(?:7\s*(?::00\s*)?p\.?m|after (?:the )?sunset|dark out(?:side)?|not daylight|night)\b", low):
+        patch["scene"] = {"time_of_day": "night", "windows": "dark"}
+    elif re.search(r"\b(?:golden hour|sunset)\b", low):
+        patch["scene"] = {"time_of_day": "golden_hour", "windows": "as_photographed"}
+    elif re.search(r"\b(?:daylight|daytime)\b", low):
+        patch["scene"] = {"time_of_day": "daylight", "windows": "as_photographed"}
+    elif re.search(r"\bevening\b", low):
+        patch["scene"] = {"time_of_day": "evening", "windows": "as_photographed"}
+    if re.search(r"\b(?:sheer drapes|sheer draping|sheer curtains)\b", low):
+        _set(patch, "scene.windows", "sheer_draped")
     if re.search(r"\bpin ?spot", low):
         _set(patch, "lighting.pin_spots", not re.search(r"\bno pin ?spot", low))
     if re.search(r"\b(string|bistro|fairy|cafe|café|market) lights?\b", low):
         _set(patch, "lighting.string_lights", not re.search(r"\bno (string|bistro|fairy|cafe|café|market) lights?", low))
-    if re.search(r"\b(daylight|daytime|daytime|afternoon|brunch|morning)\b", low):
+    if _get(patch, "scene.time_of_day") != "night" and re.search(
+        r"\b(daylight|daytime|afternoon|brunch|morning)\b", low
+    ):
         _set(patch, "lighting.ambient", "daylight")
     elif re.search(r"\b(dim|moody|candlelit|dark)\b", low):
         _set(patch, "lighting.ambient", "dim")
@@ -316,25 +329,69 @@ def parse_message(message: str, current: dict) -> tuple[dict, list[str]]:
     # --- ambiguities -------------------------------------------------------------------------------
     tables = {**(current.get("tables") or {}), **(patch.get("tables") or {})}
     if "tables" in patch and tables.get("shape") == "round" and not tables.get("size_in"):
-        ambiguities.append("What size are the round tables? Assuming 60-inch rounds.")
+        ambiguities.append({"question": "What size are the round tables?",
+                            "options": ["60-inch rounds", "72-inch rounds"]})
     if "tables" in patch and not tables.get("seats"):
-        ambiguities.append("How many guests per table?")
+        ambiguities.append({"question": "How many guests per table?",
+                            "options": ["Tables of 6", "Tables of 8", "Tables of 10"]})
     if "chairs" in patch and "style" not in patch["chairs"] and current.get("chairs", {}).get("style"):
         pass  # keeps the current chair style; nothing to ask
     return patch, ambiguities
 
 
+_PLAN_PARTS = {
+    "tables": "tables", "linens": "linens", "napkins": "napkins", "chairs": "chairs",
+    "centerpieces": "centerpieces", "lighting": "lighting", "extras": "extras", "palette": "palette",
+    "guest_count": "guest count", "event_type": "event type", "effects": "effects",
+    "install": "installation details", "scene": "time of day and windows",
+}
+
+
 def _describe(patch: dict) -> str:
-    names = {"tables": "tables", "linens": "linens", "napkins": "napkins", "chairs": "chairs",
-             "centerpieces": "centerpieces", "lighting": "lighting", "extras": "extras", "palette": "palette",
-             "guest_count": "guest count", "event_type": "event type", "effects": "effects",
-             "install": "installation details"}
-    changed = [names[k] for k in patch if k in names]
+    changed = [_PLAN_PARTS[k] for k in patch if k in _PLAN_PARTS]
     if not changed:
         return "I couldn't find specific decor changes in that message, so the design is unchanged."
     if len(changed) > 1:
         return f"Updated the {', '.join(changed[:-1])} and {changed[-1]}."
     return f"Updated the {changed[0]}."
+
+
+def _intent(message: str, patch: dict) -> ChatIntent:
+    if re.search(
+        r"\b(?:render(?:ed|ing)?|redner|show me|see it|see (?:the )?new photos)\b", message, re.IGNORECASE,
+    ):
+        return "render"
+    if patch:
+        return "edit"
+    return "question" if message.rstrip().endswith("?") else "none"
+
+
+def _look_name(patch: dict, current: dict) -> str:
+    latest = patch or current
+    scene = {
+        "night": "Moody night", "golden_hour": "Golden hour", "evening": "Evening", "daylight": "Daylight",
+    }.get(_get(latest, "scene.time_of_day"))
+    uplighting = _get(latest, "lighting.uplighting")
+    accents = [f"{uplighting} uplighting"] if uplighting else []
+    for key in ("linens", "napkins", "chairs"):
+        if color := _get(patch, f"{key}.color"):
+            accents.append(f"{color} {key}")
+    accents.extend(_get(patch, "centerpieces.colors") or [])
+    if colors := latest.get("palette"):
+        accents.extend(color for color in reversed(colors) if not patch or color not in current["palette"])
+        if not accents:
+            accents.append(colors[-1])
+    detail = accents[0] if accents else None
+    if scene and detail and len(scene) + len(detail) + 2 <= 40:
+        return f"{scene}, {detail}"
+    if scene or detail:
+        return (scene or detail)[:40].capitalize()
+    if patch:
+        return {
+            "tables": "Reception layout", "centerpieces": "Centerpiece accents", "lighting": "Event lighting",
+            "extras": "Reception details", "effects": "Celebration effects",
+        }.get(next(iter(patch)), "Reception plan")
+    return "Reception plan"
 
 
 def schema_default(schema: dict) -> Any:
@@ -421,4 +478,10 @@ class MockBrain:
         except json.JSONDecodeError:
             current = default_spec().to_dict()
         patch, ambiguities = parse_message(message, current)
-        return {"reply": _describe(patch), "spec_patch": patch, "ambiguities": ambiguities}
+        intent = _intent(message, patch)
+        reply = _describe(patch)
+        if intent == "render":
+            ready = "The plan is ready to render."
+            reply = f"{reply} {ready}" if patch else ready
+        return {"reply": reply, "spec_patch": patch, "intent": intent,
+                "look_name": _look_name(patch, current), "ambiguities": ambiguities}

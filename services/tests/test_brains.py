@@ -42,8 +42,9 @@ def test_codex_strict_schema_round_trip():
     strict, encoded = strictify(CHAT_RESPONSE_SCHEMA)
     assert encoded == [("spec_patch",)]
     assert strict["properties"]["spec_patch"]["type"] == "string"
-    assert strict["additionalProperties"] is False and set(strict["required"]) == {"reply", "spec_patch",
-                                                                                 "ambiguities"}
+    assert strict["additionalProperties"] is False and set(strict["required"]) == {
+        "reply", "spec_patch", "intent", "look_name", "ambiguities",
+    }
     obj = decode_strings({"reply": "ok", "spec_patch": '{"tables": {"count": 3}}', "ambiguities": []}, encoded)
     assert obj["spec_patch"] == {"tables": {"count": 3}}
 
@@ -130,13 +131,13 @@ async def test_codex_brain_confines_reads_and_cleans_env(tmp_path, monkeypatch):
 
     async def fake_run(argv, *, cwd, timeout_s, stdin_text=None, env=None, clean_env=False):
         calls.append({"argv": argv, "cwd": cwd, "clean_env": clean_env})
-        out = {"reply": "ok", "spec_patch": "{}", "ambiguities": []}
+        out = {"reply": "ok", "spec_patch": "{}", "intent": "none", "look_name": None, "ambiguities": []}
         return ProcResult(argv=argv, returncode=0, stdout=json.dumps(out), stderr="", seconds=0.1)
 
     monkeypatch.setattr(codex_mod, "which", lambda name: "/bin/codex")
     monkeypatch.setattr(codex_mod, "run_cli", fake_run)
     obj = await CodexBrain().complete_json("SYS", "USER", CHAT_RESPONSE_SCHEMA)
-    assert obj == {"reply": "ok", "spec_patch": {}, "ambiguities": []}
+    assert obj == {"reply": "ok", "spec_patch": {}, "intent": "none", "look_name": None, "ambiguities": []}
     [call] = calls
     prompt = call["argv"][-1]
     assert call["clean_env"] is True and call["cwd"].name.startswith("vv-codex-")

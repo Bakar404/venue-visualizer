@@ -9,14 +9,17 @@ from pydantic import (
     BeforeValidator,
     ConfigDict,
     Field,
+    StrictBool,
     StringConstraints,
     TypeAdapter,
     WrapSerializer,
+    computed_field,
 )
 
-from pipeline.models import DesignSpec, RuleWarning, VenueRules, VenueSpec
+from pipeline.models import Ambiguity, ChatIntent, DesignSpec, RuleWarning, VenueRules, VenueSpec
 
 from .models import JobKind, JobStatus, PhotoKind
+from .qa_text import StructureMessage, structure_message
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8_000)]
@@ -127,6 +130,12 @@ class ImportOut(VenueOut):
 class GenerateBase(Input):
     engine: Name | None = None
     angle_hint: Name | None = None
+    reference_url: HttpUrl | None = None
+
+
+class ReferenceImport(Input):
+    url: HttpUrl
+    rights_confirmed: StrictBool = False
 
 
 class ChatIn(Input):
@@ -143,7 +152,10 @@ class SpecCheckResult(BaseModel):
 class ChatOut(SpecCheckResult):
     reply: str
     rule_notes: list[str]
-    ambiguities: list[str]
+    intent: ChatIntent
+    spec_changed: bool
+    look_name: str | None
+    ambiguities: list[Ambiguity]
     brain: str
 
 
@@ -154,6 +166,9 @@ class ChatMessageOut(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     created_at: UtcTime
+    intent: ChatIntent | None = None
+    look_name: str | None = None
+    ambiguities: list[Ambiguity] = Field(default_factory=list)
 
 
 class SpecCheck(Input):
@@ -169,7 +184,8 @@ class LookCreate(Input):
 
 class StructureReport(BaseModel):
     score: float
-    method: str
+    method: Literal["aligned", "misaligned", "unverifiable"]
+    reason: str | None = None
     aligned: bool
     inliers: int
     scale: float | None
@@ -177,6 +193,7 @@ class StructureReport(BaseModel):
     coverage: float | None
     edge_density: float | None = None
     flat: bool | None = None
+    brightness_delta: float | None = None
 
 
 class RenderQA(BaseModel):
@@ -185,6 +202,11 @@ class RenderQA(BaseModel):
     structure: StructureReport | None = None
     structure_warning: str | None = None
     rule_warnings: list[RuleWarning] = Field(default_factory=list)
+
+    @computed_field
+    @property
+    def structure_message(self) -> StructureMessage | None:
+        return structure_message(self.structure.model_dump()) if self.structure else None
 
 
 class RenderOut(BaseModel):

@@ -157,7 +157,7 @@ class CopilotEngine:
 
     async def generate(self, req: GenerateRequest) -> ImageResult:
         size = req.size if req.size in SIZES else "1536x1024"
-        return await self._run(req.prompt, size, req.quality, [], req.out_path, req.timeout_s)
+        return await self._run(req.prompt, size, req.quality, req.ref_images[:3], req.out_path, req.timeout_s)
 
     async def edit(self, req: EditRequest) -> ImageResult:
         with Image.open(req.input_image) as im:

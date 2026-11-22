@@ -102,7 +102,8 @@ class MfluxEngine:
 
     async def generate(self, req: GenerateRequest) -> ImageResult:
         w, h = _size_dims(req.size)
-        return await self._run(0, req.prompt, w, h, [], req.out_path, req.timeout_s)
+        refs = req.ref_images[:2]
+        return await self._run(1 if refs else 0, req.prompt, w, h, refs, req.out_path, req.timeout_s)
 
     async def edit(self, req: EditRequest) -> ImageResult:
         if req.size in ("1024x1024", "1536x1024", "1024x1536"):

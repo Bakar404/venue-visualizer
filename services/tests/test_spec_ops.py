@@ -9,6 +9,7 @@ from pipeline.spec_ops import SpecValidationError, apply_merge_patch, chat_to_sp
 
 EXAMPLE = ("12 round tables of 8, ivory linens, gold chairs, low ivory and blush centerpieces with greenery, "
            "warm amber uplighting, flameless candles")
+EDIT_META = {"intent": "edit", "look_name": None}
 
 
 def test_merge_patch_rfc7396():
@@ -41,9 +42,9 @@ class FlakyBrain:
     async def complete_json(self, system, user, schema, images=None, timeout_s=180):
         self.calls.append(user)
         if len(self.calls) == 1:
-            return {"reply": "oops", "spec_patch": {"tables": {"shape": "hexagon"}}, "ambiguities": []}
+            return {**EDIT_META, "reply": "oops", "spec_patch": {"tables": {"shape": "hexagon"}}, "ambiguities": []}
         return {"reply": "Fixed", "spec_patch": {"tables": {"shape": "banquet", "count": 6}},
-                "ambiguities": ["Head table?"]}
+                **EDIT_META, "ambiguities": [{"question": "Head table?", "options": ["Head table", "No head table"]}]}
 
 
 async def test_chat_retries_once_on_invalid_patch():
@@ -52,14 +53,15 @@ async def test_chat_retries_once_on_invalid_patch():
     assert len(brain.calls) == 2 and result.attempts == 2
     assert "/tables/shape" in brain.calls[1]
     assert result.spec.tables.shape == "banquet" and result.spec.tables.count == 6
-    assert result.reply == "Fixed" and result.ambiguities == ["Head table?"]
+    assert result.reply == "Fixed"
+    assert result.ambiguities == [{"question": "Head table?", "options": ["Head table", "No head table"]}]
 
 
 async def test_chat_gives_up_after_second_invalid_patch():
     class AlwaysBad(FlakyBrain):
         async def complete_json(self, system, user, schema, images=None, timeout_s=180):
             self.calls.append(user)
-            return {"reply": "", "spec_patch": {"guest_count": -5}, "ambiguities": []}
+            return {**EDIT_META, "reply": "Try this", "spec_patch": {"guest_count": -5}, "ambiguities": []}
 
     brain = AlwaysBad()
     with pytest.raises(BrainError):
@@ -108,18 +110,18 @@ class ScriptedBrain:
         return answer
 
 
-GOOD = {"reply": "Six banquet tables.", "spec_patch": {"tables": {"shape": "banquet", "count": 6}},
+GOOD = {**EDIT_META, "reply": "Six banquet tables.", "spec_patch": {"tables": {"shape": "banquet", "count": 6}},
         "ambiguities": []}
 
 
 @pytest.mark.parametrize("first", [
     BrainError("codex returned no JSON object: blah"),
-    {"reply": "", "spec_patch": {}, "ambiguities": []},
-    {"reply": "ok", "spec_patch": {}, "ambiguities": "none"},
-    {"reply": "ok", "spec_patch": [], "ambiguities": []},
-    {"reply": "ok", "spec_patch": {}, "ambiguities": [], "extra": 1},
-    {"reply": "ok", "spec_patch": '{"tables": ', "ambiguities": []},
-    {"spec_patch": {}, "ambiguities": []},
+    {**EDIT_META, "reply": "", "spec_patch": {}, "ambiguities": []},
+    {**EDIT_META, "reply": "ok", "spec_patch": {}, "ambiguities": "none"},
+    {**EDIT_META, "reply": "ok", "spec_patch": [], "ambiguities": []},
+    {**EDIT_META, "reply": "ok", "spec_patch": {}, "ambiguities": [], "extra": 1},
+    {**EDIT_META, "reply": "ok", "spec_patch": '{"tables": ', "ambiguities": []},
+    {**EDIT_META, "spec_patch": {}, "ambiguities": []},
 ])
 async def test_bad_envelope_or_no_json_gets_one_retry(first):
     brain = ScriptedBrain(first, GOOD)
@@ -131,14 +133,14 @@ async def test_bad_envelope_or_no_json_gets_one_retry(first):
 
 
 async def test_two_bad_envelopes_raise():
-    brain = ScriptedBrain({"reply": "", "spec_patch": {}, "ambiguities": []}, BrainError("no JSON"))
+    brain = ScriptedBrain({**EDIT_META, "reply": "", "spec_patch": {}, "ambiguities": []}, BrainError("no JSON"))
     with pytest.raises(BrainError):
         await chat_to_spec(brain, "x", default_spec(), None, None)
     assert len(brain.calls) == 2
 
 
 async def test_reply_mentions_rule_adjustments():
-    answer = {"reply": "Added live taper candles and a sparkler exit.",
+    answer = {**EDIT_META, "reply": "Added live taper candles and a sparkler exit.",
               "spec_patch": {"centerpieces": {"candles": "live"}, "extras": ["sparkler exit"]}, "ambiguities": []}
     result = await chat_to_spec(ScriptedBrain(answer), "candles", default_spec(), None,
                                 VenueRules(live_candles=False, sparklers=False))

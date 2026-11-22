@@ -20,14 +20,19 @@ type BackendStatus = { id: string; label: string; kind: "brain" | "engine"; avai
 type Venue = { id: string; name: string; rules: VenueRules; created_at: string; spaces: Space[] };
 type VenueImportResult = Venue & { skipped_photos: { url: string; reason: string }[] };
 type Space = { id: string; venue_id: string; name: string; venue_spec: VenueSpec; photos: Photo[]; current_spec: DesignSpec | null;
+  references: { url: string; source_page: string; caption: string | null; credit: string | null }[];
   capacity_seated: number | null; capacity_standing: number | null; source: string | null };
-type Photo = { id: string; space_id: string; url: string; kind: "upload" | "generated_base"; approved: boolean; width: number; height: number };
+type Photo = { id: string; space_id: string | null; url: string; kind: "upload" | "generated_base" | "video_frame" | "web";
+  approved: boolean; source_url: string | null; source_page: string | null; credit: string | null; width: number; height: number };
 type Look = { id: string; space_id: string; name: string; spec: DesignSpec; parent_look_id: string | null; created_at: string; renders: Render[] };
-type StructureReport = { score: number; method: string; aligned: boolean; inliers: number;
-  scale: number | null; rotation: number | null; coverage: number | null; edge_density?: number | null; flat?: boolean | null };
+type StructureReport = { score: number; method: "aligned" | "misaligned" | "unverifiable"; reason: string | null;
+  aligned: boolean; inliers: number; brightness_delta: number | null; scale: number | null;
+  rotation: number | null; coverage: number | null; edge_density?: number | null; flat?: boolean | null };
 type Render = { id: string; look_id: string; photo_id: string; engine: string; status: JobStatus; url: string | null;
   prompt: string; structure_score: number | null; qa: { tables_seen?: number | null; notes?: string | null;
-    structure?: StructureReport | null; structure_warning?: string | null } | null; error: string | null; created_at: string };
+    structure?: StructureReport | null; structure_warning?: string | null;
+    structure_message: { level: "ok" | "unverified" | "changed"; text: string } | null } | null;
+  error: string | null; created_at: string };
 type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 type Job = { id: string; kind: "render" | "generate_base"; status: JobStatus; progress: number; error: string | null; result: { render_id?: string; photo_id?: string } | null };
 ```
@@ -45,10 +50,10 @@ type Job = { id: string; kind: "render" | "generate_base"; status: JobStatus; pr
 | GET/PATCH | `/api/spaces/{id}` | PATCH `{name?, venue_spec?, current_spec?}` | `Space` |
 | POST | `/api/spaces/{id}/photos` | multipart `files[]` (jpg/mpo/png/webp/heic, ≤ 20 MB each, ≤ 30 per space) | `Photo[]` |
 | DELETE | `/api/photos/{id}` | | 204 |
-| POST | `/api/spaces/{id}/generate-base` | `{engine, angle_hint?}` | `Job` (kind generate_base) |
+| POST | `/api/spaces/{id}/generate-base` | `{engine?, angle_hint?, reference_url?}` | `Job` (kind generate_base) |
 | POST | `/api/photos/{id}/approve` | | `Photo` |
-| POST | `/api/spaces/{id}/chat` | `{message, spec: DesignSpec \| null, brain?}` | `{reply, spec: DesignSpec, warnings: RuleWarning[], rule_notes: string[], ambiguities: string[], brain}` |
-| GET | `/api/spaces/{id}/chat` | | `ChatMessage[]` (`{id, role, content, created_at}`) |
+| POST | `/api/spaces/{id}/chat` | `{message, spec: DesignSpec \| null, brain?}` | See [Chat response v2](#chat-response-v2-user-test-session-1-ut2-ut3-ut5) |
+| GET | `/api/spaces/{id}/chat` | | `ChatMessage[]` (`{id, role, content, created_at, intent, look_name, ambiguities}`) |
 | POST | `/api/spec/check` | `{spec, venue_id}` | `{spec, warnings}` |
 | GET | `/api/spec/default` | | `DesignSpec` (sensible defaults) |
 | GET | `/api/spaces/{id}/looks` | | `Look[]` |
@@ -107,15 +112,19 @@ State-changing requests that create records or enqueue work do not deduplicate r
   brain: string;
 }
 ```
-`ambiguities` items used to be plain strings. Clients must send an **option**, never the question.
+Clients must send an ambiguity **option**, never the question. Chat history returns legacy string ambiguities as
+`{question, options: []}`. User messages and older messages with no saved intent or name return `null` for those fields.
 
 ## Reference photos → base photo (UT6)
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | GET | `/api/spaces/{id}` | | `Space` now includes `references: {url, source_page, caption, credit}[]` |
-| POST | `/api/spaces/{id}/references/import` | `{url, rights_confirmed: true}` (url must be one of the space's references) | `Photo` (kind `web`, approved, with credit). 422 without `rights_confirmed` or if the url isn't a reference. Download failures return 502 with a reason. |
-| POST | `/api/spaces/{id}/generate-base` | `{engine, reference_url?}` | `Job`: when `reference_url` is given, the reference image is passed to the engine as a reference to generate an empty base view of that room |
+| POST | `/api/spaces/{id}/references/import` | `{url, rights_confirmed: true}` (url must be one of the space's references) | 201 `Photo` (kind `web`, approved, with credit). 422 without `rights_confirmed: true` or if the URL isn't a reference, 409 if the space has 30 photos, and 502 with a reason if the download fails. The reference is retained. |
+| POST | `/api/spaces/{id}/generate-base` | `{engine?, angle_hint?, reference_url?}` | 202 `Job`: when `reference_url` is given, only that stored reference is passed to the engine, and its viewpoint takes precedence over `angle_hint`. A URL not stored as a reference returns 422. The generated base still needs approval. |
 
 ## Render QA reason (UT7)
 `Render.qa.structure` includes `method` (`aligned` / `misaligned` / `unverifiable`) and `reason`.
+`Render.qa.structure_message` summarizes the check as `{level: "ok" | "unverified" | "changed", text}`.
+If alignment fails after a large change in brightness, the message suggests comparing the images with the slider
+rather than implying that the room's architecture changed.

@@ -12,7 +12,16 @@ from pydantic import ValidationError
 
 from . import rules as rules_mod
 from .brains.base import Brain, BrainError
-from .models import DesignSpec, RuleWarning, VenueRules, VenueSpec, default_spec, load_schema
+from .models import (
+    Ambiguity,
+    ChatIntent,
+    DesignSpec,
+    RuleWarning,
+    VenueRules,
+    VenueSpec,
+    default_spec,
+    load_schema,
+)
 from .prompts import CHAT_RESPONSE_SCHEMA, build_chat_messages
 
 
@@ -64,8 +73,11 @@ def validate_spec(data: dict) -> DesignSpec:
 class ChatResult:
     reply: str
     spec: DesignSpec
+    intent: ChatIntent
+    look_name: str | None
+    spec_changed: bool = False
     warnings: list[RuleWarning] = field(default_factory=list)
-    ambiguities: list[str] = field(default_factory=list)
+    ambiguities: list[Ambiguity] = field(default_factory=list)
     spec_patch: dict = field(default_factory=dict)
     attempts: int = 1
     rule_notes: list[str] = field(default_factory=list)
@@ -77,15 +89,14 @@ def _coerce_spec(spec: DesignSpec | dict | None) -> DesignSpec:
     return spec if isinstance(spec, DesignSpec) else validate_spec(spec)
 
 
-def _envelope(resp: Any) -> tuple[str, dict, list[str]]:
-    """Check the brain's reply against CHAT_RESPONSE_SCHEMA; return (reply, patch, ambiguities)."""
+def _parse_response(resp: Any, base: dict) -> ChatResult:
     if not isinstance(resp, dict):
         raise SpecValidationError(f"response must be a JSON object, got {type(resp).__name__}")
     resp = dict(resp)
     patch = resp.get("spec_patch")
     if isinstance(patch, str):  # some CLIs return the patch JSON-encoded
         try:
-            resp["spec_patch"] = patch = json.loads(patch)
+            resp["spec_patch"] = json.loads(patch)
         except json.JSONDecodeError as e:
             raise SpecValidationError(f"spec_patch is not valid JSON: {e}") from e
     errors = sorted(jsonschema.Draft202012Validator(CHAT_RESPONSE_SCHEMA).iter_errors(resp),
@@ -97,13 +108,14 @@ def _envelope(resp: Any) -> tuple[str, dict, list[str]]:
     if not reply:
         raise SpecValidationError("/reply: must be a non-empty string")
     patch = {k: v for k, v in resp["spec_patch"].items() if k != "version"}
-    return reply, patch, list(resp["ambiguities"])
-
-
-def _parse_response(resp: Any, base: dict) -> tuple[str, dict, list[str], DesignSpec]:
-    reply, patch, amb = _envelope(resp)
-    spec = validate_spec(apply_merge_patch(base, patch))
-    return reply, patch, amb, spec
+    return ChatResult(
+        reply=reply,
+        spec=validate_spec(apply_merge_patch(base, patch)),
+        intent=resp["intent"],
+        look_name=(resp["look_name"] or "").strip() or None,
+        ambiguities=resp["ambiguities"],
+        spec_patch=patch,
+    )
 
 
 async def chat_to_spec(
@@ -126,29 +138,26 @@ async def chat_to_spec(
     resp: Any = None
     try:
         resp = await brain.complete_json(system, user, CHAT_RESPONSE_SCHEMA, timeout_s=timeout_s)
-        parsed = _parse_response(resp, base)
-        attempts = 1
+        result = _parse_response(resp, base)
     except (BrainError, SpecValidationError) as first_error:
         previous = ("(no JSON object could be read)" if isinstance(first_error, BrainError)
                     else json.dumps(resp, ensure_ascii=False)[:4000])
         retry_user = (
             f"{user}\n\nYour previous response was:\n{previous}\n"
             f"It was rejected: {first_error}\n"
-            "Return a corrected JSON object with exactly the keys reply (non-empty string), spec_patch (object) "
-            "and ambiguities (list of strings), whose spec_patch yields a valid DesignSpec."
+            "Return a corrected JSON object matching the response schema, whose spec_patch yields a valid DesignSpec."
         )
         resp = await brain.complete_json(system, retry_user, CHAT_RESPONSE_SCHEMA, timeout_s=timeout_s)
-        attempts = 2
         try:
-            parsed = _parse_response(resp, base)
+            result = _parse_response(resp, base)
+            result.attempts = 2
         except SpecValidationError as e:
             raise BrainError(f"{getattr(brain, 'id', 'brain')} returned an invalid spec patch twice: {e}") from e
-    reply, patch, ambiguities, new_spec = parsed
-
-    fixed, warnings = rules_mod.check(new_spec, venue_rules)
-    notes = rules_mod.rule_notes(warnings)
-    if notes:
-        reply = f"{reply}\n\nAdjusted for venue rules: " + "; ".join(notes)
-    warnings = warnings + rules_mod.capacity_warnings(fixed)
-    return ChatResult(reply=reply, spec=fixed, warnings=warnings, ambiguities=ambiguities,
-                      spec_patch=patch, attempts=attempts, rule_notes=notes)
+    fixed, warnings = rules_mod.check(result.spec, venue_rules)
+    result.spec = fixed
+    result.spec_changed = fixed.to_dict() != base
+    result.rule_notes = rules_mod.rule_notes(warnings)
+    if result.rule_notes:
+        result.reply += "\n\nAdjusted for venue rules: " + "; ".join(result.rule_notes)
+    result.warnings = warnings + rules_mod.capacity_warnings(fixed)
+    return result

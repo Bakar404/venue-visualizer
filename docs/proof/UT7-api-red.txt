@@ -1,0 +1,30 @@
+
+report = {'method': 'unverifiable', 'score': 0.5}, level = 'unverified'
+text = None
+
+    @pytest.mark.parametrize(("report", "level", "text"), [
+        ({"method": "misaligned", "score": 0.35, "brightness_delta": 0.40}, "unverified", LIGHTING),
+        ({"method": "misaligned", "score": 0.35, "brightness_delta": 0.05}, "changed", CHANGED),
+        ({"method": "aligned", "score": 0.60, "brightness_delta": 0.40}, "changed", CHANGED),
+        ({"method": "aligned", "score": 0.85}, "ok", None),
+        ({"method": "unverifiable", "score": 0.50}, "unverified", None),
+    ])
+    def test_structure_message_distinguishes_changed_from_unverified(report, level, text):
+>       from api.qa_text import structure_message
+E       ModuleNotFoundError: No module named 'api.qa_text'
+
+tests/test_ut_7.py:40: ModuleNotFoundError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer-ut-api/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_ut_7.py::test_render_explains_when_relighting_prevents_verification
+FAILED tests/test_ut_7.py::test_structure_message_distinguishes_changed_from_unverified[report0-unverified-Lighting changed a lot, so we couldn't confirm the room matches; compare with the slider.]
+FAILED tests/test_ut_7.py::test_structure_message_distinguishes_changed_from_unverified[report1-changed-This render may have changed the room's architecture.]
+FAILED tests/test_ut_7.py::test_structure_message_distinguishes_changed_from_unverified[report2-changed-This render may have changed the room's architecture.]
+FAILED tests/test_ut_7.py::test_structure_message_distinguishes_changed_from_unverified[report3-ok-None]
+FAILED tests/test_ut_7.py::test_structure_message_distinguishes_changed_from_unverified[report4-unverified-None]
+6 failed, 1 warning in 2.83s
