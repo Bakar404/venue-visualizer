@@ -195,7 +195,7 @@ async def download_image(url: str, dest_dir: Path, max_bytes: int = 20_000_000, 
             _download_image(url, dest_dir, max_bytes, transport=transport, timeout_s=timeout_s),
             timeout=TOTAL_TIMEOUT_S,
         )
-    except asyncio.TimeoutError as e:
+    except TimeoutError as e:
         raise FetchError(f"download of {url} exceeded {TOTAL_TIMEOUT_S:g}s total") from e
 
 
