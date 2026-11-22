@@ -204,3 +204,13 @@ def test_lan_host_is_not_local_even_on_loopback(setup_machine, monkeypatch):  # 
     with desktop() as api:
         loopback_lan_host = TestClient(api.app, base_url=f"http://{HOST}:8000", client=("127.0.0.1", 50001))
         assert loopback_lan_host.get("/api/venues").status_code == 403
+
+
+def test_dev_lan_keeps_the_api_on_loopback():
+    """Only the web goes on the LAN; the API stays on 127.0.0.1 behind the attesting proxy (and the proxy can reach it)."""
+    from pathlib import Path
+
+    makefile = (Path(__file__).resolve().parents[2] / "Makefile").read_text()
+    recipe = makefile.split("dev-lan:\n", 1)[1].split("\n\n", 1)[0]
+    assert "uvicorn api.main:app" in recipe and "--host 127.0.0.1" in recipe
+    assert '--host "$$bind"' not in recipe

@@ -17,7 +17,7 @@ dev-lan:
 	export VV_LAN_PROXY_KEY && \
 	bind=$$(cd services && uv run python -m api.lan) && \
 	echo "Starting api (8000), worker, web (3000) on $$bind" || exit 1; \
-	(cd services && uv run uvicorn api.main:app --no-proxy-headers --reload --host "$$bind" --port 8000) & \
+	(cd services && uv run uvicorn api.main:app --no-proxy-headers --reload --host 127.0.0.1 --port 8000) & \
 	(cd services && uv run python -m api.worker) & \
 	VV_API_URL="$${VV_API_URL:-http://127.0.0.1:8000}" \
 		NODE_OPTIONS="$${NODE_OPTIONS:+$$NODE_OPTIONS }--require=\"$(CURDIR)/services/api/lan_proxy.cjs\"" \
