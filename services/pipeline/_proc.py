@@ -109,9 +109,11 @@ def clear_version_cache() -> None:
 
 # Variables a CLI may legitimately need when it runs with a minimal environment (`clean_env=True`):
 # its own config/auth location, locale, temp dir and proxy/CA settings. Everything else is withheld.
+# API-key variables (OPENAI_API_KEY, CODEX_API_KEY, ANTHROPIC_API_KEY, ...) are deliberately excluded:
+# Venue Visualizer only uses the user's subscription logins, never per-token API billing.
 _CLEAN_ENV_KEYS = (
-    "PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LC_CTYPE", "TMPDIR", "CODEX_HOME", "OPENAI_API_KEY",
-    "CODEX_API_KEY", "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "https_proxy", "http_proxy", "no_proxy",
+    "PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LC_CTYPE", "TMPDIR", "CODEX_HOME",
+    "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "https_proxy", "http_proxy", "no_proxy",
     "SSL_CERT_FILE", "SSL_CERT_DIR",
 )
 

@@ -92,3 +92,12 @@ async def test_clean_env_withholds_unrelated_variables(tmp_path: Path, monkeypat
     clean = await run_cli(["/usr/bin/env"], cwd=tmp_path, timeout_s=10, clean_env=True)
     assert "VV_TEST_SECRET=s3cret" in full.stdout
     assert "VV_TEST_SECRET" not in clean.stdout and "PATH=" in clean.stdout
+
+
+def test_clean_env_never_forwards_api_keys(monkeypatch):
+    from pipeline._proc import _child_env
+
+    for key in ("OPENAI_API_KEY", "CODEX_API_KEY", "ANTHROPIC_API_KEY"):
+        monkeypatch.setenv(key, "sk-test")
+    env = _child_env(clean=True)
+    assert not any(k.endswith("API_KEY") for k in env)

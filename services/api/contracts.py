@@ -340,7 +340,7 @@ class BackendStatus(BaseModel):
 
 
 class BackendDefaults(BaseModel):
-    brain: str
+    brain: str | None
     engine: str | None
 
 
