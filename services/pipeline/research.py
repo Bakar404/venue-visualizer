@@ -187,7 +187,7 @@ def validation_errors(research: Any, schema: dict | None = None) -> list[str]:
 
 async def _drop_unavailable_photos(research: dict) -> None:
     spaces = [space for match in research["matches"] for space in match.get("spaces", []) if space.get("photos")]
-    unchecked = (False, f"photo checks exceeded the {PHOTO_CHECK_BUDGET_S:g}s research budget")
+    unchecked = (None, "not checked within the research time budget")  # kept: import re-validates on download
     results: dict[str, tuple[bool, str]] = {}
     for space in spaces:
         unique = {}
@@ -210,21 +210,26 @@ async def _drop_unavailable_photos(research: dict) -> None:
     except TimeoutError:
         pass  # Keep completed checks; report the unfinished ones below.
 
-    dropped = []
+    dropped, unverified = [], 0
     for space in spaces:
         kept = []
         for photo in space["photos"]:
             url = photo["url"]
             ok, reason = results[url]
-            if ok:
-                kept.append(photo)
-            else:
+            if ok is False:
                 dropped.append(f"{url} ({reason})")
+                continue
+            unverified += ok is None
+            kept.append(photo)
         space["photos"] = kept
+    notes = []
     if dropped:
-        note = f"Dropped {len(dropped)} photo links that did not load: " + "; ".join(dropped)
+        notes.append(f"Dropped {len(dropped)} photo links that did not load: " + "; ".join(dropped))
+    if unverified:
+        notes.append(f"{unverified} photo links were not checked in time; they are re-checked when imported.")
+    if notes:
         existing = research.get("notes")
-        research["notes"] = f"{existing}\n{note}" if existing else note
+        research["notes"] = "\n".join([existing, *notes] if existing else notes)
 
 
 async def research_venue(query: str, brain, *, timeout_s: int = RESEARCH_TIMEOUT_S) -> dict:

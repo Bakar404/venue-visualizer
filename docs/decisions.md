@@ -79,3 +79,22 @@ score as "altered" (0.32–0.53). The check now aligns the render to the photo w
 0.75–1.33, rotation ≤ 5°, sideways shift ≤ 6%, vertical shift ≤ 15%), then compares contrast-normalized edges
 (edge F1, 3 px tolerance) over the top 40% of the frame. Calibration on 9 good and 6 bad real pairs: good renders scored 0.80–0.96,
 and every wrong-room, other-angle or flipped pair failed alignment and is capped at 0.35. Threshold: 0.70.
+
+## 2026-11-21: Structure check v2 (after review)
+A GPT-6.2 Sol review broke v1. Some real photos skipped alignment and fell back to an uncapped grayscale comparison,
+so different rooms and a blank render could pass. A missing chandelier hid behind an intact ceiling, and shifts were
+measured from the corner, not the centre. v2:
+- Alignment is gated on SIFT keypoints, not edge density. If the photo has structure and the render doesn't align
+  (other room/angle, flipped, blank, heavy zoom or one-sided crop), it is capped at 0.35.
+- The render's centre must map within 8% (x) / 12% (y) of the photo's centre. Inliers must cover ≥ 25% of a 4×4 grid.
+  The render must cover ≥ 60% of the protected region.
+- Score = min(edge F1, 10th-percentile per-tile recall + 0.25). Any covered architecture tile with recall < 0.20
+  forces the score under the threshold.
+- Photos with too little structure are "unverifiable" (0.50, below threshold) instead of passing by default.
+- Decoding is bounded (≤ 4096 px, fitted to ≤ 1024 for analysis, aspect ≤ 4:1). Alpha is flattened onto grey and
+  16-bit input is scaled.
+Calibration (real renders plus attacks): every good render passes (0.78–0.96, including three Spring-Mill-style 4:3 → 3:2
+renders). Every attack fails: other room, other angle, flipped, blank, chandeliers removed, windows removed,
+one-sided crop, 1.25× zoom, transparent top. Of 66 pairs of video frames, 0 cross-room pairs pass.
+Known conservative miss: a day photo re-rendered as a night scene (dark windows, blue uplighting, wider framing)
+fails alignment and shows the "may have changed" warning even though the architecture is intact.

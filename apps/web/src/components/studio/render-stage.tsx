@@ -37,7 +37,9 @@ export function RenderStage({ photo, photoLabel, look, render, structureThreshol
   const progress = job.data && isActive(job.data.status) ? progressFraction(job.data.progress) : status === "running" ? null : 0;
   const busy = status === "queued" || status === "running";
   const done = status === "done" && render?.url;
-  const lowScore = done && render.structure_score !== null && render.structure_score < structureThreshold;
+  // Trust the backend's verdict when present (renders scored by an older method keep their own warning state).
+  const qaWarning = render?.qa ? Boolean(render.qa.structure_warning) : undefined;
+  const lowScore = done && (qaWarning ?? (render.structure_score !== null && render.structure_score < structureThreshold));
 
   const announcement = !look
     ? ""

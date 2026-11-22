@@ -168,9 +168,10 @@ async def test_photo_checks_limit_concurrency_and_keep_completed_checks(monkeypa
     mock_photos(respond)
     result = await research_venue("Harbor Hall", FakeBrain(r))
     assert peak == 8 and active == 0
-    assert result["matches"][0]["spaces"][0]["photos"] == [photo]
-    assert "Dropped 10 photo links that did not load" in result["notes"]
-    assert "exceeded the 0.2s research budget" in result["notes"]
+    kept = result["matches"][0]["spaces"][0]["photos"]
+    assert kept[0] == photo and len(kept) == 11  # unchecked links are kept, not reported as dead
+    assert "Dropped" not in result["notes"]
+    assert "10 photo links were not checked in time" in result["notes"]
 
 
 async def test_invalid_then_valid_retries_once_with_errors():
