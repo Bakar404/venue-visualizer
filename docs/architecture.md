@@ -61,7 +61,7 @@ This is not an open-ended agent loop: every step is bounded, and renders only ha
 
 ### Find a real venue (venue-finder agent)
 
-The user types a venue name, e.g. "Spring Mill Manor, North Wing, Ivyland PA". A brain **with web search/fetch
+The user types a venue name, e.g. "Grand Hotel, Riverside Ballroom, Springfield". A brain **with web search/fetch
 tools enabled** (claude: `--allowed-tools WebSearch,WebFetch`; copilot: its web fetch + `--allow-all-urls`;
 codex: `--search`; kimi: its search tool) researches the public web and returns `VenueResearch`
 (`packages/schema/venue-research.schema.json`): candidate matches with address, website, spaces (capacity,
