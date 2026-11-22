@@ -72,3 +72,10 @@ every call on the user's subscription login. Codex additionally runs with a mini
 ## 2026-11-21: Local API hardening
 The API only answers to localhost hosts (DNS-rebinding guard). It rejects cross-origin writes and requires JSON or multipart
 bodies on writes, so a random website can't trigger research or render jobs that spend the user's quota.
+
+## 2026-11-21: The structure check aligns before comparing (calibrated)
+Copilot returns 3:2 images, while most phone and venue photos are 4:3. Resizing one onto the other made intact rooms
+score as "altered" (0.32–0.53). The check now aligns the render to the photo with SIFT + RANSAC (similarity transform; scale
+0.75–1.33, rotation ≤ 5°, sideways shift ≤ 6%, vertical shift ≤ 15%), then compares contrast-normalized edges
+(edge F1, 3 px tolerance) over the top 40% of the frame. Calibration on 9 good and 6 bad real pairs: good renders scored 0.80–0.96,
+and every wrong-room, other-angle or flipped pair failed alignment and is capped at 0.35. Threshold: 0.70.

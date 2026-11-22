@@ -81,4 +81,40 @@ def test_edge_rich_rooms_still_use_edges(room: Path):
     from pipeline.verify import structure_report
 
     report = structure_report(room, room)
-    assert report["method"] == "edges" and report["edge_density"] >= 0.005
+    assert report["method"] in ("aligned", "edges") and report["edge_density"] >= 0.005
+    assert report["score"] > 0.95
+
+
+
+def test_real_photo_reframed_to_other_aspect_still_passes(tmp_path: Path):
+    """Engines return 3:2 for 4:3 photos; a centre crop + rescale of the same room must not look 'altered'."""
+    import numpy as np
+    from PIL import Image
+
+    from pipeline.verify import STRUCTURE_OK, structure_report
+
+    sample = Path(__file__).resolve().parents[2] / "samples" / "ballroom" / "01-empty.png"
+    base = np.asarray(Image.open(sample).convert("L").resize((1200, 900)))  # a 4:3 "phone photo" of a real-looking room
+    src = tmp_path / "photo.png"
+    Image.fromarray(base).convert("RGB").save(src)
+    crop = Image.fromarray(base[75:825]).convert("RGB").resize((1536, 1024))  # 4:3 -> 3:2 centre crop
+    out = tmp_path / "render.png"
+    crop.save(out)
+    report = structure_report(src, out)
+    assert report["method"] == "aligned" and report["score"] >= STRUCTURE_OK
+
+
+def test_different_room_is_capped(tmp_path: Path):
+    import numpy as np
+    from PIL import Image
+
+    from pipeline.verify import MISALIGNED_CAP, structure_report
+
+    rng = np.random.default_rng(1)
+    paths = []
+    for i in range(2):
+        arr = (rng.random((225, 300)) * 255).astype("uint8")
+        p = tmp_path / f"room{i}.png"
+        Image.fromarray(arr).resize((1200, 900)).convert("RGB").save(p)
+        paths.append(p)
+    assert structure_report(*paths)["score"] <= MISALIGNED_CAP
