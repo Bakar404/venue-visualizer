@@ -34,6 +34,10 @@ class Settings(SQLModel, table=True):
 
 class LanDevice(SQLModel, table=True):
     token_hash: str = Field(primary_key=True)
+    id: str = Field(default_factory=lambda: uuid4().hex, index=True, unique=True)
+    label: str = "Unknown device"
+    paired_at: int = 0
+    last_seen: int = 0
     expires_at: int
 
 

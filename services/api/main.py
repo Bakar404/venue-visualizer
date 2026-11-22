@@ -1,8 +1,9 @@
 import asyncio
 import re
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
+from fastapi import status as status_codes
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -11,7 +12,9 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException
 from starlette.formparsers import MultiPartException
+from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.websockets import WebSocketClose
 
 from . import lan, looks, studio, system, venues
 from . import settings as user_settings
@@ -27,78 +30,127 @@ _UPLOAD_LIMITS = (
     (re.compile(r"/api/spaces/[^/]+/photos/?"), MAX_PHOTOS * MAX_IMAGE_BYTES),
     (re.compile(r"/api/venues/[^/]+/video/?"), MAX_VIDEO_BYTES),
 )
-_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "[::1]"})
 _PAIRING_EXEMPT = {("GET", "/api/health"), ("POST", "/api/system/lan/pair")}
 
 
 def _lan_policy(runtime: Runtime, cookie: str) -> tuple[tuple[str, ...], bool, bool]:
-    with Session(runtime.engine) as session:
-        settings = user_settings.row(session)
-        if not lan.enabled(runtime.settings, settings):
-            return (), False, False
-        return lan.addresses(), True, bool(cookie and lan.valid_device(session, settings, cookie))
+    if not lan.enabled(runtime.settings):
+        # Paired devices are kept, but their cookies only count while `make dev-lan` is running.
+        return (), False, False
+    device = None
+    if cookie:
+        with Session(runtime.engine) as session:
+            device = lan.valid_device(session, user_settings.row(session), cookie)
+        if device is not None:
+            lan.touch(runtime.engine, device)
+    return lan.addresses(), True, device is not None
+
+
+def _host(value: str) -> str:
+    return re.sub(r":[0-9]+$", "", value.strip().lower())
+
+
+def _loopback(value: str) -> bool:
+    ip = lan.normalize_ip(value)
+    return ip is not None and ip.is_loopback
 
 
 class RequestPolicy:
+    """Host, origin, locality and pairing checks for every HTTP request and WebSocket upgrade.
+
+    A request on a loopback socket that carries X-Forwarded-Host or X-Forwarded-For came through a proxy
+    (Next.js rewrites), so the socket says nothing about the browser. It is local only if:
+      (i)  LAN mode is off and every forwarded host (and forwarded-for address) is loopback. This is safe only
+           because every non-LAN way of starting the web binds it to 127.0.0.1, so only this machine can reach
+           the proxy; the API warns at startup if the web is reachable from the network.
+      (ii) it carries a valid X-VV-Client attestation (added by services/api/lan_proxy.cjs under `make dev-lan`,
+           keyed per run) for a loopback client address.
+    """
+
     def __init__(self, app: ASGIApp, hosts: list[str], origins: list[str]):
         self.app = app
         self.hosts = frozenset(host.lower() for host in hosts)
         self.origins = frozenset(origins)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
+        if scope["type"] not in ("http", "websocket"):
             await self.app(scope, receive, send)
             return
+        websocket = scope["type"] == "websocket"
 
         async def reject(status: int, detail: str) -> None:
-            await JSONResponse({"detail": detail}, status)(scope, receive, send)
+            if websocket:
+                await WebSocketClose(code=status_codes.WS_1008_POLICY_VIOLATION, reason=detail)(scope, receive, send)
+            else:
+                await JSONResponse({"detail": detail}, status)(scope, receive, send)
 
-        request = Request(scope)
-        runtime: Runtime = request.app.state.runtime
-        socket_peer = lan.normalize_ip(request.client.host) if request.client else None
-        headers = request.headers
+        connection = HTTPConnection(scope)
+        runtime: Runtime = connection.app.state.runtime
+        method = scope.get("method", "GET")
+        socket_peer = lan.normalize_ip(connection.client.host) if connection.client else None
+        headers = connection.headers
         hosts = headers.getlist("host")
         forwarded = headers.getlist("x-forwarded-host")
         if len(hosts) != 1 or len(forwarded) > 1:
             await reject(400, "Invalid host")
             return
-        host, *forwarded_hosts = (re.sub(r":[0-9]+$", "", value.lower()) for value in hosts + forwarded)
+        host, *forwarded_hosts = (_host(value) for value in hosts + forwarded)
+        forwarded_for = [part for value in headers.getlist("x-forwarded-for") for part in value.split(",")]
 
-        peer = socket_peer
-        proxied = bool(forwarded and socket_peer and socket_peer.is_loopback)
-        if proxied and runtime.settings.lan_proxy_key:
-            peers = headers.getlist("x-vv-client")
-            peer = lan.proxy_client(runtime.settings.lan_proxy_key, peers[0]) if len(peers) == 1 else None
         addrs, active, valid_cookie = await run_in_threadpool(
-            _lan_policy, runtime, request.cookies.get(lan.COOKIE, ""),
+            _lan_policy, runtime, connection.cookies.get(lan.COOKIE, ""),
         )
         allowed_hosts = self.hosts.union(addrs)
         if host not in allowed_hosts or any(value not in allowed_hosts for value in forwarded_hosts):
             await reject(400, "Invalid host")
             return
-        if proxied and active and not runtime.settings.lan_proxy_key:
-            # A request arriving from Next's loopback socket is not proof of a local browser.
-            peer = None
+
+        peer = socket_peer
+        if socket_peer is not None and socket_peer.is_loopback and (forwarded or forwarded_for):
+            key = runtime.settings.lan_proxy_key
+            claims = headers.getlist("x-vv-client")
+            attested = lan.proxy_client(key, claims[0]) if key and len(claims) == 1 else None
+            if attested is not None:
+                peer = attested
+            elif not (
+                not active
+                and all(value in lan.LOOPBACK_HOSTS for value in forwarded_hosts)
+                and all(_loopback(value) for value in forwarded_for)
+            ):
+                peer = None
         local = (
             peer is not None and peer.is_loopback and host not in addrs
             and not any(value in addrs for value in forwarded_hosts)
         )
-        request.state.lan_remote = not local
-        request.state.client_ip = peer
-        exempt = (request.method, scope["path"]) in _PAIRING_EXEMPT
-        if not local and (not active or (not exempt and not valid_cookie)):
-            await reject(403, "Pair this device before using Venue Visualizer over the LAN.")
-            return
+        connection.state.lan_remote = not local
+        connection.state.client_ip = peer
+        # Settings, pairing info and device management also refuse a local browser that reached the
+        # proxy under a non-loopback name.
+        connection.state.owner = local and all(value in lan.LOOPBACK_HOSTS for value in forwarded_hosts)
+        if not local:
+            if websocket:
+                await reject(403, "WebSockets are only available on this computer.")
+                return
+            if not active or ((method, scope["path"]) not in _PAIRING_EXEMPT and not valid_cookie):
+                await reject(403, "Pair this device before using Venue Visualizer over the LAN.")
+                return
         origins = self.origins.union(f"http://{addr}:{port}" for addr in addrs for port in (3000, 8000))
         origins_sent = headers.getlist("origin")
+        origin_ok = not origins_sent or (len(origins_sent) == 1 and origins_sent[0] in origins)
+        if websocket:
+            if not origin_ok:
+                await reject(403, "Origin is not allowed")
+                return
+            await self.app(scope, receive, send)
+            return
         app = self.app
-        if request.method not in ("GET", "HEAD", "OPTIONS"):
+        if method not in ("GET", "HEAD", "OPTIONS"):
             types = headers.getlist("content-type")
             if len(types) != 1 or types[0].partition(";")[0].strip().lower() not in (
                 "application/json", "multipart/form-data",
             ):
                 app = JSONResponse({"detail": "Expected JSON or multipart form data"}, 415)
-            elif origins_sent and (len(origins_sent) != 1 or origins_sent[0] not in origins):
+            elif not origin_ok:
                 app = JSONResponse({"detail": "Origin is not allowed"}, 403)
         if origins_sent:
             app = CORSMiddleware(app, allow_origins=sorted(origins), allow_methods=["GET", "POST", "PATCH", "DELETE"],
@@ -145,26 +197,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         engine = database(config.data_dir)
         stop = asyncio.Event()
-        worker = None
+        worker = watcher = None
         try:
             await run_in_threadpool(initialize, engine)
             app.state.runtime = Runtime(config, engine)
             app.state.pairing = lan.Pairing()
-            if lan.enabled(config, await run_in_threadpool(user_settings.load, engine)):
+            app.state.backend_tests = system.BackendTests()
+            if lan.enabled(config):
                 app.state.pairing.announce()
+            else:
+                watcher = asyncio.create_task(lan.watch_web_exposure(config.web_port))
             await run_in_threadpool(backend_report, app.state.runtime)
             if config.inline_jobs:
                 worker = asyncio.create_task(serve(app.state.runtime, stop))
             yield
         finally:
             try:
+                if watcher is not None:
+                    watcher.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await watcher
                 if worker is not None:
                     stop.set()
                     await worker
             finally:
                 engine.dispose()
 
-    hosts = [*_LOCAL_HOSTS, *config.allowed_hosts]
+    hosts = [*lan.LOOPBACK_HOSTS, *config.allowed_hosts]
     origins = [LOCAL_WEB_URL, "http://127.0.0.1:3000", *config.allowed_origins]
     app = FastAPI(
         title="Venue Visualizer",

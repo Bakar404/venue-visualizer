@@ -1,0 +1,67 @@
+$ cd services && uv run pytest -q tests/test_sec_2.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+____________________ test_settings_cannot_turn_lan_mode_on _____________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10eb40b40>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ea57360>
+
+    def test_settings_cannot_turn_lan_mode_on(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch, lan=False, key=False)
+        with desktop() as api:
+            response = api.patch("/api/settings", json={"lan": {"enabled": True}})
+>           assert response.status_code == 422, response.text
+E           AssertionError: {"default_brain":null,"default_engine":null,"allow_web_research":true,"setup_completed_at":null,"providers":{"claude":{"config_dir":null},"copilot":{"model":null},"kimi":{"bin":null}},"lan":{"enabled":true}}
+E           assert 200 == 422
+E            +  where 200 = <Response [200 OK]>.status_code
+
+tests/test_sec_2.py:44: AssertionError
+_______________ test_saved_toggle_from_older_versions_is_ignored _______________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10edd1010>)
+tmp_path = PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-201/test_saved_toggle_from_older_v0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ea57e10>
+
+    def test_saved_toggle_from_older_versions_is_ignored(setup_machine, tmp_path, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch, lan=False, key=False)
+        with desktop() as api:
+            assert api.get("/api/health").status_code == 200
+        _store_legacy_toggle(tmp_path / "data")
+        with desktop() as api:
+>           assert api.get("/api/settings").json()["lan"] == {"enabled": False}
+E           AssertionError: assert {'enabled': True} == {'enabled': False}
+E             
+E             Differing items:
+E             {'enabled': True} != {'enabled': False}
+E             Use -v to get more diff
+
+tests/test_sec_2.py:59: AssertionError
+_______________ test_lan_mode_needs_the_make_dev_lan_environment _______________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10edf6820>)
+tmp_path = PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-201/test_lan_mode_needs_the_make_d0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10eb3fbf0>
+
+    def test_lan_mode_needs_the_make_dev_lan_environment(setup_machine, tmp_path, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch, lan=True, key=False)
+        with desktop() as api:
+            assert api.get("/api/settings").json()["lan"] == {"enabled": False}
+>           assert api.get("/api/system/lan").json()["enabled"] is False
+E           assert True is False
+
+tests/test_sec_2.py:70: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_sec_2.py::test_settings_cannot_turn_lan_mode_on - Assertion...
+FAILED tests/test_sec_2.py::test_saved_toggle_from_older_versions_is_ignored
+FAILED tests/test_sec_2.py::test_lan_mode_needs_the_make_dev_lan_environment
+3 failed, 1 warning in 0.17s

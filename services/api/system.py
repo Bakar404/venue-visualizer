@@ -3,12 +3,14 @@ import logging
 import os
 import tempfile
 import time
+from contextlib import contextmanager
 from datetime import UTC, datetime
+from math import ceil
 from pathlib import Path
 from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 
@@ -20,7 +22,7 @@ from pipeline.providers import PROVIDERS
 
 from .contracts import BackendsOut, BackendTestIn, BackendTestOut, JobOut, LastTest, SetupOut, SetupSteps
 from .db import write_session
-from .deps import RuntimeDep, require
+from .deps import Runtime, RuntimeDep, require
 from .integrations import IntegrationError, backend_report, invoke, pick_brain, pick_engine, pipeline_output
 from .jobs import cancel_job, cleanup_video
 from .models import Job, Photo, Render
@@ -36,6 +38,46 @@ _TEST_SCHEMA = {
     "type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"], "additionalProperties": False,
 }
 _TEST_PROMPT = "a small vase of white flowers on a wooden table, photo"
+TEST_INTERVALS = {"brain": 10, "engine": 60}
+KEEP_TEST_IMAGES = 5
+
+
+class BackendTests:
+    """One running test per backend, and a minimum interval between test starts, so tests can't drain quota."""
+
+    def __init__(self) -> None:
+        self._running: set[str] = set()
+        self._started: dict[str, float] = {}
+
+    @contextmanager
+    def slot(self, kind: str, backend_id: str, label: str):
+        # Runs on the event loop with no await between check and claim, so no lock is needed.
+        key = f"{kind}:{backend_id}"
+        if key in self._running:
+            raise HTTPException(409, f"A {label} test is already running.")
+        now = time.monotonic()
+        last = self._started.get(key)
+        wait = TEST_INTERVALS[kind] - (now - last) if last is not None else 0
+        if wait > 0:
+            raise HTTPException(429, f"{label} was tested moments ago. Try again in {ceil(wait)} s.",
+                                headers={"Retry-After": str(ceil(wait))})
+        self._running.add(key)
+        self._started[key] = now
+        try:
+            yield
+        finally:
+            self._running.discard(key)
+
+
+def _keep_recent_samples(directory: Path) -> None:
+    samples = []
+    for path in directory.glob("*.png"):
+        try:
+            samples.append((path.stat().st_mtime, path))
+        except OSError:
+            pass
+    for _, old in sorted(samples, reverse=True)[KEEP_TEST_IMAGES:]:
+        old.unlink(missing_ok=True)
 
 
 @system.get("/api/health")
@@ -92,18 +134,26 @@ def _test_error(backend_id: str, exc: Exception) -> str:
 
 @system.post("/api/system/backends/{kind}/{id}/test")
 async def test_backend(
-    kind: Literal["brain", "engine"], id: str, runtime: RuntimeDep, body: BackendTestIn | None = None,
+    kind: Literal["brain", "engine"], id: str, runtime: RuntimeDep, request: Request,
+    body: BackendTestIn | None = None,
 ) -> BackendTestOut:
     choices = registry.brains() if kind == "brain" else registry.engines()
     if id not in choices or (kind == "engine" and id == "mock" and not runtime.settings.dev):
         raise HTTPException(404, f"Unknown {kind}: {id}")
-    if kind == "engine" and id not in {"mock", "mflux"} and not (body and body.confirm_credits):
+    # A paired phone always confirms image tests, even for engines that are free on this computer.
+    free = id in {"mock", "mflux"} and not request.state.lan_remote
+    if kind == "engine" and not free and not (body and body.confirm_credits):
         raise HTTPException(422, "Set confirm_credits to true to run an image test that may use credits.")
+    label = PROVIDERS[id].label
+    tests: BackendTests = request.app.state.backend_tests
+    with tests.slot(kind, id, label):
+        return await _run_test(kind, id, label, runtime)
 
+
+async def _run_test(kind: str, id: str, label: str, runtime: Runtime) -> BackendTestOut:
     start = time.monotonic()
     sample_url = None
     ok = False
-    label = PROVIDERS[id].label
     try:
         if kind == "brain":
             brain = await invoke(pick_brain, runtime, id)
@@ -123,6 +173,7 @@ async def test_backend(
                 image = await engine.generate(GenerateRequest(_TEST_PROMPT, work / name, size="1024x1024",
                                                               quality="low"))
                 os.replace(pipeline_output(image.path, work), directory / name)
+            _keep_recent_samples(directory)
             sample_url = f"/files/tests/{name}"
             detail = f"{label} generated a {image.width}x{image.height} sample."
         ok = True

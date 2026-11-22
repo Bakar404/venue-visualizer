@@ -73,6 +73,20 @@ every call on the user's subscription login. Codex additionally runs with a mini
 The API only answers to localhost hosts (DNS-rebinding guard). It rejects cross-origin writes and requires JSON or multipart
 bodies on writes, so a random website can't trigger research or render jobs that spend the user's quota.
 
+## 2026-11-22: LAN mode security model
+LAN mode exists only while `make dev-lan` runs (`VV_LAN=1` plus a random per-run `VV_LAN_PROXY_KEY`); settings can't
+enable it, so the owner can't lock themselves out with a toggle. Every other start command binds the web and API to
+127.0.0.1. Requests that Next.js proxies arrive on a loopback socket, so the socket alone proves nothing. A proxied
+request counts as local only if (i) LAN mode is off and the forwarded host is a loopback name, which is safe only
+because the proxy itself listens on 127.0.0.1 (the API warns at startup if the web is reachable from the network), or
+(ii) `lan_proxy.cjs` attested a loopback client IP with an HMAC under the per-run key. Settings writes, the pairing
+code and device management additionally require a non-proxied or loopback-named request from this computer, never a
+paired phone. The same policy guards WebSocket upgrades. Pairing codes are one-time, expire after 10 minutes, are
+shown only in Setup on this computer, and 10 failures from any address retire the code and lock pairing for 5 minutes
+(on top of 5 per IP per 10 minutes). Paired devices are listed and revocable; forgetting all rotates the cookie
+signing key. Cookies last 30 days and are honoured only in LAN mode. Backend tests are throttled per backend so a
+paired device can't drain quota. Plain HTTP on a trusted Wi-Fi remains the accepted risk.
+
 ## 2026-11-21: The structure check aligns before comparing (calibrated)
 Copilot returns 3:2 images, while most phone and venue photos are 4:3. Resizing one onto the other made intact rooms
 score as "altered" (0.32–0.53). The check now aligns the render to the photo with SIFT + RANSAC (similarity transform; scale

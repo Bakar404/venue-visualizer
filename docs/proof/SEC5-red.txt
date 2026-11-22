@@ -1,0 +1,118 @@
+$ cd services && uv run pytest -q tests/test_sec_5.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+____________ test_brain_tests_are_limited_to_one_every_ten_seconds _____________
+
+client = <starlette.testclient.TestClient object at 0x10f691160>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10f62b5c0>
+
+    def test_brain_tests_are_limited_to_one_every_ten_seconds(client, monkeypatch):
+        clock = Clock(monkeypatch)
+        assert client.post(BRAIN, json={}).json()["ok"] is True
+        clock.now += 3
+        limited = client.post(BRAIN, json={})
+>       assert limited.status_code == 429, limited.text
+E       AssertionError: {"ok":true,"seconds":0.0,"detail":"Offline mock replied with {\"ok\": true}.","sample_url":null}
+E       assert 200 == 429
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests/test_sec_5.py:30: AssertionError
+_________________ test_image_tests_are_limited_to_one_a_minute _________________
+
+client = <starlette.testclient.TestClient object at 0x10f665f90>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10f62be10>
+
+    def test_image_tests_are_limited_to_one_a_minute(client, monkeypatch):
+        clock = Clock(monkeypatch)
+        assert client.post(IMAGE, json={}).json()["ok"] is True
+        clock.now += 59
+        limited = client.post(IMAGE, json={})
+>       assert limited.status_code == 429 and int(limited.headers["Retry-After"]) == 1
+E       assert (200 == 429)
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests/test_sec_5.py:42: AssertionError
+_____________________ test_one_concurrent_test_per_backend _____________________
+
+client = <starlette.testclient.TestClient object at 0x10f72cf50>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10f768830>
+
+    def test_one_concurrent_test_per_backend(client, monkeypatch):
+        started = threading.Event()
+    
+        async def slow(self, *_args, **_kwargs):
+            started.set()
+            await asyncio.sleep(0.5)
+            return {"ok": True}
+    
+        monkeypatch.setattr(MockBrain, "complete_json", slow)
+        results = []
+        first = threading.Thread(target=lambda: results.append(client.post(BRAIN, json={})))
+        first.start()
+        assert started.wait(5)
+        second = client.post(BRAIN, json={})
+        first.join()
+        assert results[0].status_code == 200
+>       assert second.status_code == 409, second.text
+E       AssertionError: {"ok":true,"seconds":0.504,"detail":"Offline mock replied with {\"ok\": true}.","sample_url":null}
+E       assert 200 == 409
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests/test_sec_5.py:63: AssertionError
+_________________ test_only_the_last_five_test_images_are_kept _________________
+
+client = <starlette.testclient.TestClient object at 0x10faecc30>
+tmp_path = PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-204/test_only_the_last_five_test_i0')
+
+    def test_only_the_last_five_test_images_are_kept(client, tmp_path):
+        directory = tmp_path / "data" / "tests"
+        directory.mkdir(parents=True, exist_ok=True)
+        old = []
+        for n in range(6):
+            path = directory / f"00000000-0000-4000-8000-00000000000{n}.png"
+            path.write_bytes(b"old")
+            os.utime(path, (1_000_000 + n, 1_000_000 + n))
+            old.append(path)
+        result = client.post(IMAGE, json={}).json()
+        assert result["ok"] is True
+        kept = sorted(p.name for p in directory.glob("*.png"))
+>       assert len(kept) == 5
+E       AssertionError: assert 7 == 5
+E        +  where 7 = len(['00000000-0000-4000-8000-000000000000.png', '00000000-0000-4000-8000-000000000001.png', '00000000-0000-4000-8000-0000...00-8000-000000000003.png', '00000000-0000-4000-8000-000000000004.png', '00000000-0000-4000-8000-000000000005.png', ...])
+
+tests/test_sec_5.py:78: AssertionError
+_________ test_paired_devices_must_confirm_credits_for_any_image_test __________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10fabc510>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10f7eb9b0>
+
+    def test_paired_devices_must_confirm_credits_for_any_image_test(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch)
+        monkeypatch.setenv("VV_DEV", "1")
+        with desktop() as api:
+            assert phone(api.app, "192.168.10.7").post(IMAGE, json={"confirm_credits": True}).status_code == 403
+            device = pair_phone(api)
+            response = device.post(IMAGE, json={})
+>           assert response.status_code == 422, response.text
+E           AssertionError: {"ok":true,"seconds":0.014,"detail":"Offline mock generated a 1024x1024 sample.","sample_url":"/files/tests/9d19ce70-bcf1-4670-b935-7e6438e188c8.png"}
+E           assert 200 == 422
+E            +  where 200 = <Response [200 OK]>.status_code
+
+tests/test_sec_5.py:91: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_sec_5.py::test_brain_tests_are_limited_to_one_every_ten_seconds
+FAILED tests/test_sec_5.py::test_image_tests_are_limited_to_one_a_minute - as...
+FAILED tests/test_sec_5.py::test_one_concurrent_test_per_backend - AssertionE...
+FAILED tests/test_sec_5.py::test_only_the_last_five_test_images_are_kept - As...
+FAILED tests/test_sec_5.py::test_paired_devices_must_confirm_credits_for_any_image_test
+5 failed, 1 warning in 0.76s

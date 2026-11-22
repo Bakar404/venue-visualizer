@@ -95,11 +95,14 @@ def test_additional_hosts_and_origins_from_env(tmp_path, monkeypatch):
     monkeypatch.setenv("VV_ALLOWED_HOSTS", " api.example.test, planner.example.test ")
     monkeypatch.setenv("VV_ALLOWED_ORIGINS", " https://planner.example.test ")
     monkeypatch.setattr(shutil, "which", lambda *_args, **_kwargs: None)
-    headers = {"Origin": "https://planner.example.test", "X-Forwarded-Host": "planner.example.test"}
+    headers = {"Origin": "https://planner.example.test"}
     with TestClient(create_app(), base_url="http://api.example.test:8000", client=("127.0.0.1", 54321)) as client:
         response = client.post("/api/venues", json={"name": "Elm"}, headers=headers)
         assert response.status_code == 201
         assert response.headers["Access-Control-Allow-Origin"] == headers["Origin"]
+        # A proxy forwarding a non-loopback name could be relaying anyone, so it is not trusted as local.
+        proxied = {**headers, "X-Forwarded-Host": "planner.example.test"}
+        assert client.post("/api/venues", json={"name": "Elm"}, headers=proxied).status_code == 403
 
 
 def test_phase_one_chat_render_compare_and_export(client, tmp_path):

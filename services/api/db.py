@@ -9,7 +9,8 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from .models import SchemaVersion, Settings
 
-VERSION = 4
+VERSION = 5
+_DEVICE_SECONDS = 30 * 24 * 60 * 60
 
 
 def database(data_dir: Path) -> Engine:
@@ -34,9 +35,19 @@ def initialize(engine: Engine) -> None:
         conn.exec_driver_sql("BEGIN IMMEDIATE")
         SchemaVersion.__table__.create(conn, checkfirst=True)
         version = conn.execute(text("SELECT MAX(version) FROM schema_version")).scalar_one()
-        if version not in (None, 1, 2, 3, VERSION):
+        if version not in (None, 1, 2, 3, 4, VERSION):
             raise RuntimeError(f"Unsupported database schema version: {version}; expected {VERSION}")
         SQLModel.metadata.create_all(conn)
+        if version == 4:
+            conn.exec_driver_sql("ALTER TABLE landevice ADD COLUMN id VARCHAR")
+            conn.exec_driver_sql("ALTER TABLE landevice ADD COLUMN label VARCHAR NOT NULL DEFAULT 'Unknown device'")
+            conn.exec_driver_sql("ALTER TABLE landevice ADD COLUMN paired_at INTEGER NOT NULL DEFAULT 0")
+            conn.exec_driver_sql("ALTER TABLE landevice ADD COLUMN last_seen INTEGER NOT NULL DEFAULT 0")
+            conn.execute(text(
+                "UPDATE landevice SET id = lower(hex(randomblob(16))), paired_at = expires_at - :seconds, "
+                "last_seen = expires_at - :seconds"
+            ), {"seconds": _DEVICE_SECONDS})
+            conn.exec_driver_sql("CREATE UNIQUE INDEX IF NOT EXISTS ix_landevice_id ON landevice (id)")
         if version == 1:
             conn.exec_driver_sql("ALTER TABLE space ADD COLUMN capacity_seated INTEGER")
             conn.exec_driver_sql("ALTER TABLE space ADD COLUMN capacity_standing INTEGER")

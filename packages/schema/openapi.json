@@ -1237,8 +1237,66 @@
         "title": "KimiOptions",
         "type": "object"
       },
+      "KimiPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "bin": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "minLength": 1,
+                "pattern": "^[^\\x00]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bin"
+          }
+        },
+        "title": "KimiPatch",
+        "type": "object"
+      },
+      "LanDeviceOut": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "paired_at": {
+            "format": "date-time",
+            "title": "Paired At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "paired_at",
+          "last_seen",
+          "expires_at"
+        ],
+        "title": "LanDeviceOut",
+        "type": "object"
+      },
       "LanOptions": {
         "additionalProperties": false,
+        "description": "Read-only: reflects whether this run was started with `make dev-lan`.",
         "properties": {
           "enabled": {
             "default": false,
@@ -1265,6 +1323,28 @@
               }
             ],
             "title": "Pairing Code"
+          },
+          "pairing_expires_in": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pairing Expires In"
+          },
+          "pairing_locked_for": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pairing Locked For"
           },
           "pairing_required": {
             "default": true,
@@ -1743,7 +1823,7 @@
             "$ref": "#/components/schemas/CopilotOptions"
           },
           "kimi": {
-            "$ref": "#/components/schemas/KimiOptions"
+            "$ref": "#/components/schemas/KimiPatch"
           }
         },
         "title": "ProvidersPatch",
@@ -4449,6 +4529,78 @@
           }
         },
         "summary": "Lan Info",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/system/lan/devices": {
+      "delete": {
+        "operationId": "forget_all_devices_api_system_lan_devices_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Forget All Devices",
+        "tags": [
+          "system"
+        ]
+      },
+      "get": {
+        "operationId": "list_devices_api_system_lan_devices_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LanDeviceOut"
+                  },
+                  "title": "Response List Devices Api System Lan Devices Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Devices",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/system/lan/devices/{device_id}": {
+      "delete": {
+        "operationId": "forget_device_api_system_lan_devices__device_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forget Device",
         "tags": [
           "system"
         ]

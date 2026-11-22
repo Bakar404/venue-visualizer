@@ -29,13 +29,16 @@ def test_lan_off_then_pair_with_cookie_and_preserve_localhost(setup_machine, mon
     monkeypatch.setitem(sys.modules, "ifaddr", SimpleNamespace(get_adapters=lambda: [
         SimpleNamespace(ips=[SimpleNamespace(ip=HOST, is_IPv4=True)]),
     ]))
+    monkeypatch.delenv("VV_LAN", raising=False)
     with desktop() as api:
         state = api.get("/api/system/lan")
         assert state.status_code == 200, state.text
         assert state.json()["enabled"] is False
+        assert phone(api.app).get("/api/health").status_code == 400
+        assert api.patch("/api/settings", json={"lan": {"enabled": True}}).status_code == 422
+    monkeypatch.setenv("VV_LAN", "1")
+    with desktop() as api:
         lan = phone(api.app)
-        assert lan.get("/api/health").status_code == 400
-        assert api.patch("/api/settings", json={"lan": {"enabled": True}}).status_code == 200
         state = api.get("/api/system/lan").json()
         assert state["url"] == ORIGIN and "<svg" in state["qr_svg"]
         code = state["pairing_code"]
@@ -63,6 +66,7 @@ def test_lan_off_then_pair_with_cookie_and_preserve_localhost(setup_machine, mon
             "Cookie": paired.headers["set-cookie"].split(";")[0] + "x",
         }).status_code == 403
 
+        code = api.get("/api/system/lan").json()["pairing_code"]
         wrong = "000000" if code != "000000" else "111111"
         attacker = phone(api.app, ip="192.168.10.4")
         for invalid in (wrong, wrong, "incorrect", wrong, wrong):

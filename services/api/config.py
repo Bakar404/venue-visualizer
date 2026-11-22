@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit
 
 REPO = Path(__file__).resolve().parents[2]
 LOCAL_WEB_URL = "http://localhost:3000"
@@ -29,6 +30,15 @@ class Settings:
             raise ValueError("VV_ALLOWED_HOSTS must list exact hosts, not wildcards")
         if "*" in self.allowed_origins:
             raise ValueError("VV_ALLOWED_ORIGINS must list exact origins, not wildcards")
+
+    @property
+    def lan_mode(self) -> bool:
+        """LAN mode is only on under `make dev-lan`, which sets VV_LAN=1 and a fresh proxy attestation key."""
+        return self.lan and bool(self.lan_proxy_key)
+
+    @property
+    def web_port(self) -> int:
+        return urlsplit(self.web_url).port or 3000
 
     @classmethod
     def from_env(cls) -> "Settings":

@@ -63,8 +63,11 @@ type Job = { id: string; kind: "render" | "generate_base"; status: JobStatus; pr
 | GET | `/api/system/setup` | | `Setup` |
 | GET | `/api/settings` | | `Settings` |
 | PATCH | `/api/settings` | Partial `Settings`, including partial nested objects | Updated `Settings` |
-| GET | `/api/system/lan` | | `Lan` (localhost only) |
+| GET | `/api/system/lan` | | `Lan` (this computer only; issues or refreshes the pairing code) |
 | POST | `/api/system/lan/pair` | `{code: string}` | `{ok: true}` and a device cookie (LAN only) |
+| GET | `/api/system/lan/devices` | | `LanDevice[]` (this computer only) |
+| DELETE | `/api/system/lan/devices/{id}` | | 204; forgets one paired device (404 if unknown) |
+| DELETE | `/api/system/lan/devices` | | 204; forgets every paired device and rotates the cookie signing key |
 | GET | `/api/venues` | | `Venue[]` |
 | POST | `/api/venues` | `{name, rules?}` | `Venue` |
 | GET/PATCH/DELETE | `/api/venues/{id}` | PATCH `{name?, rules?}` | `Venue` |
@@ -97,28 +100,45 @@ Polling: the web app polls `/api/jobs/{id}` every 1.5 s while a job is queued or
   existing env/automatic behavior. An explicit backend in an operation wins over the saved default, then the env default.
   `setup_completed_at` is an ISO-8601 timestamp with an offset; set it when the user finishes setup, or clear it with
   `null`. Web venue research defaults to enabled. Claude's `config_dir` must resolve to an existing directory under the
-  user's home. Kimi's `bin` is a command on `PATH` or an absolute executable path. Edit provider and LAN settings from
-  localhost, not a paired phone.
+  user's home that contains a Claude config marker (`.claude.json` or `settings.json`). Kimi's `bin` must be an
+  absolute path that resolves (following symlinks) to an existing executable named `kimi` or `kimi-*`. Neither may sit
+  in a shared temp directory or the app's data directory. Otherwise PATCH returns 422. Saved values that no longer
+  pass are ignored. `PATCH /api/settings` is accepted only from this computer (403 from paired phones and from
+  proxied requests whose forwarded host isn't localhost). `lan.enabled` is read-only: it reports whether the API was
+  started with `make dev-lan`, and a PATCH that tries to change it returns 422 "Restart with `make dev-lan` to open
+  the app on your phone".
 - **Detection:** `available` means installed (or locally available for internal tools). `logged_in: false` excludes a
   backend from automatic selection and setup readiness; `null` means the app cannot verify login without a test. Login
   detection is cached for up to 60 seconds. If no backend of a given kind is usable, its default is `null`.
   Setup is complete when a usable brain and engine are available and `setup_completed_at` is set. `steps.tools` reflects
   backend availability, `steps.defaults` reflects the completion timestamp, and `steps.try_it` equals `complete`.
 - **Tests:** A brain gets one JSON completion with a 60-second timeout. An engine generates a low-quality 1024×1024 sample.
-  Engine tests other than mock and mflux require `confirm_credits: true` (422 otherwise). A completed test request returns
+  Engine tests other than mock and mflux require `confirm_credits: true` (422 otherwise); from a paired phone every
+  engine test does. Only one test per backend runs at a time (409). A backend's brain test can start at most every
+  10 s and its image test every 60 s (429 with `Retry-After`). Only the 5 newest sample images are kept.
+  A completed test request returns
   200 with `ok: false` and a user-facing detail on provider failure. Results are persisted separately for each brain and
   engine; only a successful image test returns a `sample_url`. `make doctor` lists install and sign-in instructions
   without generating anything; `uv run python -m api.doctor --json` emits the same checklist as JSON.
-- **LAN:** Off by default. `make dev-lan` forces it on with `VV_LAN=1`; otherwise the persisted toggle applies.
-  After changing the toggle, restart `make dev` to rebind both servers. Enabling LAN adds this machine's private IPv4
-  addresses to allowed API hosts and permits HTTP origins on those addresses on ports 3000 and 8000.
+- **LAN:** Off by default and only on while `make dev-lan` runs (`VV_LAN=1` plus a per-run `VV_LAN_PROXY_KEY`);
+  there is no settings toggle. `make dev`, `make web`, `make api` and `pnpm dev:web` bind to 127.0.0.1. LAN mode adds
+  this machine's private IPv4 addresses (the default-route interface first; Docker, bridge, VPN and tunnel interfaces
+  skipped) to allowed API hosts and permits HTTP origins on those addresses on ports 3000 and 8000.
   Use the returned web URL or QR code on a trusted Wi-Fi network: LAN mode uses plain HTTP by default.
-  The six-digit pairing code is available only on localhost and in the API console, and rotates when the API restarts.
+  The six-digit pairing code is returned only by `GET /api/system/lan` on this computer (the console only says where to
+  find it). Each call issues a code if none is active and extends it to 10 minutes (`pairing_expires_in`, seconds). A
+  code works once; pair another device by reopening the panel. Ten wrong codes from any addresses retire the code and
+  lock pairing for 5 minutes (`pairing_locked_for`, seconds; pairing returns 429 with `Retry-After`).
   A phone must pair before any API or file request except `GET /api/health` and `POST /api/system/lan/pair`.
   Five incorrect codes per client IP in ten minutes block further attempts with 429 and `Retry-After`. Successful pairing
-  sets a signed, HttpOnly, SameSite=Strict cookie that lasts 30 days and survives restarts. Use the Make targets for
-  proxying through Next.js: they authenticate the original client IP on rewrites and disable Uvicorn's automatic
-  forwarded-header trust. If no private IPv4 address is found, the LAN URL and QR are `null`.
+  sets a signed, HttpOnly, SameSite=Strict cookie that lasts 30 days and survives restarts, but is honoured only in LAN
+  mode. `LanDevice` is `{id, label, paired_at, last_seen, expires_at}`; the label comes from the User-Agent and
+  `last_seen` updates at most once a minute. Forgetting all devices rotates the signing key so old cookies stop working.
+  Behind the Next.js proxy, a request is local only if LAN mode is off and the forwarded host is localhost (safe because
+  the web listens on 127.0.0.1; the API warns at startup otherwise), or `lan_proxy.cjs` attested a loopback client.
+  WebSocket upgrades follow the same rules and are refused unless local. Use the Make targets for proxying through
+  Next.js: they authenticate the original client IP on rewrites and disable Uvicorn's automatic forwarded-header trust.
+  If no private IPv4 address is found, the LAN URL and QR are `null`.
 
 ## Venue research, import, and video
 

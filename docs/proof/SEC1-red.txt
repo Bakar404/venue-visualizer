@@ -1,0 +1,245 @@
+$ cd services && uv run pytest -q tests/test_sec_1.py
+/Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFFFFFFF.FFFFF.                                                          [100%]
+=================================== FAILURES ===================================
+___________________ test_root_dev_web_script_binds_loopback ____________________
+
+    def test_root_dev_web_script_binds_loopback():
+        scripts = json.loads((REPO / "package.json").read_text(encoding="utf-8"))["scripts"]
+>       assert scripts["dev:web"] == LOCAL_WEB
+E       AssertionError: assert 'pnpm --filter web dev' == 'pnpm --filte...ame 127.0.0.1'
+E         
+E         - pnpm --filter web dev --hostname 127.0.0.1
+E         + pnpm --filter web dev
+
+tests/test_sec_1.py:48: AssertionError
+______________ test_local_make_targets_bind_web_to_loopback[dev] _______________
+
+target = 'dev'
+
+    @pytest.mark.parametrize("target", ["dev", "web"])
+    def test_local_make_targets_bind_web_to_loopback(target):
+        recipe = make_recipes()[target]
+>       assert LOCAL_WEB in recipe
+E       assert 'pnpm --filter web dev --hostname 127.0.0.1' in '@echo "Starting api (8000), worker, web (3000) on localhost"\n(cd services && uv run uvicorn api.main:app --reload --host 127.0.0.1 --port 8000) &  (cd services && uv run python -m api.worker) &  pnpm dev:web; wait'
+
+tests/test_sec_1.py:54: AssertionError
+______________ test_local_make_targets_bind_web_to_loopback[web] _______________
+
+target = 'web'
+
+    @pytest.mark.parametrize("target", ["dev", "web"])
+    def test_local_make_targets_bind_web_to_loopback(target):
+        recipe = make_recipes()[target]
+>       assert LOCAL_WEB in recipe
+E       AssertionError: assert 'pnpm --filter web dev --hostname 127.0.0.1' in 'pnpm dev:web'
+
+tests/test_sec_1.py:54: AssertionError
+___________ test_dev_lan_calls_next_directly_with_a_single_hostname ____________
+
+    def test_dev_lan_calls_next_directly_with_a_single_hostname():
+        recipe = make_recipes()["dev-lan"]
+>       assert LAN_WEB in recipe
+E       assert 'pnpm --filter web dev --hostname "$$bind"' in '@bind=$$(cd services && uv run python -m api.lan) &&  VV_LAN_PROXY_KEY=$$(node -p \'require("node:crypto").randomByte...OPTIONS:+$$NODE_OPTIONS }--require=\\"$(CURDIR)/services/api/lan_proxy.cjs\\""  pnpm dev:web --hostname "$$bind"; wait'
+
+tests/test_sec_1.py:61: AssertionError
+_ test_make_dry_run_shows_the_web_hostname[dev-pnpm --filter web dev --hostname 127.0.0.1] _
+
+target = 'dev', expected = 'pnpm --filter web dev --hostname 127.0.0.1'
+
+    @pytest.mark.skipif(shutil.which("make") is None, reason="make is not installed")
+    @pytest.mark.parametrize(("target", "expected"), [
+        ("dev", LOCAL_WEB), ("web", LOCAL_WEB), ("dev-lan", LAN_WEB.replace("$$", "$")),
+    ])
+    def test_make_dry_run_shows_the_web_hostname(target, expected):
+        output = subprocess.run(["make", "-n", target], cwd=REPO, capture_output=True, text=True, check=True).stdout
+>       assert expected in output
+E       assert 'pnpm --filter web dev --hostname 127.0.0.1' in 'echo "Starting api (8000), worker, web (3000) on localhost"\n(cd services && uv run uvicorn api.main:app --reload --host 127.0.0.1 --port 8000) & \\\n\t(cd services && uv run python -m api.worker) & \\\n\tpnpm dev:web; wait\n'
+
+tests/test_sec_1.py:72: AssertionError
+_ test_make_dry_run_shows_the_web_hostname[web-pnpm --filter web dev --hostname 127.0.0.1] _
+
+target = 'web', expected = 'pnpm --filter web dev --hostname 127.0.0.1'
+
+    @pytest.mark.skipif(shutil.which("make") is None, reason="make is not installed")
+    @pytest.mark.parametrize(("target", "expected"), [
+        ("dev", LOCAL_WEB), ("web", LOCAL_WEB), ("dev-lan", LAN_WEB.replace("$$", "$")),
+    ])
+    def test_make_dry_run_shows_the_web_hostname(target, expected):
+        output = subprocess.run(["make", "-n", target], cwd=REPO, capture_output=True, text=True, check=True).stdout
+>       assert expected in output
+E       AssertionError: assert 'pnpm --filter web dev --hostname 127.0.0.1' in 'pnpm dev:web\n'
+
+tests/test_sec_1.py:72: AssertionError
+_ test_make_dry_run_shows_the_web_hostname[dev-lan-pnpm --filter web dev --hostname "$bind"] _
+
+target = 'dev-lan', expected = 'pnpm --filter web dev --hostname "$bind"'
+
+    @pytest.mark.skipif(shutil.which("make") is None, reason="make is not installed")
+    @pytest.mark.parametrize(("target", "expected"), [
+        ("dev", LOCAL_WEB), ("web", LOCAL_WEB), ("dev-lan", LAN_WEB.replace("$$", "$")),
+    ])
+    def test_make_dry_run_shows_the_web_hostname(target, expected):
+        output = subprocess.run(["make", "-n", target], cwd=REPO, capture_output=True, text=True, check=True).stdout
+>       assert expected in output
+E       assert 'pnpm --filter web dev --hostname "$bind"' in 'bind=$(cd services && uv run python -m api.lan) && \\\n\tVV_LAN_PROXY_KEY=$(node -p \'require("node:crypto").randomBy...hmedabdelsalam/Desktop/venue-visualizer/services/api/lan_proxy.cjs\\"" \\\n\t\tpnpm dev:web --hostname "$bind"; wait\n'
+
+tests/test_sec_1.py:72: AssertionError
+______ test_proxied_request_from_wifi_device_is_not_local_when_lan_is_off ______
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10fcef740>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fd35810>
+
+    def test_proxied_request_from_wifi_device_is_not_local_when_lan_is_off(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch, lan=False, key=False)
+        with desktop() as api:
+            assert api.get("/api/venues").status_code == 200
+            # Next's own rewrite of a desktop browser request: loopback forwarded host, no client claim.
+            assert proxied(api.app, "localhost:3000").get("/api/venues").status_code == 200
+            # The exploit: a Wi-Fi device sends `Host: localhost:3000` to a Next server bound to 0.0.0.0.
+            spoof = proxied(api.app, "localhost:3000", **{"X-Forwarded-For": "192.168.10.4"})
+>           assert spoof.get("/api/venues").status_code == 403
+E           AssertionError: assert 200 == 403
+E            +  where 200 = <Response [200 OK]>.status_code
+E            +    where <Response [200 OK]> = get('/api/venues')
+E            +      where get = <starlette.testclient.TestClient object at 0x10fd55810>.get
+
+tests/test_sec_1.py:87: AssertionError
+_____________ test_api_warns_when_the_web_listens_beyond_loopback ______________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10fcef5e0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fc1f890>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x10fcfb230>
+
+    def test_api_warns_when_the_web_listens_beyond_loopback(setup_machine, monkeypatch, caplog):  # noqa: F811
+        lan_env(monkeypatch, lan=False, key=False)
+        with socket.create_server(("127.0.0.1", 0)) as server:
+            port = server.getsockname()[1]
+            monkeypatch.setenv("VV_WEB_URL", f"http://localhost:{port}")
+            # Stand in for the machine's Wi-Fi address with a socket we control.
+            monkeypatch.setattr(lan, "_interface_addresses", lambda: ("127.0.0.1",), raising=False)
+            caplog.set_level(logging.WARNING)
+            with desktop():
+                deadline = time.monotonic() + 3
+                while time.monotonic() < deadline and "listening on" not in caplog.text:
+                    time.sleep(0.05)
+>       assert f"web server is listening on 127.0.0.1:{port}" in caplog.text
+E       AssertionError: assert 'web server is listening on 127.0.0.1:49453' in ''
+E        +  where '' = <_pytest.logging.LogCaptureFixture object at 0x10fcfb230>.text
+
+tests/test_sec_1.py:119: AssertionError
+______________ test_kimi_bin_must_be_an_absolute_kimi_executable _______________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10fd9f3d0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fc06e00>
+
+    def test_kimi_bin_must_be_an_absolute_kimi_executable(setup_machine, monkeypatch):  # noqa: F811
+        home = setup_machine.home
+        monkeypatch.setenv("VV_DATA_DIR", str(home / "vv-data"))
+        good = _executable(home / "tools" / "kimi-cli")
+        plain = home / "tools" / "kimi"
+        plain.write_text("not executable")
+        evil = _executable(home / "tools" / "evil")
+        alias = home / "tools" / "kimi-shell"
+        alias.symlink_to("/bin/sh")
+        tmp = Path(tempfile.mkdtemp(dir="/tmp"))
+        try:
+            in_tmp = _executable(tmp / "kimi")
+            in_data = _executable(home / "vv-data" / "kimi")
+            with desktop() as api:
+                for invalid in ("kimi", "./kimi", str(home / "tools" / "missing-kimi"), str(plain), str(evil),
+                                str(alias), str(in_tmp), str(in_data)):
+                    response = api.patch("/api/settings", json={"providers": {"kimi": {"bin": invalid}}})
+>                   assert response.status_code == 422, (invalid, response.text)
+E                   AssertionError: ('kimi', '{"default_brain":null,"default_engine":null,"allow_web_research":true,"setup_completed_at":null,"providers":{"claude":{"config_dir":null},"copilot":{"model":null},"kimi":{"bin":"kimi"}},"lan":{"enabled":false}}')
+E                   assert 200 == 422
+E                    +  where 200 = <Response [200 OK]>.status_code
+
+tests/test_sec_1.py:149: AssertionError
+_________________ test_claude_config_dir_needs_a_claude_marker _________________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x10fe43ab0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fde8380>
+
+    def test_claude_config_dir_needs_a_claude_marker(setup_machine, monkeypatch):  # noqa: F811
+        home = setup_machine.home
+        monkeypatch.setenv("VV_DATA_DIR", str(home / "vv-data"))
+        empty = home / "empty"
+        empty.mkdir()
+        planted = home / "vv-data" / "claude"
+        planted.mkdir(parents=True)
+        (planted / "settings.json").write_text("{}")
+        settings_dir = home / "work-claude"
+        settings_dir.mkdir()
+        (settings_dir / "settings.json").write_text("{}")
+        state_dir = home / ".claude-personal"
+        state_dir.mkdir()
+        (state_dir / ".claude.json").write_text("{}")
+        with desktop() as api:
+            for invalid in (empty, planted):
+                response = api.patch("/api/settings", json={"providers": {"claude": {"config_dir": str(invalid)}}})
+>               assert response.status_code == 422, (invalid, response.text)
+E               AssertionError: (PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-200/test_claude_...0/test_claude_config_dir_needs_a0/home/empty"},"copilot":{"model":null},"kimi":{"bin":null}},"lan":{"enabled":false}}')
+E               assert 200 == 422
+E                +  where 200 = <Response [200 OK]>.status_code
+
+tests/test_sec_1.py:174: AssertionError
+______________ test_settings_writes_only_from_true_local_requests ______________
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x118166c40>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fe47750>
+
+    def test_settings_writes_only_from_true_local_requests(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch)
+        monkeypatch.setenv("VV_ALLOWED_HOSTS", "studio.test")
+        with desktop() as api:
+            device = pair_phone(api)
+            assert device.get("/api/settings").status_code == 200
+>           assert device.patch("/api/settings", json={"allow_web_research": False}).status_code == 403
+E           AssertionError: assert 200 == 403
+E            +  where 200 = <Response [200 OK]>.status_code
+E            +    where <Response [200 OK]> = patch('/api/settings', json={'allow_web_research': False})
+E            +      where patch = <starlette.testclient.TestClient object at 0x11815b130>.patch
+
+tests/test_sec_1.py:186: AssertionError
+___ test_settings_writes_refuse_non_loopback_forwarded_host_when_lan_is_off ____
+
+setup_machine = namespace(home=PosixPath('/private/var/folders/kv/w6xm99995rd70cb8bxy0dbym0000gn/T/pytest-of-ahmedabdelsalam/pytest-20...), installed=set(), logged_in={}, probes=[], calls=[], reply=<function setup_machine.<locals>.<lambda> at 0x118183950>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118175c50>
+
+    def test_settings_writes_refuse_non_loopback_forwarded_host_when_lan_is_off(setup_machine, monkeypatch):  # noqa: F811
+        lan_env(monkeypatch, lan=False, key=False)
+        monkeypatch.setenv("VV_ALLOWED_HOSTS", "studio.test")
+        with desktop() as api:
+            named = proxied(api.app, "studio.test:3000")
+>           assert named.patch("/api/settings", json={"allow_web_research": False}).status_code == 403
+E           AssertionError: assert 200 == 403
+E            +  where 200 = <Response [200 OK]>.status_code
+E            +    where <Response [200 OK]> = patch('/api/settings', json={'allow_web_research': False})
+E            +      where patch = <starlette.testclient.TestClient object at 0x1181be580>.patch
+
+tests/test_sec_1.py:199: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /Users/ahmedabdelsalam/Desktop/venue-visualizer/services/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_sec_1.py::test_root_dev_web_script_binds_loopback - Asserti...
+FAILED tests/test_sec_1.py::test_local_make_targets_bind_web_to_loopback[dev]
+FAILED tests/test_sec_1.py::test_local_make_targets_bind_web_to_loopback[web]
+FAILED tests/test_sec_1.py::test_dev_lan_calls_next_directly_with_a_single_hostname
+FAILED tests/test_sec_1.py::test_make_dry_run_shows_the_web_hostname[dev-pnpm --filter web dev --hostname 127.0.0.1]
+FAILED tests/test_sec_1.py::test_make_dry_run_shows_the_web_hostname[web-pnpm --filter web dev --hostname 127.0.0.1]
+FAILED tests/test_sec_1.py::test_make_dry_run_shows_the_web_hostname[dev-lan-pnpm --filter web dev --hostname "$bind"]
+FAILED tests/test_sec_1.py::test_proxied_request_from_wifi_device_is_not_local_when_lan_is_off
+FAILED tests/test_sec_1.py::test_api_warns_when_the_web_listens_beyond_loopback
+FAILED tests/test_sec_1.py::test_kimi_bin_must_be_an_absolute_kimi_executable
+FAILED tests/test_sec_1.py::test_claude_config_dir_needs_a_claude_marker - As...
+FAILED tests/test_sec_1.py::test_settings_writes_only_from_true_local_requests
+FAILED tests/test_sec_1.py::test_settings_writes_refuse_non_loopback_forwarded_host_when_lan_is_off
+13 failed, 2 passed, 1 warning in 3.35s

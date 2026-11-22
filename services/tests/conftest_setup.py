@@ -1,6 +1,7 @@
 """Offline process doubles for the setup acceptance tests."""
 
 import json
+import os
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -26,7 +27,12 @@ def setup_machine(tmp_path, monkeypatch):
         home=home, installed=set(), logged_in={}, probes=[], calls=[],
         reply=lambda _argv, _cwd: (0, '{"ok": true}', ""),
     )
-    monkeypatch.setattr(_proc.shutil, "which", lambda name: f"/fake/bin/{name}" if name in machine.installed else None)
+    def which(name):
+        if Path(name).is_absolute():
+            return name if Path(name).name in machine.installed and os.access(name, os.X_OK) else None
+        return f"/fake/bin/{name}" if name in machine.installed else None
+
+    monkeypatch.setattr(_proc.shutil, "which", which)
     monkeypatch.setattr(scene3d, "_chromium_installed", lambda: False)
 
     def popen(argv, **kwargs):

@@ -9,7 +9,12 @@ def test_settings_persist_and_drive_provider_and_default_selection(setup_machine
     monkeypatch.setenv("ANTHROPIC_API_KEY", "not-a-real-key")
     cfg = setup_machine.home / "work-claude"
     cfg.mkdir()
-    providers = {"claude": {"config_dir": str(cfg)}, "copilot": {"model": "chosen"}, "kimi": {"bin": "kimi-custom"}}
+    (cfg / "settings.json").write_text("{}")
+    kimi_bin = setup_machine.home / "bin" / "kimi-custom"
+    kimi_bin.parent.mkdir()
+    kimi_bin.write_text("#!/bin/sh\n")
+    kimi_bin.chmod(0o755)
+    providers = {"claude": {"config_dir": str(cfg)}, "copilot": {"model": "chosen"}, "kimi": {"bin": str(kimi_bin)}}
     with desktop() as api:
         assert api.get("/api/system/backends").json()["defaults"] == {"brain": "codex", "engine": "codex"}
         saved = api.patch("/api/settings", json={
@@ -29,7 +34,7 @@ def test_settings_persist_and_drive_provider_and_default_selection(setup_machine
         assert claude[1]["CLAUDE_CONFIG_DIR"] == str(cfg)
         assert "ANTHROPIC_API_KEY" not in claude[1]
         assert "--model=chosen" in copilot[0]
-        assert kimi[0][0] == "/fake/bin/kimi-custom"
+        assert kimi[0][0] == str(kimi_bin.resolve())
         assert any(args == ["auth", "status"] and env.get("CLAUDE_CONFIG_DIR") == str(cfg)
                    for _, args, env in setup_machine.probes)
 
