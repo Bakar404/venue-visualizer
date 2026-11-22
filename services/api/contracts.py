@@ -116,7 +116,7 @@ class VenueOut(BaseModel):
 
 
 class SkippedPhoto(BaseModel):
-    url: HttpUrl
+    url: str  # echo exactly what the client sent
     reason: str
 
 
