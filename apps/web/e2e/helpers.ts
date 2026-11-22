@@ -30,12 +30,25 @@ type MockPeek = {
     providers: Record<string, Record<string, string | null> | undefined>;
     lan: { enabled: boolean };
   };
+  /** Like restarting the app with `make dev-lan` (true) or `make dev` (false). Settings can't change it. */
+  setLan: (enabled: boolean) => void;
+  /** Phones paired with this computer, as `GET /api/system/lan/devices` returns them. */
+  lanDevices: () => Array<{ id: string; label: string; paired_at: string; last_seen: string }>;
+  /** Adds a paired phone directly, as if it had paired through /pair. */
+  pairPhone: (label?: string) => void;
+  /** The next backend test is refused with HTTP 429 and `Retry-After: seconds`; tests stay refused until then. */
+  rateLimitTests: (seconds: number) => void;
 };
 
 export type MockScenario = "fresh" | "signed-out" | "ready" | "demo";
 type MockProvider = "claude" | "codex" | "copilot" | "kimi" | "mflux";
 
 type MockGate = "chat" | "renderLook" | "deletePhoto" | "getJob";
+
+/** Waits until the app has loaded the mock and attached `window.__vvMock`. */
+export async function mockReady(page: Page) {
+  await page.waitForFunction(() => "__vvMock" in window);
+}
 
 /** Holds `name` requests in the mock; returns a release function. */
 export async function holdMock(page: Page, name: MockGate) {

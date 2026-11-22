@@ -2,12 +2,13 @@
 // backend exports (packages/schema/openapi.json; a pytest fails when that file is stale).
 import Ajv2020 from "ajv/dist/2020";
 import openapi from "@vv/schema/openapi.json";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { ApiError } from "@/lib/errors";
 import { mockApi } from "@/lib/mock-api";
+import * as system from "@/lib/mock-system";
 import { systemHooks } from "@/lib/mock-system";
-import type { Job } from "@/lib/types";
+import type { Job, SettingsPatch } from "@/lib/types";
 
 const ajv = new Ajv2020({ strict: false, validateFormats: false, allErrors: true });
 ajv.addSchema(openapi, "openapi");
@@ -121,6 +122,8 @@ const lanSchema = z.strictObject({
   // Not in the spec's table; see LanInfo in types.ts.
   pairing_code: z.string().regex(/^\d{6}$/).nullable().optional(),
 });
+// TODO(openapi): `GET /api/system/lan/devices` isn't in packages/schema/openapi.json yet.
+const devicesSchema = z.array(z.strictObject({ id: z.string(), label: z.string(), paired_at: z.string(), last_seen: z.string() }));
 
 function expectSpec<T>(schema: z.ZodType<T>, data: unknown) {
   const parsed = schema.safeParse(JSON.parse(JSON.stringify(data)));
@@ -181,17 +184,93 @@ describe("mock API matches the first-run setup spec", () => {
     expect(await mockApi.setupStatus()).toMatchObject({ complete: true, missing: [] });
   });
 
+  it("PATCH /api/settings refuses lan.enabled: it's read-only (set by `make dev-lan`)", async () => {
+    // @ts-expect-error lan isn't part of the PATCH body.
+    const typed: SettingsPatch = { lan: { enabled: true } };
+    const error = await rejects(mockApi.updateSettings(typed));
+    expect(error.status).toBe(400);
+    expect(error.message).toMatch(/read-only/);
+    expect(error.message).toContain("make dev-lan");
+    // Nothing in the body is applied, and phone access stays off.
+    await rejects(mockApi.updateSettings({ default_brain: "claude", lan: { enabled: true } } as SettingsPatch));
+    expect(await mockApi.getSettings()).toMatchObject({ default_brain: null, lan: { enabled: false } });
+    expect((await mockApi.lanInfo()).enabled).toBe(false);
+  });
+
   it("GET /api/system/lan and POST /api/system/lan/pair", async () => {
     const off = await mockApi.lanInfo();
     expectSpec(lanSchema, off);
-    expect(off.enabled).toBe(false);
+    expect(off).toMatchObject({ enabled: false, url: null, qr_svg: null, pairing_code: null });
     expect((await rejects(mockApi.pairDevice("123456"))).status).toBe(409);
-    await mockApi.updateSettings({ lan: { enabled: true } });
+    systemHooks.setLan(true);
+    const first = await mockApi.lanInfo();
+    expectSpec(lanSchema, first);
+    expect(first.qr_svg).toContain("<svg");
+    // Every fetch issues a fresh code, and only the newest one works.
     const on = await mockApi.lanInfo();
-    expectSpec(lanSchema, on);
-    expect(on.qr_svg).toContain("<svg");
+    expect(on.pairing_code).not.toBe(first.pairing_code);
+    expect((await rejects(mockApi.pairDevice(first.pairing_code!))).status).toBe(403);
     const wrong = on.pairing_code === "000000" ? "111111" : "000000";
     expect((await rejects(mockApi.pairDevice(wrong))).status).toBe(403);
     await expect(mockApi.pairDevice(on.pairing_code!)).resolves.toBeUndefined();
+    // One-time.
+    expect((await rejects(mockApi.pairDevice(on.pairing_code!))).status).toBe(403);
+  });
+
+  describe("pairing codes expire", () => {
+    afterEach(() => vi.useRealTimers());
+    it("after 10 minutes", () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      systemHooks.setLan(true);
+      const t0 = new Date("2026-11-21T12:00:00Z").getTime();
+      vi.setSystemTime(t0);
+      const early = system.lanInfo().pairing_code!;
+      vi.setSystemTime(t0 + 10 * 60_000 - 1000);
+      system.pairDevice(early, "Phone A");
+      const late = system.lanInfo().pairing_code!;
+      vi.setSystemTime(t0 + 2 * 10 * 60_000 + 1);
+      expect(() => system.pairDevice(late, "Phone B")).toThrow(/expired/);
+      expect(system.lanDevices().map((d) => d.label)).toEqual(["Phone A"]);
+    });
+  });
+
+  it("GET and DELETE /api/system/lan/devices", async () => {
+    systemHooks.setLan(true);
+    expect(await mockApi.lanDevices()).toEqual([]);
+    for (let i = 0; i < 3; i++) await mockApi.pairDevice((await mockApi.lanInfo()).pairing_code!);
+    const devices = await mockApi.lanDevices();
+    expectSpec(devicesSchema, devices);
+    expect(devices).toHaveLength(3);
+    for (const d of devices) expect(d.last_seen >= d.paired_at).toBe(true);
+
+    await expect(mockApi.forgetLanDevice(devices[1].id)).resolves.toBeUndefined();
+    expect((await mockApi.lanDevices()).map((d) => d.id)).toEqual([devices[0].id, devices[2].id]);
+    expect((await rejects(mockApi.forgetLanDevice(devices[1].id))).status).toBe(404);
+    await expect(mockApi.forgetAllLanDevices()).resolves.toBeUndefined();
+    expect(await mockApi.lanDevices()).toEqual([]);
+  });
+
+  it("POST /api/system/backends/{kind}/{id}/test can be rate-limited with Retry-After", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      systemHooks.setScenario("ready");
+      systemHooks.rateLimitTests(5);
+      const t0 = Date.now();
+      const limited = () => {
+        try {
+          system.testBackend("brain", "claude", false);
+        } catch (error) {
+          return error as ApiError;
+        }
+        throw new Error("Expected a 429");
+      };
+      expect(limited()).toMatchObject({ status: 429, retryAfter: 5 });
+      vi.setSystemTime(t0 + 3_200);
+      expect(limited()).toMatchObject({ status: 429, retryAfter: 2 });
+      vi.setSystemTime(t0 + 5_000);
+      expect(system.testBackend("brain", "claude", false).ok).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

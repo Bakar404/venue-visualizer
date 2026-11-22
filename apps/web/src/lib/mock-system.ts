@@ -1,7 +1,7 @@
 /**
  * The mock's view of "this machine" for first-run setup (docs/onboarding-and-mobile.md): which AI tools are installed
  * and signed in, the saved settings, test results and LAN pairing. End-to-end tests steer it with `?vvScenario=` or
- * `window.__vvMock.setScenario()` / `.install()`. Unlike the rest of the mock database it lives in sessionStorage, so a
+ * `window.__vvMock.setScenario()` / `.install()` / `.setLan()` / `.rateLimitTests()`. Unlike the rest of the mock database it lives in sessionStorage, so a
  * scenario survives navigation within a test (reloading re-detects the tools, like restarting the API).
  */
 import { ApiError } from "@/lib/errors";
@@ -13,6 +13,7 @@ import type {
   BackendTest,
   BackendTestResult,
   InstallCommands,
+  LanDevice,
   LanInfo,
   Settings,
   SettingsPatch,
@@ -20,6 +21,7 @@ import type {
   SetupStatus,
   UsedFor,
 } from "@/lib/types";
+import { PAIRING_CODE_MINUTES } from "@/lib/types";
 
 export type MockScenario = "fresh" | "signed-out" | "ready" | "demo";
 export type MockProvider = "claude" | "codex" | "copilot" | "kimi" | "mflux";
@@ -139,7 +141,11 @@ type SystemState = {
   detected: Record<MockProvider, ToolState>;
   settings: Settings;
   tests: Record<string, BackendTest>;
-  pairingCode: string | null;
+  /** The newest pairing code; issuing one replaces the last, and pairing uses it up. */
+  pairing: { code: string; issuedAt: number } | null;
+  devices: LanDevice[];
+  /** `rateLimitTests()`: the next test starts a window of `pending` seconds; tests are refused until `until`. */
+  testLimit: { pending: number | null; until: number };
 };
 
 const KEY = "vv:mock-system";
@@ -163,7 +169,9 @@ function initial(scenario: MockScenario): SystemState {
     detected: { ...MACHINES[scenario] },
     settings: freshSettings(scenario),
     tests: {},
-    pairingCode: null,
+    pairing: null,
+    devices: [],
+    testLimit: { pending: null, until: 0 },
   };
 }
 
@@ -181,7 +189,7 @@ function load(): SystemState {
   try {
     const saved = storage()?.getItem(KEY);
     if (saved) {
-      const state = JSON.parse(saved) as SystemState;
+      const state = { ...initial("demo"), ...(JSON.parse(saved) as Partial<SystemState>) } as SystemState;
       // Starting up re-detects, like restarting the API.
       return { ...state, detected: { ...state.machine } };
     }
@@ -289,17 +297,16 @@ export function getSettings(): Settings {
 }
 
 export function updateSettings(patch: SettingsPatch): Settings {
+  if ("lan" in patch) {
+    throw new ApiError(400, "lan.enabled is read-only. To let phones connect, restart the app with `make dev-lan`.");
+  }
   const s = sys().settings;
-  const { providers, lan, ...rest } = patch;
+  const { providers, ...rest } = patch;
   Object.assign(s, rest);
   if (providers) {
     for (const [key, value] of Object.entries(providers) as [keyof Settings["providers"], object][]) {
       s.providers[key] = { ...s.providers[key], ...value };
     }
-  }
-  if (lan) {
-    s.lan = { ...s.lan, ...lan };
-    sys().pairingCode = s.lan.enabled ? (sys().pairingCode ?? newCode()) : null;
   }
   save();
   return getSettings();
@@ -309,6 +316,17 @@ export function updateSettings(patch: SettingsPatch): Settings {
 const FREE_ENGINES = new Set(["mock", "mflux"]);
 
 export function testBackend(kind: "brain" | "engine", id: string, confirmCredits: boolean): BackendTestResult {
+  const limit = sys().testLimit;
+  if (limit.pending !== null) {
+    const seconds = limit.pending;
+    sys().testLimit = { pending: null, until: Date.now() + seconds * 1000 };
+    save();
+    throw new ApiError(429, `Too many tests. Try again in ${seconds} s.`, seconds);
+  }
+  if (Date.now() < limit.until) {
+    const seconds = Math.ceil((limit.until - Date.now()) / 1000);
+    throw new ApiError(429, `Too many tests. Try again in ${seconds} s.`, seconds);
+  }
   const list = kind === "brain" ? currentBackends().brains : currentBackends().engines;
   const backend = list.find((b) => b.id === id);
   if (!backend) throw new ApiError(404, `Unknown ${kind} “${id}”.`);
@@ -347,22 +365,90 @@ export function setupStatus(): SetupStatus {
 
 const LAN_URL = "http://192.168.1.24:3000";
 
-function newCode() {
-  return String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0");
+function newCode(previous?: string) {
+  for (;;) {
+    const code = String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0");
+    if (code !== previous) return code;
+  }
 }
 
+/** `GET /api/system/lan`. Each call issues a fresh one-time code and retires the previous one. */
 export function lanInfo(): LanInfo {
   const { enabled } = sys().settings.lan;
   if (!enabled) return { enabled: false, url: null, qr_svg: null, pairing_required: true, pairing_code: null };
-  return { enabled: true, url: LAN_URL, qr_svg: fakeQr(LAN_URL), pairing_required: true, pairing_code: sys().pairingCode };
+  const code = newCode(sys().pairing?.code);
+  sys().pairing = { code, issuedAt: Date.now() };
+  save();
+  return { enabled: true, url: LAN_URL, qr_svg: fakeQr(LAN_URL), pairing_required: true, pairing_code: code };
 }
 
-export function pairDevice(code: string) {
-  if (!sys().settings.lan.enabled) throw new ApiError(409, "Phone access is off. Turn it on in Setup on the computer.");
-  if (code.trim() !== sys().pairingCode) throw new ApiError(403, "That code didn't match.");
-  // One-time: the next phone gets a new code.
-  sys().pairingCode = newCode();
+/** `POST /api/system/lan/pair`. `label` is what the real API derives from the phone's User-Agent. */
+export function pairDevice(code: string, label: string) {
+  if (!sys().settings.lan.enabled) throw new ApiError(409, "Phone access is off. Restart the app on the computer with `make dev-lan`.");
+  const pairing = sys().pairing;
+  if (!pairing || code.trim() !== pairing.code) throw new ApiError(403, "That code didn't match.");
+  if (Date.now() - pairing.issuedAt > PAIRING_CODE_MINUTES * 60_000) {
+    sys().pairing = null;
+    save();
+    throw new ApiError(403, "That code has expired. Press New code on the computer.");
+  }
+  // One-time: the computer shows a new code for the next phone.
+  sys().pairing = null;
+  addDevice(label);
+}
+
+function addDevice(label: string) {
+  const at = new Date().toISOString();
+  const id = `phone-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  sys().devices.unshift({ id, label, paired_at: at, last_seen: at });
   save();
+}
+
+/** `GET /api/system/lan/devices`, newest first. */
+export function lanDevices(): LanDevice[] {
+  return clone(sys().devices);
+}
+
+/** `DELETE /api/system/lan/devices/{id}`. */
+export function forgetDevice(id: string) {
+  const devices = sys().devices;
+  const i = devices.findIndex((d) => d.id === id);
+  if (i < 0) throw new ApiError(404, "That phone isn't paired.");
+  devices.splice(i, 1);
+  save();
+}
+
+/** `DELETE /api/system/lan/devices`. */
+export function forgetAllDevices() {
+  sys().devices = [];
+  save();
+}
+
+/** A short name for a phone from its User-Agent, like "iPhone (Safari)". */
+export function deviceLabel(ua: string): string {
+  const device = /iPhone/.test(ua)
+    ? "iPhone"
+    : /iPad/.test(ua)
+      ? "iPad"
+      : /Android/.test(ua)
+        ? "Android phone"
+        : /Macintosh|Mac OS X/.test(ua)
+          ? "Mac"
+          : /Windows/.test(ua)
+            ? "Windows PC"
+            : /Linux|CrOS/.test(ua)
+              ? "Computer"
+              : "Phone";
+  const browser = /Edg\//.test(ua)
+    ? "Edge"
+    : /Firefox\/|FxiOS/.test(ua)
+      ? "Firefox"
+      : /Chrome\/|CriOS/.test(ua)
+        ? "Chrome"
+        : /Safari\//.test(ua)
+          ? "Safari"
+          : null;
+  return browser ? `${device} (${browser})` : device;
 }
 
 /** A QR-looking SVG (finder squares plus a pattern seeded by the URL). The real API sends a scannable one. */
@@ -390,4 +476,20 @@ export const systemHooks = {
     save();
   },
   settings: getSettings,
+  /** Like restarting the app with `make dev-lan` (true) or `make dev` (false). */
+  setLan(enabled: boolean) {
+    sys().settings.lan = { enabled };
+    if (!enabled) sys().pairing = null;
+    save();
+  },
+  lanDevices,
+  /** A phone pairs (as if through /pair with the right code). */
+  pairPhone(label = "iPhone (Safari)") {
+    addDevice(label);
+  },
+  /** The next backend test is refused with 429 and `Retry-After: seconds`, and so is every test until that passes. */
+  rateLimitTests(seconds: number) {
+    sys().testLimit = { pending: seconds, until: 0 };
+    save();
+  },
 };

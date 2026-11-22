@@ -1,9 +1,10 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpRightIcon, CheckIcon, ChevronDownIcon, CopyIcon, ImageIcon, Loader2Icon, MessageSquareIcon, RefreshCwIcon } from "lucide-react";
+import { ArrowUpRightIcon, ChevronDownIcon, HourglassIcon, ImageIcon, Loader2Icon, MessageSquareIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 
+import { CopyCommand } from "@/components/setup/copy-command";
 import { Ticks } from "@/components/setup/ticks";
 import { FREE_ENGINES, USED_FOR_LABELS, type ProviderInfo } from "@/components/setup/providers";
 import {
@@ -17,7 +18,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api, errorMessage } from "@/lib/api";
+import { api, ApiError, errorMessage } from "@/lib/api";
 import { setupPill, type SetupPill } from "@/lib/backends";
 import { qk, useRefreshBackends, useSettings, useUpdateSettings } from "@/lib/queries";
 import type { BackendStatus, UsedFor } from "@/lib/types";
@@ -55,31 +56,33 @@ function useOs(): "macos" | "linux" {
 }
 
 function Command({ which, label, command }: { which: "install" | "sign-in"; label: string; command: string }) {
-  const [copied, setCopied] = useState(false);
+  return <CopyCommand label={label} command={command} name={`${which} command`} testId={`${which}-command`} />;
+}
+
+/**
+ * After a 429 the API's `Retry-After` says how long to wait; this counts it down and returns null when it's over.
+ * `start` begins a wait of `seconds`.
+ */
+function useRetryCountdown() {
+  const [wait, setWait] = useState<{ until: number; left: number; total: number } | null>(null);
+  const waiting = wait !== null;
   useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(t);
-  }, [copied]);
-  return (
-    <div>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <div className="mt-1.5 flex items-start gap-1 rounded-lg bg-muted/60 py-1 pr-1 pl-3 ring-1 ring-border/70">
-        <code data-testid={`${which}-command`} className="min-w-0 flex-1 self-center py-1 font-mono text-sm break-words whitespace-pre-wrap">
-          {command}
-        </code>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label={copied ? `Copied ${which} command` : `Copy ${which} command`}
-          onClick={() => void navigator.clipboard.writeText(command).then(() => setCopied(true))}
-        >
-          {copied ? <CheckIcon className="text-brand" /> : <CopyIcon />}
-        </Button>
-      </div>
-    </div>
-  );
+    if (!waiting) return;
+    const t = setInterval(() => {
+      setWait((w) => {
+        if (!w) return null;
+        const left = Math.ceil((w.until - Date.now()) / 1000);
+        if (left <= 0) return null;
+        return left === w.left ? w : { ...w, left };
+      });
+    }, 250);
+    return () => clearInterval(t);
+  }, [waiting]);
+  const start = (seconds: number) => {
+    const total = Math.max(1, Math.ceil(seconds));
+    setWait({ until: Date.now() + total * 1000, left: total, total });
+  };
+  return { wait, start };
 }
 
 function roleLine(brain: BackendStatus | undefined, engine: BackendStatus | undefined) {
@@ -177,6 +180,7 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const retry = useRetryCountdown();
 
   const base = brain ?? engine;
   const lastTest = latestTest(brain, engine);
@@ -197,13 +201,18 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
     }),
     onMutate: () => setResult(null),
     onSuccess: (r) => setResult(r),
-    onError: (e, { kind }) => setResult({ kind, ok: false, seconds: 0, detail: errorMessage(e) }),
+    onError: (e, { kind }) => {
+      // Rate-limited: not a failed test, just "not yet". Test stays disabled until Retry-After passes.
+      if (e instanceof ApiError && e.status === 429) retry.start(e.retryAfter ?? 30);
+      else setResult({ kind, ok: false, seconds: 0, detail: errorMessage(e) });
+    },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: qk.backends });
       void qc.invalidateQueries({ queryKey: qk.setup });
     },
   });
   const shown = result ?? lastTest;
+  const testBlocked = test.isPending || retry.wait !== null;
   const freeImages = engine ? FREE_ENGINES.has(engine.id) : false;
 
   return (
@@ -270,7 +279,7 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
             variant="outline"
             size="sm"
             aria-busy={test.isPending && test.variables?.kind === "brain"}
-            disabled={test.isPending}
+            disabled={testBlocked}
             onClick={() => test.mutate({ kind: "brain", confirm: false })}
           >
             {test.isPending && test.variables?.kind === "brain" ? <Loader2Icon aria-hidden className="animate-spin" /> : <MessageSquareIcon aria-hidden />}
@@ -283,7 +292,7 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
             variant="outline"
             size="sm"
             aria-busy={test.isPending && test.variables?.kind === "engine"}
-            disabled={test.isPending}
+            disabled={testBlocked}
             onClick={() => (freeImages ? test.mutate({ kind: "engine", confirm: false }) : setConfirming(true))}
           >
             {test.isPending && test.variables?.kind === "engine" ? <Loader2Icon aria-hidden className="animate-spin" /> : <ImageIcon aria-hidden />}
@@ -319,6 +328,20 @@ export function ProviderCard({ provider, brain, engine }: { provider: ProviderIn
             {test.variables?.kind === "engine"
               ? `Making a small test image with ${engineLabel}. This can take up to a minute.`
               : "Asking for a one-line answer. This takes a few seconds."}
+          </p>
+        )}
+        {retry.wait && (
+          <p
+            data-testid="retry-after"
+            className="flex items-start gap-2 rounded-lg border border-warning-border bg-warning p-3 text-sm text-pretty text-warning-foreground"
+          >
+            <HourglassIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+            <span>
+              <span className="font-medium">Too many tests in a row.</span>{" "}
+              {/* The countdown ticks visually; screen readers hear the wait once. */}
+              <span aria-hidden>Try again in {retry.wait.left} s.</span>
+              <span className="sr-only">Try again in {retry.wait.total} seconds.</span>
+            </span>
           </p>
         )}
       </div>

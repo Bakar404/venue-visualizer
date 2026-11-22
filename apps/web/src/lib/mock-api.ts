@@ -818,7 +818,19 @@ export const mockApi: VVApi = {
   },
   async pairDevice(code) {
     await latency();
-    system.pairDevice(code);
+    system.pairDevice(code, system.deviceLabel(typeof navigator === "undefined" ? "" : navigator.userAgent));
+  },
+  async lanDevices() {
+    await latency();
+    return system.lanDevices();
+  },
+  async forgetLanDevice(id) {
+    await latency();
+    system.forgetDevice(id);
+  },
+  async forgetAllLanDevices() {
+    await latency();
+    system.forgetAllDevices();
   },
   async listVenues() {
     await latency();

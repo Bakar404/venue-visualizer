@@ -1,0 +1,11 @@
+# pnpm --filter web exec playwright test e2e/s7.spec.ts --project=mobile -g setup  (after the LAN security change)
+
+Running 5 tests using 4 workers
+
+  ✓  2 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup fits a phone @mobile (1.5s)
+  ✓  4 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-advanced fits a phone @mobile (2.3s)
+  ✓  1 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-rate-limited fits a phone @mobile (2.4s)
+  ✓  3 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-forget-all-dialog fits a phone @mobile (2.5s)
+  ✓  5 [mobile] › e2e/s7.spec.ts:130:3 › S7: setup-credit-dialog fits a phone @mobile (1.3s)
+
+  5 passed (4.9s)

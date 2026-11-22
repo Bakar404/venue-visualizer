@@ -54,11 +54,12 @@ export type Settings = {
     copilot?: { model?: string | null };
     kimi?: { bin?: string | null };
   };
+  /** Read-only: phone access is turned on by starting the app with `make dev-lan`. */
   lan: { enabled: boolean };
 };
+/** `lan` is read-only, so it isn't part of the body; the API answers 400 if it's sent. */
 export type SettingsPatch = Partial<Omit<Settings, "providers" | "lan">> & {
   providers?: Settings["providers"];
-  lan?: Partial<Settings["lan"]>;
 };
 
 export type BackendTestResult = { ok: boolean; seconds: number; detail: string; sample_url?: string | null };
@@ -67,7 +68,8 @@ export type SetupMissing = "brain" | "engine" | "defaults";
 export type SetupStatus = { complete: boolean; missing: SetupMissing[]; steps: Record<string, unknown> };
 /**
  * `pairing_code` isn't in the spec's table; the setup page needs it to show the code on the computer. Assumed name,
- * to confirm with the backend.
+ * to confirm with the backend. Each fetch issues a fresh one-time code that expires after 10 minutes (and replaces
+ * the previous code). TODO(openapi): type these from packages/schema/openapi.json once the backend lands.
  */
 export type LanInfo = {
   enabled: boolean;
@@ -76,6 +78,10 @@ export type LanInfo = {
   pairing_required: true;
   pairing_code?: string | null;
 };
+/** How long a pairing code works after `GET /api/system/lan` issues it. */
+export const PAIRING_CODE_MINUTES = 10;
+/** A phone paired with this computer (`GET /api/system/lan/devices`). TODO(openapi): type from the schema once it lands. */
+export type LanDevice = { id: string; label: string; paired_at: string; last_seen: string };
 
 /** Web photos carry `source_url` (the image), `source_page` (where it was found) and `credit` (printed on exports). */
 export type Photo = Schemas["PhotoOut"];
@@ -237,7 +243,10 @@ export interface VVApi {
   backends(): Promise<Backends>;
   /** Re-detects the CLIs now (Check again). */
   refreshBackends(): Promise<Backends>;
-  /** A tiny real call. Image tests need `confirm_credits: true` (except mock and mflux), else 422. */
+  /**
+   * A tiny real call. Image tests need `confirm_credits: true` (except mock and mflux), else 422. May answer 429 with
+   * `Retry-After` (seconds), surfaced as `ApiError.retryAfter`.
+   */
   testBackend(kind: "brain" | "engine", id: string, body: { confirm_credits?: boolean }): Promise<BackendTestResult>;
   getSettings(): Promise<Settings>;
   updateSettings(body: SettingsPatch): Promise<Settings>;
@@ -245,6 +254,11 @@ export interface VVApi {
   lanInfo(): Promise<LanInfo>;
   /** A phone on the LAN pairs with the 6-digit code shown on the computer; the API sets a device cookie. */
   pairDevice(code: string): Promise<void>;
+  /** Phones paired with this computer, newest first. */
+  lanDevices(): Promise<LanDevice[]>;
+  /** Unpairs one phone; it needs a new code to connect again. 404 if it's unknown. */
+  forgetLanDevice(id: string): Promise<void>;
+  forgetAllLanDevices(): Promise<void>;
   listVenues(): Promise<Venue[]>;
   createVenue(body: { name: string; rules?: VenueRules }): Promise<Venue>;
   getVenue(id: string): Promise<Venue>;

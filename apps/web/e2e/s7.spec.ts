@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { openStudio, proof, settled } from "./helpers";
+import { mockReady, openStudio, proof, settled } from "./helpers";
 
 // S7 (docs/onboarding-and-mobile.md) @mobile: every route at 390×844 has no horizontal overflow, and every visible
 // interactive element is at least 44 px in one dimension and 24 px in the other. One screenshot per route.
@@ -24,9 +24,36 @@ const ROUTES: Route[] = [
     name: "setup-advanced",
     path: "/setup",
     ready: async (page) => {
+      await mockReady(page);
+      await page.evaluate(() => {
+        window.__vvMock.setLan(true);
+        window.__vvMock.pairPhone("iPhone (Safari)");
+      });
+      await page.reload();
       await page.getByRole("region", { name: "Claude Code", exact: true }).getByRole("button", { name: "Advanced" }).click();
-      await page.getByRole("switch", { name: /Allow phones on this Wi.?Fi/i }).click();
       await expect(page.getByTestId("pairing-code")).toBeVisible();
+      await expect(page.getByRole("region", { name: "Paired phones" }).getByRole("listitem")).toHaveCount(1);
+    },
+  },
+  {
+    name: "setup-forget-all-dialog",
+    path: "/setup",
+    ready: async (page) => {
+      await mockReady(page);
+      await page.evaluate(() => window.__vvMock.pairPhone("Pixel 9 (Chrome)"));
+      await page.reload();
+      await page.getByRole("button", { name: "Forget all phones" }).click();
+      await expect(page.getByRole("alertdialog")).toBeVisible();
+    },
+  },
+  {
+    name: "setup-rate-limited",
+    path: "/setup?vvScenario=ready",
+    ready: async (page) => {
+      await mockReady(page);
+      await page.evaluate(() => window.__vvMock.rateLimitTests(60));
+      await page.getByRole("region", { name: "Claude Code", exact: true }).getByRole("button", { name: "Test chat" }).click();
+      await expect(page.getByTestId("retry-after")).toBeVisible();
     },
   },
   {

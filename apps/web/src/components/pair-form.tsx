@@ -22,7 +22,7 @@ export function PairForm() {
       <div className="grid gap-5">
         <p role="status" className="flex items-start gap-2 text-lg text-pretty">
           <CheckCircle2Icon aria-hidden className="mt-1 size-5 shrink-0 text-brand" />
-          This phone is paired. It stays paired until you turn phone access off on the computer.
+          This phone is paired. It stays paired until it&apos;s forgotten in Setup on the computer.
         </p>
         <Link href="/" className={cn(buttonVariants({ size: "lg" }), "h-12 w-full text-base sm:w-auto")}>
           Open Venue Visualizer
