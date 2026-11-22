@@ -1,0 +1,5 @@
+
+[1/1] [chromium] › e2e/ut1.spec.ts:166:1 › UT1: a reader the layout brings back to the end is followed again (review R6)
+  1 passed (23.3s)
+  34 passed (1.3m)
+ut1 --repeat-each=5 x3: 105/105 passed

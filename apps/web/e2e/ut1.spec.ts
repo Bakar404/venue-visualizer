@@ -162,3 +162,41 @@ test("UT1: the New message pill moves focus to the newest message", async ({ pag
   await expect(newest).toBeFocused();
   await expect.poll(() => fromBottom(page)).toBeLessThanOrEqual(1);
 });
+
+test("UT1: a reader the layout brings back to the end is followed again (review R6)", async ({ page }) => {
+  await openStudio(page, "space-ballroom");
+  await fillChat(page);
+  const log = conversation(page);
+  const before = await assistantReplies(page);
+  // A reply is on its way...
+  const chat = await holdMock(page, "chat");
+  await page.locator("#chat-input").fill("Add a dance floor");
+  await page.locator("#chat-input").press("Enter");
+  await chat.reached();
+  await expect(log.locator("ol > li").last()).toHaveText("Add a dance floor");
+  await expect.poll(() => fromBottom(page)).toBeLessThanOrEqual(1);
+  // ...the reader scrolls up ~150px to re-read (unpinned)...
+  const bottom = await log.evaluate((el) => el.scrollHeight - el.clientHeight);
+  await log.evaluate(
+    (el, top) =>
+      new Promise<void>((resolve) => {
+        el.addEventListener("scroll", () => resolve(), { once: true });
+        el.scrollTo({ top, behavior: "instant" });
+      }),
+    bottom - 150,
+  );
+  // ...then the panel grows (taller window) and the browser clamps them to the very end.
+  const { width, height } = page.viewportSize()!;
+  const tall = await log.evaluate((el) => el.clientHeight);
+  await page.setViewportSize({ width, height: height + 400 });
+  await expect.poll(() => log.evaluate((el) => el.clientHeight)).toBeGreaterThan(tall);
+  await expect.poll(() => fromBottom(page), { message: "clamped to the end by the layout" }).toBeLessThanOrEqual(1);
+  // Being at the end again means following again (the chat re-pins on the layout change).
+  await expect(log).toHaveAttribute("data-pinned", "true");
+  // The reply that lands now must be followed, with no "New message" pill: they are at the end.
+  await chat.release();
+  await waitForReply(page, before);
+  await expect(thinking(page)).toHaveCount(0);
+  await expect.poll(() => fromBottom(page), { message: "the reply is followed" }).toBeLessThanOrEqual(1);
+  await expect(pill(page)).toBeHidden();
+});

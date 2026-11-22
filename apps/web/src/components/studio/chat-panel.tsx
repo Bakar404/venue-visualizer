@@ -129,6 +129,11 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
   const messages = history.data ?? [];
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
 
+  const setPinned = useCallback((log: HTMLDivElement | null, value: boolean) => {
+    pinnedRef.current = value;
+    if (log) log.dataset.pinned = String(value);
+  }, []);
+
   const updatePinIntent = useCallback((log: HTMLDivElement) => {
     if (!log.clientHeight) return;
     const bottom = Math.max(0, log.scrollHeight - log.clientHeight);
@@ -137,16 +142,22 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
     // A queued scroll event can see a new bottom. Our own offset (or a layout clamp) isn't reader input.
     if (Math.abs(top - expectedTop) <= 1) {
       lastScrollTop.current = expectedTop;
+      // Not reader input, but if the layout left them at the end (panel grew, keyboard closed), follow again.
+      // Only re-pinning is allowed here; unpinning still requires a reader scroll (the race fix stays intact).
+      if (bottom - top <= STICK_PX) {
+        setPinned(log, true);
+        setUnseen(false);
+      }
       return;
     }
     lastScrollTop.current = top;
     if (bottom - top <= STICK_PX) {
-      pinnedRef.current = true;
+      setPinned(log, true);
       setUnseen(false);
     } else if (top < expectedTop) {
-      pinnedRef.current = false;
+      setPinned(log, false);
     }
-  }, []);
+  }, [setPinned]);
 
   const scrollToBottom = useCallback((log: HTMLDivElement) => {
     log.scrollTo({ top: log.scrollHeight, behavior: "auto" });
@@ -192,7 +203,7 @@ export function ChatPanel({ spaceId, spec, onSpec, brain, onBrain, onRender, ren
   const resumeFollowing = () => {
     const log = logRef.current;
     if (!log) return;
-    pinnedRef.current = true;
+    setPinned(log, true);
     setUnseen(false);
     scrollToBottom(log);
   };
