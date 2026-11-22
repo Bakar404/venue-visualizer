@@ -1,5 +1,9 @@
 # Venue Visualizer
 
+[![CI](https://github.com/Bakar404/venue-visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/Bakar404/venue-visualizer/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Bakar404/venue-visualizer)](https://github.com/Bakar404/venue-visualizer/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **See your event before it happens.** Bring your venue in (by name, photos, or a walkthrough video) and describe the
 look you want in plain words. Venue Visualizer gives you back **photoreal pictures of your actual room**, with the
 tables, linens, flowers and lighting in place. Compare Looks side by side and export a PDF for your florist or planner.
@@ -187,6 +191,11 @@ Design references: [Aceternity UI](https://ui.aceternity.com/) (spotlight hero),
 [OpenAI Codex CLI](https://github.com/openai/codex), [GitHub Copilot CLI](https://github.com/features/copilot/cli)
 (including its image tool), [Kimi Code](https://www.kimi.com/code), and [mflux](https://github.com/mflux-community/mflux)
 for local FLUX on Apple Silicon.
+
+## Releases
+
+See the [changelog](CHANGELOG.md) for what's new and [GitHub Releases](https://github.com/Bakar404/venue-visualizer/releases)
+for tagged versions.
 
 ## License
 
